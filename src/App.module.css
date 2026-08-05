@@ -1,0 +1,10 @@
+.page {
+  max-width: 1200px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--color-surface);
+}
+
+.main {
+  padding: 0 80px 80px;
+}

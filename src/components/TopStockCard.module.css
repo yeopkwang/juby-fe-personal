@@ -1,0 +1,50 @@
+.card {
+  display: block;
+  padding: 18px 18px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.theme {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-sub);
+}
+
+.name {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.rateRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 14px 0 0;
+}
+
+.rate {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.caption {
+  font-size: 11px;
+  color: var(--color-text-sub);
+}
+
+.chart {
+  height: 150px;
+  margin-top: 10px;
+}

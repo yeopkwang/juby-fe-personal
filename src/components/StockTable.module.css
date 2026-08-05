@@ -1,0 +1,101 @@
+.table {
+  --columns: 48px 96px 1.5fr 1.4fr 1.1fr 1.1fr;
+  margin-top: 20px;
+}
+
+.head,
+.row {
+  display: grid;
+  grid-template-columns: var(--columns);
+  align-items: center;
+  padding: 0 16px;
+}
+
+.head {
+  height: 40px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  justify-self: start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sortButton:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.sortButton:disabled {
+  cursor: progress;
+}
+
+.sortButtonActive {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.sortIcon {
+  vertical-align: -1px;
+}
+
+.sortIconUp {
+  transform: rotate(180deg);
+}
+
+.row {
+  height: 56px;
+  margin-bottom: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 14px;
+}
+
+.row:hover {
+  border-color: #d7dbe0;
+  background: #fafbfc;
+}
+
+.heart {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #c9cfd6;
+}
+
+.heart:hover {
+  color: var(--color-up);
+}
+
+.heartOn {
+  color: var(--color-up);
+}
+
+.code {
+  color: var(--color-text-sub);
+}
+
+.name {
+  font-weight: 600;
+}
+
+.up {
+  color: var(--color-up);
+  font-weight: 600;
+}
+
+.down {
+  color: var(--color-down);
+  font-weight: 600;
+}

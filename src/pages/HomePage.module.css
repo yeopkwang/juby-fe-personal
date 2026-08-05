@@ -1,0 +1,88 @@
+.section {
+  margin-top: 64px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+
+.heading {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.headingRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.note {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.loading {
+  height: 288px;
+  margin: 20px 0 0;
+  color: var(--color-text-sub);
+  font-size: 14px;
+}
+
+.sentinel {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-sub);
+  font-size: 13px;
+}
+
+.modalMessage {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modalButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.modalPrimary,
+.modalSecondary {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modalPrimary {
+  background: var(--color-text);
+  color: #fff;
+}
+
+.modalSecondary {
+  background: none;
+  color: var(--color-text-sub);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 20px;
+}
