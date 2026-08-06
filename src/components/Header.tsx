@@ -16,8 +16,9 @@ export default function Header() {
 
       <nav className={`${styles.menu} ${styles.right}`}>
         <Link to="/guide">사용설명서</Link>
+        {/* /mypage는 아직 라우트가 없어 App.tsx의 * 규칙에 걸려 NotReadyPage로 간다 */}
         {isLoggedIn() ? (
-          <Link to="/mypage/profile">마이페이지</Link>
+          <Link to="/mypage">마이페이지</Link>
         ) : (
           <Link to="/login">로그인</Link>
         )}

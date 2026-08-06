@@ -4,14 +4,14 @@
 
 .eyebrow {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-sub);
 }
 
 .heading {
   margin: 6px 0 0;
-  font-size: 30px;
+  font-size: 34px;
   font-weight: 700;
   letter-spacing: -0.03em;
 }
@@ -23,7 +23,7 @@
 }
 
 .note {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-sub);
 }
 
@@ -31,7 +31,7 @@
   height: 288px;
   margin: 20px 0 0;
   color: var(--color-text-sub);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .sentinel {
@@ -40,12 +40,12 @@
   align-items: center;
   justify-content: center;
   color: var(--color-text-sub);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .modalMessage {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
 }
 
@@ -58,14 +58,14 @@
 
 .modalPrimary,
 .modalSecondary {
-  height: 44px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: 10px;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
 }

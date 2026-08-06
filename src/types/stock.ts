@@ -36,6 +36,9 @@ export interface SortState {
   direction: SortDirection
 }
 
+/** 카드 제목에 필요한 부분. 그래프가 도착하기 전에 이것만으로 먼저 그린다 */
+export type TopTheme = Pick<TopStock, 'stockCode' | 'stockName' | 'theme'>
+
 /** 홈 상단 테마별 대표 종목 카드 */
 export interface TopStock extends StockInfo {
   /** "기술주 대장" 같은 테마 라벨 */

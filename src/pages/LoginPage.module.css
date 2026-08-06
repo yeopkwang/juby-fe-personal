@@ -1,0 +1,104 @@
+/* 공통 헤더 바로 아래에 붙는 제목 줄. 헤더와 같은 흰 배경으로 이어진다 */
+.titleBar {
+  display: flex;
+  align-items: center;
+  height: 88px;
+  padding: 0 80px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Figma에서 제목 아래 밑줄이 글자 폭만큼 그어져 있다 */
+.title {
+  margin: 0;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--color-text);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/*
+ * 위에서부터 흰색(헤더·제목 줄) → 회색 → 흰색으로 딱 끊는다.
+ * 바탕을 흰색으로 되돌리고 회색은 아래 .band가 맡는다. 그라데이션은 쓰지 않는다.
+ */
+.body {
+  /* 헤더 76px + 제목 줄 88px. 띠 아래 흰색이 화면 끝까지 이어지도록 높이를 채운다 */
+  min-height: calc(100vh - 164px);
+  background: var(--color-surface);
+}
+
+/*
+ * 회색 띠. 좌우는 화면 끝까지 채우고 위아래로는 문구와 버튼을 감쌀 만큼만 차지한다.
+ * align-items를 지정하지 않아야 세로 정렬에서 자식이 가로를 꽉 채운다.
+ */
+.band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 96px 24px;
+  background: var(--color-page-bg);
+}
+
+.headline {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+
+.caption {
+  margin: 20px 0 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-sub);
+}
+
+.error {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-up);
+}
+
+.buttons {
+  display: flex;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.social {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.social:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
+}
+
+.naver {
+  background: #03c75a;
+}
+
+.kakao {
+  background: #fee500;
+}
+
+.google {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.icon {
+  display: block;
+}

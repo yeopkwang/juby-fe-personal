@@ -12,8 +12,8 @@
 }
 
 .head {
-  height: 40px;
-  font-size: 13px;
+  height: 44px;
+  font-size: 15px;
   color: var(--color-text-sub);
 }
 
@@ -52,17 +52,21 @@
 }
 
 .row {
-  height: 56px;
+  height: 62px;
   margin-bottom: 8px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
-  font-size: 14px;
+  /* 회색 바탕 위에 살짝 떠 보이게 한다. 100줄이 겹치므로 진하면 화면이 지저분해진다 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  font-size: 16px;
+  transition: box-shadow 0.15s, border-color 0.15s;
 }
 
 .row:hover {
   border-color: #d7dbe0;
   background: #fafbfc;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .heart {
@@ -80,6 +84,15 @@
 
 .heartOn {
   color: var(--color-up);
+}
+
+/* 금액·비율은 오른쪽에 붙여야 자릿수를 위아래로 견주기 좋다 */
+.numeric {
+  text-align: right;
+}
+
+.numericHead {
+  justify-self: end;
 }
 
 .code {

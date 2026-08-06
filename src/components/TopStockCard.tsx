@@ -6,7 +6,8 @@ import {
   ResponsiveContainer,
   YAxis,
 } from 'recharts'
-import type { TopStock } from '../types/stock'
+import { prefetchCandles } from '../api/candles'
+import type { TopStock, TopTheme } from '../types/stock'
 import { formatChangeRate } from '../utils/format'
 import styles from './TopStockCard.module.css'
 
@@ -14,10 +15,44 @@ const UP_COLOR = '#f04452'
 const DOWN_COLOR = '#3182f6'
 
 interface Props {
-  stock: TopStock
+  theme: TopTheme
+  /** 아직 일봉이 안 왔으면 null. 제목만 먼저 그리고 그래프 자리는 비워둔다 */
+  stock: TopStock | null
 }
 
-export default function TopStockCard({ stock }: Props) {
+/**
+ * 카드 껍데기는 테마와 종목명만으로 바로 그린다.
+ * 셋 다 기다렸다가 한꺼번에 그리면 화면이 오래 비어 있고, 뒤늦게 나타나며 아래를 밀어낸다.
+ */
+export default function TopStockCard({ theme, stock }: Props) {
+  return (
+    <Link
+      to={`/stocks/${theme.stockCode}`}
+      className={styles.card}
+      onMouseEnter={() => prefetchCandles(theme.stockCode)}
+    >
+      <p className={styles.theme}>{theme.theme}</p>
+      <p className={styles.name}>{theme.stockName}</p>
+
+      {stock === null ? <CardPlaceholder /> : <CardChart stock={stock} />}
+    </Link>
+  )
+}
+
+/** 값이 오기 전 자리. 높이를 CardChart와 똑같이 잡아 도착해도 화면이 흔들리지 않는다 */
+function CardPlaceholder() {
+  return (
+    <>
+      <p className={styles.rateRow}>
+        <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
+        <span className={styles.caption}>90일 전 대비</span>
+      </p>
+      <div className={`${styles.chart} ${styles.chartEmpty}`} />
+    </>
+  )
+}
+
+function CardChart({ stock }: { stock: TopStock }) {
   const isUp = stock.changeRate >= 0
   const lineColor = isUp ? UP_COLOR : DOWN_COLOR
   const lastIndex = stock.prices.length - 1
@@ -33,10 +68,7 @@ export default function TopStockCard({ stock }: Props) {
   const maxVolume = Math.max(...stock.volumes)
 
   return (
-    <Link to={`/stocks/${stock.stockCode}`} className={styles.card}>
-      <p className={styles.theme}>{stock.theme}</p>
-      <p className={styles.name}>{stock.stockName}</p>
-
+    <>
       <p className={styles.rateRow}>
         <span className={styles.rate} style={{ color: lineColor }}>
           {formatChangeRate(stock.changeRate, 1)}
@@ -89,6 +121,6 @@ export default function TopStockCard({ stock }: Props) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-    </Link>
+    </>
   )
 }

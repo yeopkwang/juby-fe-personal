@@ -11,3 +11,8 @@ export function daysAgo(days: number): Date {
   date.setDate(date.getDate() - days)
   return date
 }
+
+/** "20260805" → "2026-08-05" (lightweight-charts가 이 형식을 받는다) */
+export function toDashedYmd(ymd: string): string {
+  return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`
+}

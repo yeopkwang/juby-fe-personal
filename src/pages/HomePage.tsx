@@ -4,7 +4,13 @@ import SearchBar from '../components/SearchBar'
 import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
 import Modal from '../components/Modal'
-import { getHomeStocks, getQuotes, getTopStocks } from '../api/home'
+import {
+  TOP_THEMES,
+  getHomeStocks,
+  getQuotes,
+  loadTopStocks,
+  readCachedTopStocks,
+} from '../api/home'
 import { isLoggedIn } from '../utils/auth'
 import { nextSort, sortStocks } from '../utils/sort'
 import type { SortKey, SortState, Stock, TopStock } from '../types/stock'
@@ -13,8 +19,13 @@ import styles from './HomePage.module.css'
 const PAGE_SIZE = 20
 
 export default function HomePage() {
-  const [topStocks, setTopStocks] = useState<TopStock[]>([])
-  const [isTopLoading, setIsTopLoading] = useState(true)
+  /*
+   * 지난 방문에서 받아둔 카드가 있으면 그걸로 시작한다. 없으면 자리만 잡아 둔다.
+   * 어느 쪽이든 아래 effect가 최신 값을 받아 같은 자리에 갈아끼운다.
+   */
+  const [topStocks, setTopStocks] = useState<(TopStock | null)[]>(
+    () => readCachedTopStocks() ?? TOP_THEMES.map(() => null),
+  )
   const [hasTopError, setHasTopError] = useState(false)
   const [stocks, setStocks] = useState<Stock[]>([])
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
@@ -28,14 +39,25 @@ export default function HomePage() {
   const requestedCodes = useRef(new Set<string>())
   const sentinelRef = useRef<HTMLDivElement>(null)
 
+  /** 전체 시세를 받는 중인 작업. 정렬을 누르면 이게 끝나기를 기다린다 */
+  const allQuotesRef = useRef<Promise<void> | null>(null)
+  const hasStartedQuotes = useRef(false)
+  const hasStartedTop = useRef(false)
+  const [isQuotesReady, setIsQuotesReady] = useState(false)
+
   useEffect(() => {
-    getTopStocks()
-      .then(setTopStocks)
-      .catch((error: unknown) => {
-        console.warn('테마별 대표 종목 조회 실패', error)
-        setHasTopError(true)
-      })
-      .finally(() => setIsTopLoading(false))
+    // 개발 모드는 effect를 두 번 실행한다. 그대로 두면 일봉 요청이 6건이 되어 서로 제한에 걸린다
+    if (hasStartedTop.current) return
+    hasStartedTop.current = true
+
+    loadTopStocks((index, stock) => {
+      setTopStocks((previous) =>
+        previous.map((item, i) => (i === index ? stock : item)),
+      )
+    }).catch((error: unknown) => {
+      console.warn('테마별 대표 종목 조회 실패', error)
+      setHasTopError(true)
+    })
   }, [])
 
   useEffect(() => {
@@ -59,10 +81,24 @@ export default function HomePage() {
     )
   }, [])
 
-  // 화면에 드러난 종목만 시세를 채운다
+  /*
+   * 보이는 20개를 먼저 채워 표를 띄우고, 나머지는 뒤에서 마저 받는다.
+   * 예전에는 정렬을 누른 뒤에야 나머지를 불러서 3초 넘게 멈춰 있었다.
+   *
+   * stocks는 loadQuotes가 시세를 채울 때마다 새 배열이 되므로 이 effect가 다시 돈다.
+   * ref로 한 번만 시작하게 막는다(개발 모드에서 effect를 두 번 실행하는 것도 같이 막힌다).
+   */
   useEffect(() => {
-    loadQuotes(stocks.slice(0, visibleCount))
-  }, [stocks, visibleCount, loadQuotes])
+    if (stocks.length === 0) return
+    if (hasStartedQuotes.current) return
+    hasStartedQuotes.current = true
+
+    allQuotesRef.current = (async () => {
+      await loadQuotes(stocks.slice(0, PAGE_SIZE))
+      await loadQuotes(stocks)
+      setIsQuotesReady(true)
+    })()
+  }, [stocks, loadQuotes])
 
   // 목록 끝이 화면에 들어오면 20개 더 보여준다
   useEffect(() => {
@@ -81,10 +117,10 @@ export default function HomePage() {
   }, [visibleCount, stocks.length])
 
   async function handleSort(key: SortKey) {
-    // 시세 기준 정렬은 102종목 값이 다 있어야 맞다. 아직 안 부른 종목을 여기서 마저 부른다
-    if (key !== 'stockName' && requestedCodes.current.size < stocks.length) {
+    // 시세 기준 정렬은 101종목 값이 다 있어야 맞다. 아직 받는 중이면 끝날 때까지만 기다린다
+    if (key !== 'stockName' && !isQuotesReady) {
       setIsSortLoading(true)
-      await loadQuotes(stocks)
+      await allQuotesRef.current
       setIsSortLoading(false)
     }
 
@@ -114,19 +150,20 @@ export default function HomePage() {
       <SearchBar />
 
       <section className={styles.section}>
-        <p className={styles.eyebrow}>백테스트 기업으로 투자한</p>
+        <p className={styles.eyebrow}>백테스트 기법으로 투자한</p>
         <h2 className={styles.heading}>테마별 대표 종목</h2>
 
-        {isTopLoading && <p className={styles.loading}>불러오는 중…</p>}
-
-        {hasTopError && (
+        {/* 한 장도 못 받았을 때만 에러로 대체한다. 일부라도 왔으면 그건 보여주는 편이 낫다 */}
+        {hasTopError && topStocks.every((stock) => stock === null) ? (
           <p className={styles.loading}>차트를 불러오지 못했습니다.</p>
-        )}
-
-        {!isTopLoading && !hasTopError && (
+        ) : (
           <div className={styles.cards}>
-            {topStocks.map((stock) => (
-              <TopStockCard key={stock.stockCode} stock={stock} />
+            {TOP_THEMES.map((theme, index) => (
+              <TopStockCard
+                key={theme.stockCode}
+                theme={theme}
+                stock={topStocks[index]}
+              />
             ))}
           </div>
         )}

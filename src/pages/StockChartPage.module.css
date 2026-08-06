@@ -1,0 +1,73 @@
+.section {
+  margin-top: 64px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.backLink {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 15px;
+  color: var(--color-text-sub);
+  text-decoration: underline;
+}
+
+.identity {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.code {
+  font-size: 15px;
+  color: var(--color-text-sub);
+}
+
+.price {
+  margin: 6px 0 0;
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.change {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--color-text-sub);
+}
+
+.up {
+  font-weight: 600;
+  color: var(--color-up);
+}
+
+.down {
+  font-weight: 600;
+  color: var(--color-down);
+}
+
+.chartBox {
+  height: 420px;
+  margin-top: 24px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.chartMessage {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-sub);
+}

@@ -1,43 +1,141 @@
-import { useState } from 'react'
-import type { FormEvent } from 'react'
+import { useEffect, useState } from 'react'
+import type { FocusEvent, FormEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { searchStock } from '../api/stock'
+import { prefetchCandles } from '../api/candles'
+import { searchStocks } from '../api/stock'
+import type { StockInfo } from '../types/stock'
 import styles from './SearchBar.module.css'
 
 export default function SearchBar() {
   const [keyword, setKeyword] = useState('')
+  const [suggestions, setSuggestions] = useState<StockInfo[]>([])
+  /** 화살표로 고른 후보. -1이면 아직 아무것도 안 골랐다 */
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState('')
   const navigate = useNavigate()
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
+  useEffect(() => {
     const trimmed = keyword.trim()
-    if (trimmed === '') return
-
-    const stock = await searchStock(trimmed)
-    if (stock === null) {
-      setMessage('해당 종목을 찾을 수 없습니다')
+    if (trimmed === '') {
+      setSuggestions([])
+      setActiveIndex(-1)
       return
     }
 
+    // 지금은 로컬 목록이라 바로 끝나지만, 검색 API로 바뀌면 늦게 온 응답이 최신 입력을 덮을 수 있다
+    let isStale = false
+
+    searchStocks(trimmed).then((found) => {
+      if (isStale) return
+      setSuggestions(found)
+      setActiveIndex(-1)
+    })
+
+    return () => {
+      isStale = true
+    }
+  }, [keyword])
+
+  function goTo(stock: StockInfo) {
+    setIsOpen(false)
     setMessage('')
     navigate(`/stocks/${stock.stockCode}`)
   }
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (keyword.trim() === '') return
+
+    // 화살표로 고른 게 있으면 그것, 없으면 가장 잘 맞는 첫 후보로 간다
+    const target = suggestions[activeIndex >= 0 ? activeIndex : 0]
+    if (target === undefined) {
+      setMessage('해당 종목을 찾을 수 없습니다')
+      return
+    }
+
+    goTo(target)
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape') {
+      setIsOpen(false)
+      return
+    }
+
+    if (suggestions.length === 0) return
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setIsOpen(true)
+      setActiveIndex((index) => (index + 1) % suggestions.length)
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setIsOpen(true)
+      setActiveIndex((index) =>
+        index <= 0 ? suggestions.length - 1 : index - 1,
+      )
+    }
+  }
+
+  function handleBlur(event: FocusEvent<HTMLFormElement>) {
+    // 후보 버튼으로 포커스가 옮겨간 것뿐이면 닫지 않는다
+    if (event.currentTarget.contains(event.relatedTarget)) return
+    setIsOpen(false)
+  }
+
+  const isListVisible = isOpen && suggestions.length > 0
+
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
+    <form className={styles.form} onSubmit={handleSubmit} onBlur={handleBlur}>
       <div className={styles.box}>
         <input
           className={styles.input}
           value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
+          onChange={(event) => {
+            setKeyword(event.target.value)
+            setIsOpen(true)
+            setMessage('')
+          }}
+          onFocus={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder="관심종목을 입력해주세요 (예 : 삼성전자)"
+          role="combobox"
+          aria-expanded={isListVisible}
+          aria-controls="stock-suggestions"
+          aria-autocomplete="list"
         />
         <button type="submit" className={styles.button}>
           검색
         </button>
       </div>
+
+      {isListVisible && (
+        <ul className={styles.list} id="stock-suggestions" role="listbox">
+          {suggestions.map((stock, index) => (
+            <li key={stock.stockCode} role="option" aria-selected={index === activeIndex}>
+              <button
+                type="button"
+                className={
+                  index === activeIndex
+                    ? `${styles.option} ${styles.optionActive}`
+                    : styles.option
+                }
+                // 눌리기 전에 input이 포커스를 잃으면 목록이 먼저 닫혀 클릭이 사라진다
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => prefetchCandles(stock.stockCode)}
+                onClick={() => goTo(stock)}
+              >
+                <span className={styles.optionName}>{stock.stockName}</span>
+                <span className={styles.optionCode}>{stock.stockCode}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {message !== '' && <p className={styles.message}>{message}</p>}
     </form>
   )

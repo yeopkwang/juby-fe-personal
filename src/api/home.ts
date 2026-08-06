@@ -1,5 +1,5 @@
 import {
-  getDailyChart,
+  getDailyCandles,
   getPrice,
   getVolumeRank,
   toChangeRate,
@@ -7,11 +7,19 @@ import {
 } from './market'
 import { STOCK_LIST } from './stockList'
 import { daysAgo, toYmd } from '../utils/date'
-import { settleInChunks, withRetry } from '../utils/async'
-import type { Quote, Stock, StockInfo, TopStock } from '../types/stock'
+import { delay, settleInChunks, withRetry } from '../utils/async'
+import { readCache, writeCache } from '../utils/cache'
+import type { Candle } from '../types/market'
+import type {
+  Quote,
+  Stock,
+  StockInfo,
+  TopStock,
+  TopTheme,
+} from '../types/stock'
 
 /** 테마 라벨과 종목 선정은 API에 없어 프론트에서 고정한다 */
-const THEMES = [
+export const TOP_THEMES: TopTheme[] = [
   { stockCode: '000660', stockName: 'SK하이닉스', theme: '기술주 대장' },
   { stockCode: '012450', stockName: '한화에어로스페이스', theme: '방산주 대장' },
   { stockCode: '207940', stockName: '삼성바이오로직스', theme: '바이오주 대장' },
@@ -19,67 +27,67 @@ const THEMES = [
 
 const CHART_DAYS = 90
 
+const TOP_CACHE_KEY = 'topStocks'
+/** 90일 등락률이라 반나절 지난 값이어도 화면에 잠깐 띄우기엔 충분하다 */
+const TOP_CACHE_MAX_AGE = 12 * 60 * 60 * 1000
+
 /**
- * 진행 중이거나 완료된 조회를 재사용한다.
- * StrictMode는 개발 모드에서 effect를 두 번 실행하는데, 그대로 두면 일봉 요청이 6건으로 늘어
- * 서로 호출 제한에 걸린다. 같은 Promise를 돌려주면 실제 요청은 한 번만 나간다.
+ * 지난번 방문에서 받아둔 카드. 첫 그림을 즉시 그리는 용도다.
+ * 이 값을 띄운 뒤에도 loadTopStocks()는 그대로 돌아 최신 값으로 갈아끼운다.
  */
-let topStocksPromise: Promise<TopStock[]> | null = null
-
-export function getTopStocks(): Promise<TopStock[]> {
-  if (topStocksPromise === null) {
-    topStocksPromise = fetchTopStocks().catch((error: unknown) => {
-      // 실패는 캐시하지 않는다. 다음 진입 때 다시 시도할 수 있어야 한다
-      topStocksPromise = null
-      throw error
-    })
-  }
-
-  return topStocksPromise
+export function readCachedTopStocks(): TopStock[] | null {
+  const cached = readCache<TopStock[]>(TOP_CACHE_KEY, TOP_CACHE_MAX_AGE)
+  // 테마 구성이 바뀌었으면 자리 수가 안 맞는다. 그럴 땐 없는 셈 친다
+  return cached === null || cached.length !== TOP_THEMES.length ? null : cached
 }
 
 /**
- * 일봉은 한국투자증권 **모의투자** 서버를 거치는데 호출 제한이 유난히 빡빡하다.
- * 3종목을 동시에 던지면 매번 하나가 500으로 떨어지고, 순차로 붙여 보내도 마찬가지다.
- * 실측 결과 1.5초 간격이면 실패율이 5% 수준으로 떨어져서 간격과 재시도를 함께 둔다.
+ * 테마별 대표 종목을 하나씩 조회해 받는 대로 넘긴다.
+ *
+ * 셋을 모아 한 번에 주면 가장 느린 하나에 카드 세 장이 전부 묶인다.
+ * 일봉이 건당 1.5~2.4초라 그렇게 두면 화면이 8초 넘게 비어 있었다.
+ *
+ * 동시에 던지면 매번 하나가 500으로 떨어지므로 순차로 보내되,
+ * 붙여 보내도 걸리는 탓에 사이를 조금 띄운다(실측: 300ms면 실패 0).
  */
-async function fetchTopStocks(): Promise<TopStock[]> {
+export async function loadTopStocks(
+  onEach: (index: number, stock: TopStock) => void,
+): Promise<void> {
   const endDate = toYmd(new Date())
   const startDate = toYmd(daysAgo(CHART_DAYS))
+  const loaded: TopStock[] = []
 
-  const results = await settleInChunks(
-    THEMES,
-    1,
-    (theme) =>
-      withRetry(
-        () => getDailyChart(theme.stockCode, startDate, endDate),
-        2,
-        1000,
-      ),
-    800,
-  )
+  for (const [index, theme] of TOP_THEMES.entries()) {
+    if (index > 0) await delay(300)
 
-  return THEMES.map((theme, index) => {
-    const result = results[index]
-
-    if (result.status === 'rejected') {
-      throw new Error(`${theme.stockName} 일봉 조회 실패`)
-    }
-    if (result.value.length === 0) {
+    const points = await withRetry(
+      () => getDailyCandles(theme.stockCode, startDate, endDate),
+      2,
+      1000,
+    )
+    if (points.length === 0) {
       throw new Error(`${theme.stockName} 일봉 데이터가 비어 있습니다`)
     }
 
-    const points = result.value
-    const first = points[0].close
-    const last = points[points.length - 1].close
+    const stock = toTopStock(theme, points)
+    loaded.push(stock)
+    onEach(index, stock)
+  }
 
-    return {
-      ...theme,
-      changeRate: ((last - first) / first) * 100,
-      prices: points.map((point) => point.close),
-      volumes: points.map((point) => point.volume),
-    }
-  })
+  // 셋이 다 모였을 때만 저장한다. 반쯤 찬 카드를 다음 방문에 그려봐야 소용없다
+  writeCache(TOP_CACHE_KEY, loaded)
+}
+
+function toTopStock(theme: TopTheme, points: Candle[]): TopStock {
+  const first = points[0].close
+  const last = points[points.length - 1].close
+
+  return {
+    ...theme,
+    changeRate: ((last - first) / first) * 100,
+    prices: points.map((point) => point.close),
+    volumes: points.map((point) => point.volume),
+  }
 }
 
 /**
@@ -103,8 +111,15 @@ export async function getQuotes(
   stocks: StockInfo[],
 ): Promise<Map<string, Quote>> {
   const tradingValues = await getTradingValueByName()
-  const results = await settleInChunks(stocks, 5, (stock) =>
-    withRetry(() => getPrice(stock.stockCode)),
+  /*
+   * 묶음 사이에 120ms를 쉰다. 쉬지 않고 101종목을 몰아치면 백엔드 호출 제한에 걸려
+   * 60종목이 500으로 떨어졌다. 간격을 주면 8종목까지 줄고 그마저 withRetry가 대부분 건진다.
+   */
+  const results = await settleInChunks(
+    stocks,
+    5,
+    (stock) => withRetry(() => getPrice(stock.stockCode)),
+    120,
   )
 
   const quotes = new Map<string, Quote>()

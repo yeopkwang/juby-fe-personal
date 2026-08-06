@@ -1,7 +1,7 @@
 import { getRaw } from './client'
 import type {
+  Candle,
   DailyCandleResponse,
-  DailyPoint,
   PriceResponse,
   VolumeRankResponse,
 } from '../types/market'
@@ -11,11 +11,11 @@ import type {
  * @param startDate YYYYMMDD
  * @param endDate   YYYYMMDD
  */
-export async function getDailyChart(
+export async function getDailyCandles(
   stockCode: string,
   startDate: string,
   endDate: string,
-): Promise<DailyPoint[]> {
+): Promise<Candle[]> {
   const candles = await getRaw<DailyCandleResponse[]>(
     `/api/market/daily_itemchartprice?stockcode=${stockCode}&startdate=${startDate}&enddate=${endDate}`,
   )
@@ -23,6 +23,9 @@ export async function getDailyChart(
   return candles
     .map((candle) => ({
       date: candle.stck_bsop_date,
+      open: Number(candle.stck_oprc),
+      high: Number(candle.stck_hgpr),
+      low: Number(candle.stck_lwpr),
       close: Number(candle.stck_clpr),
       volume: Number(candle.acml_vol),
     }))
