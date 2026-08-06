@@ -6,6 +6,7 @@ import {
   formatChangeRate,
   formatPrice,
   formatTradingValue,
+  isFlatRate,
 } from '../utils/format'
 import styles from './StockTable.module.css'
 
@@ -39,7 +40,8 @@ function SortIcon({ direction }: { direction: SortDirection | null }) {
 
 function rateClassName(rate: number | null): string {
   if (rate === null) return styles.numeric
-  return `${styles.numeric} ${rate >= 0 ? styles.up : styles.down}`
+  if (isFlatRate(rate)) return `${styles.numeric} ${styles.flat}`
+  return `${styles.numeric} ${rate > 0 ? styles.up : styles.down}`
 }
 
 export default function StockTable({

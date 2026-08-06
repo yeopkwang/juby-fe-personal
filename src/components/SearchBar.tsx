@@ -37,6 +37,21 @@ export default function SearchBar() {
     }
   }, [keyword])
 
+  /*
+   * Enter는 화살표로 고른 후보로, 안 골랐으면 첫 후보로 간다(handleSubmit과 같은 규칙).
+   * 마우스가 목록 위를 지나지 않는 길이라 hover만으로는 미리 받을 기회가 없다.
+   *
+   * 글자를 칠 때마다 첫 후보가 바뀌므로 잠깐 멈춘 뒤에야 받아온다.
+   * 안 그러면 "삼성전자"를 치는 동안 후보가 바뀔 때마다 요청이 나간다.
+   */
+  useEffect(() => {
+    const target = suggestions[activeIndex >= 0 ? activeIndex : 0]
+    if (target === undefined) return
+
+    const timer = setTimeout(() => prefetchCandles(target.stockCode), 250)
+    return () => clearTimeout(timer)
+  }, [suggestions, activeIndex])
+
   function goTo(stock: StockInfo) {
     setIsOpen(false)
     setMessage('')

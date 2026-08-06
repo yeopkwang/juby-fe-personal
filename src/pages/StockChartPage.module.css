@@ -57,6 +57,12 @@
   color: var(--color-down);
 }
 
+/* 보합. 이 줄 자체가 회색이라 클래스를 빼면 회색이 된다. 검은색은 따로 지정해야 한다 */
+.flat {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .chartBox {
   height: 420px;
   margin-top: 24px;
@@ -70,4 +76,25 @@
   margin: 0;
   font-size: 15px;
   color: var(--color-text-sub);
+}
+
+/*
+ * 일봉이 오기 전 자리. 백엔드가 건당 2초 넘게 걸려 그동안 칸이 통째로 비어 있었다.
+ * 홈 카드와 같은 결로 칸을 채워 두면 자리는 잡혀 있고 뭔가 오는 중이라는 게 보인다.
+ */
+.chartSkeleton {
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }

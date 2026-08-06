@@ -8,11 +8,13 @@ import {
 } from 'recharts'
 import { prefetchCandles } from '../api/candles'
 import type { TopStock, TopTheme } from '../types/stock'
-import { formatChangeRate } from '../utils/format'
+import { formatChangeRate, isFlatRate } from '../utils/format'
 import styles from './TopStockCard.module.css'
 
 const UP_COLOR = '#f04452'
 const DOWN_COLOR = '#3182f6'
+/** 보합 글자색. index.css의 --color-text와 같은 값 */
+const FLAT_COLOR = '#191f28'
 
 interface Props {
   theme: TopTheme
@@ -53,8 +55,9 @@ function CardPlaceholder() {
 }
 
 function CardChart({ stock }: { stock: TopStock }) {
-  const isUp = stock.changeRate >= 0
-  const lineColor = isUp ? UP_COLOR : DOWN_COLOR
+  const lineColor = stock.changeRate >= 0 ? UP_COLOR : DOWN_COLOR
+  /* 선은 90일 흐름의 방향이라 그대로 두고, 숫자만 보합이면 검게 적는다 */
+  const rateColor = isFlatRate(stock.changeRate, 1) ? FLAT_COLOR : lineColor
   const lastIndex = stock.prices.length - 1
 
   const first = stock.prices[0]
@@ -70,7 +73,7 @@ function CardChart({ stock }: { stock: TopStock }) {
   return (
     <>
       <p className={styles.rateRow}>
-        <span className={styles.rate} style={{ color: lineColor }}>
+        <span className={styles.rate} style={{ color: rateColor }}>
           {formatChangeRate(stock.changeRate, 1)}
         </span>
         <span className={styles.caption}>90일 전 대비</span>

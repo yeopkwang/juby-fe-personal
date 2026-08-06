@@ -23,6 +23,22 @@ function cacheKey(stockCode: string): string {
   return `candles:${stockCode}`
 }
 
+/**
+ * 아직 안 끝난 오늘 봉을 잘라낸다.
+ *
+ * 증권사가 주는 가장 최근 봉은 장이 닫히기 전까지 확정된 종가가 아니라 그 순간의 현재가다.
+ * 그대로 쓰면 새로고침할 때마다 차트 끝과 등락률이 움직인다.
+ * 백엔드 daily_price 테이블에도 장 마감 후에 확정값만 들어가므로, 오늘을 빼면 그쪽과 같아진다.
+ *
+ * 날짜가 YYYYMMDD 문자열이라 사전순 비교가 곧 날짜순 비교다.
+ */
+function dropUnsettled(candles: Candle[]): Candle[] {
+  const today = toYmd(new Date())
+  const settled = candles.filter((candle) => candle.date < today)
+  // 오늘 것밖에 없는 종목이면 빈 차트를 보여주느니 그거라도 그린다
+  return settled.length > 0 ? settled : candles
+}
+
 /** 지난번에 받아둔 일봉. 첫 그림을 즉시 그리는 용도다 */
 export function readCachedCandles(stockCode: string): Candle[] | null {
   const cached = readCache<Candle[]>(cacheKey(stockCode), CACHE_MAX_AGE)
@@ -44,7 +60,8 @@ export function loadCandles(stockCode: string): Promise<Candle[]> {
     2,
     1000,
   )
-    .then((candles) => {
+    .then((raw) => {
+      const candles = dropUnsettled(raw)
       if (candles.length > 0) writeCache(cacheKey(stockCode), candles)
       return candles
     })

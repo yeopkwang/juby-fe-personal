@@ -112,3 +112,9 @@
   color: var(--color-down);
   font-weight: 600;
 }
+
+/* 보합. 한 칸에 세로로 늘어서는 값이라 굵기는 위아래와 맞추고 색만 기본 글자색으로 둔다 */
+.flat {
+  color: var(--color-text);
+  font-weight: 600;
+}

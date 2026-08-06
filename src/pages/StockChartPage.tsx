@@ -7,13 +7,19 @@ import { getPrice, toChangeRate } from '../api/market'
 import { getNews } from '../api/news'
 import { findStock } from '../api/stock'
 import { withRetry } from '../utils/async'
-import { formatChangeRate, formatPrice } from '../utils/format'
+import { formatChangeRate, formatPrice, isFlatRate } from '../utils/format'
 import type { Candle, NewsItem } from '../types/market'
 import styles from './StockChartPage.module.css'
 
 interface Price {
   currentPrice: number
   changeRate: number
+}
+
+function toRateClassName(rate: number | null): string | undefined {
+  if (rate === null) return undefined
+  if (isFlatRate(rate)) return styles.flat
+  return rate > 0 ? styles.up : styles.down
 }
 
 export default function StockChartPage() {
@@ -121,8 +127,7 @@ export default function StockChartPage() {
     )
   }
 
-  const rateClassName =
-    price === null ? undefined : price.changeRate >= 0 ? styles.up : styles.down
+  const rateClassName = toRateClassName(price?.changeRate ?? null)
 
   return (
     <>
@@ -149,7 +154,7 @@ export default function StockChartPage() {
           )}
 
           {!hasCandleError && isCandleLoading && candles.length === 0 && (
-            <p className={styles.chartMessage}>불러오는 중…</p>
+            <div className={styles.chartSkeleton} />
           )}
 
           {!hasCandleError && candles.length > 0 && (

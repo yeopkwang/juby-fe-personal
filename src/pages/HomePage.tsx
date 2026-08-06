@@ -45,6 +45,22 @@ export default function HomePage() {
   const hasStartedTop = useRef(false)
   const [isQuotesReady, setIsQuotesReady] = useState(false)
 
+  /*
+   * 홈을 떠났는지 알린다. 상세 화면으로 넘어가도 시세 루프는 계속 도는데,
+   * 그 요청들이 호출 제한을 채우는 바람에 차트 요청이 뒤로 밀려 500을 맞고 재시도한다.
+   * 떠나는 순간 남은 묶음을 버리면 차트가 먼저 나간다.
+   *
+   * 개발 모드는 마운트를 두 번 하므로 시작할 때 반드시 되돌려 놓는다.
+   */
+  const hasLeft = useRef(false)
+
+  useEffect(() => {
+    hasLeft.current = false
+    return () => {
+      hasLeft.current = true
+    }
+  }, [])
+
   useEffect(() => {
     // 개발 모드는 effect를 두 번 실행한다. 그대로 두면 일봉 요청이 6건이 되어 서로 제한에 걸린다
     if (hasStartedTop.current) return
@@ -71,7 +87,7 @@ export default function HomePage() {
     if (fresh.length === 0) return
 
     fresh.forEach((stock) => requestedCodes.current.add(stock.stockCode))
-    const quotes = await getQuotes(fresh)
+    const quotes = await getQuotes(fresh, () => hasLeft.current)
 
     setStocks((previous) =>
       previous.map((stock) => {
