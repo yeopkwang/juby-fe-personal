@@ -1,0 +1,138 @@
+.title {
+  margin: 56px 0 0;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+
+/*
+ * 진행률 바. 카드보다 좁게 두고 가운데 세운다(Figma 기준).
+ * 초록은 시세 색(빨강·파랑)과 겹치지 않아 여기서만 쓴다.
+ */
+.progressTrack {
+  width: min(380px, 100%);
+  height: 14px;
+  margin: 28px auto 0;
+  overflow: hidden;
+  background: #e8ebed;
+  border-radius: 999px;
+}
+
+.progressFill {
+  height: 100%;
+  background: #87c79b;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.card {
+  max-width: 560px;
+  margin: 36px auto 0;
+  padding: 30px 32px 26px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+}
+
+/* 번호는 왼쪽, 진행 표시는 오른쪽. baseline으로 맞춰야 글자 크기가 달라도 밑선이 붙는다 */
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.questionNo {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.counter {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-sub);
+}
+
+/* mock 문항에 넣어둔 줄바꿈을 살린다. 줄바꿈이 없는 문장은 그대로 흘러 넘어간다 */
+.question {
+  margin: 10px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  white-space: pre-line;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.choice {
+  width: 100%;
+  padding: 14px 16px;
+  background: #f5f5f5;
+  /* 평소에도 같은 두께의 투명 테두리를 둬야 선택할 때 글자가 밀리지 않는다 */
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--color-text);
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.choice:hover {
+  background: #eceef0;
+}
+
+.choiceSelected,
+.choiceSelected:hover {
+  background: #f0f7f2;
+  border-color: #87c79b;
+  font-weight: 600;
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 26px;
+}
+
+.prev,
+.next {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.prev {
+  background: #f2f4f6;
+  color: var(--color-text-sub);
+}
+
+.next {
+  background: var(--color-text);
+  color: var(--color-surface);
+}
+
+.prev:disabled,
+.next:disabled {
+  background: #f2f4f6;
+  color: #c4cbd3;
+  cursor: default;
+}
+
+.message {
+  margin: 120px 0;
+  font-size: 15px;
+  color: var(--color-text-sub);
+  text-align: center;
+}

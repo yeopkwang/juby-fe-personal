@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="위험중립형 캐릭터">
+  <circle cx="58" cy="60" r="21" fill="#A9C46C"/>
+  <circle cx="142" cy="60" r="21" fill="#A9C46C"/>
+  <circle cx="100" cy="106" r="62" fill="#A9C46C"/>
+  <circle cx="100" cy="126" r="34" fill="#FFFFFF" opacity="0.55"/>
+  <circle cx="78" cy="94" r="8" fill="#191F28"/>
+  <circle cx="122" cy="94" r="8" fill="#191F28"/>
+  <circle cx="81" cy="91" r="2.6" fill="#FFFFFF"/>
+  <circle cx="125" cy="91" r="2.6" fill="#FFFFFF"/>
+  <path d="M85 123q15 12 30 0" stroke="#191F28" stroke-width="5" fill="none" stroke-linecap="round"/>
+</svg>

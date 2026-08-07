@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="공격투자형 캐릭터">
+  <circle cx="58" cy="60" r="21" fill="#E58A72"/>
+  <circle cx="142" cy="60" r="21" fill="#E58A72"/>
+  <circle cx="100" cy="106" r="62" fill="#E58A72"/>
+  <circle cx="100" cy="126" r="34" fill="#FFFFFF" opacity="0.55"/>
+  <circle cx="78" cy="90" r="9" fill="#191F28"/>
+  <circle cx="122" cy="90" r="9" fill="#191F28"/>
+  <circle cx="81" cy="87" r="3" fill="#FFFFFF"/>
+  <circle cx="125" cy="87" r="3" fill="#FFFFFF"/>
+  <path d="M80 118a20 20 0 0 0 40 0z" fill="#191F28"/>
+</svg>

@@ -5,6 +5,8 @@ import HomePage from './pages/HomePage'
 import StockChartPage from './pages/StockChartPage'
 import LoginPage from './pages/LoginPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
+import PersonalityTestPage from './pages/PersonalityTestPage'
+import PersonalityResultPage from './pages/PersonalityResultPage'
 import NotReadyPage from './pages/NotReadyPage'
 import styles from './App.module.css'
 
@@ -26,6 +28,11 @@ function Layout() {
           <Route path="/stocks/:stockCode" element={<StockChartPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+          <Route path="/personality-test" element={<PersonalityTestPage />} />
+          <Route
+            path="/personality-test/result"
+            element={<PersonalityResultPage />}
+          />
           <Route path="*" element={<NotReadyPage />} />
         </Routes>
       </main>

@@ -1,0 +1,45 @@
+/* 결과 화면과 마이페이지 투자성향 화면이 같이 쓴다. 폭과 여백은 문항 카드에 맞췄다 */
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 560px;
+  margin: 36px auto 0;
+  padding: 34px 32px 30px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #6b7684;
+}
+
+.image {
+  width: 150px;
+  height: 150px;
+  margin: 18px 0 6px;
+}
+
+.type {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* 설명은 두 줄로 들어온다. 서버 문구에 줄바꿈이 없으면 그냥 이어져 흐른다 */
+.description {
+  margin: 12px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+  white-space: pre-line;
+}
