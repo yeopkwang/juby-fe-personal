@@ -48,9 +48,14 @@ export default function PersonalityResultPage() {
         description={result.description}
         imageUrl={result.imageUrl}
       >
-        <Link to={doneRoute(from)} className={styles.done}>
+        {/*
+          Link가 아니라 a인 이유: 검사는 personality.html에 따로 떨어져 있어서
+          완료를 누르면 이 페이지를 아예 떠나 본 화면으로 넘어가야 한다.
+          Link를 쓰면 이 페이지 안에서만 움직여 첫 문항으로 되돌아간다.
+        */}
+        <a href={doneRoute(from)} className={styles.done}>
           완료
-        </Link>
+        </a>
         {/* 다시 풀 때도 들어온 문을 유지해야 끝나고 같은 자리로 돌아간다 */}
         <Link
           to={{ pathname: '/personality-test', search: location.search }}

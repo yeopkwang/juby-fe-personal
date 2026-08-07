@@ -5,8 +5,6 @@ import HomePage from './pages/HomePage'
 import StockChartPage from './pages/StockChartPage'
 import LoginPage from './pages/LoginPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
-import PersonalityTestPage from './pages/PersonalityTestPage'
-import PersonalityResultPage from './pages/PersonalityResultPage'
 import NotReadyPage from './pages/NotReadyPage'
 import styles from './App.module.css'
 
@@ -28,11 +26,7 @@ function Layout() {
           <Route path="/stocks/:stockCode" element={<StockChartPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
-          <Route path="/personality-test" element={<PersonalityTestPage />} />
-          <Route
-            path="/personality-test/result"
-            element={<PersonalityResultPage />}
-          />
+          {/* 투자성향테스트는 personality.html에 따로 있다. 로그인이 붙을 때 여기로 들인다 */}
           <Route path="*" element={<NotReadyPage />} />
         </Routes>
       </main>

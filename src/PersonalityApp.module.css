@@ -1,0 +1,11 @@
+/*
+ * 본 앱의 App.module.css .page + .main과 같은 틀.
+ * 헤더가 없을 뿐 흰 판 위에 얹힌 모양은 같아야 나중에 합쳤을 때 어색하지 않다.
+ */
+.page {
+  max-width: 1200px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 0 80px 80px;
+  background: var(--color-surface);
+}
