@@ -5,7 +5,7 @@ import type { SortDirection, SortKey, SortState, Stock } from '../types/stock'
 import {
   formatChangeRate,
   formatPrice,
-  formatTradingValue,
+  formatVolume,
   isFlatRate,
 } from '../utils/format'
 import styles from './StockTable.module.css'
@@ -24,7 +24,7 @@ const SORTABLE_COLUMNS: { key: SortKey; label: string; isNumeric: boolean }[] = 
   { key: 'stockName', label: '종목명', isNumeric: false },
   { key: 'currentPrice', label: '현재가', isNumeric: true },
   { key: 'changeRate', label: '등락률', isNumeric: true },
-  { key: 'tradingValue', label: '거래대금', isNumeric: true },
+  { key: 'volume', label: '거래량', isNumeric: true },
 ]
 
 function SortIcon({ direction }: { direction: SortDirection | null }) {
@@ -135,15 +135,8 @@ export default function StockTable({
             <span className={rateClassName(stock.changeRate)}>
               {formatChangeRate(stock.changeRate)}
             </span>
-            <span
-              className={styles.numeric}
-              title={
-                stock.isTradingValueEstimated
-                  ? '거래량 × 평균가로 계산한 추정치입니다'
-                  : undefined
-              }
-            >
-              {formatTradingValue(stock.tradingValue)}
+            <span className={styles.numeric}>
+              {formatVolume(stock.volume)}
             </span>
           </Link>
         )

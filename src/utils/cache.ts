@@ -18,7 +18,6 @@ export function readCache<T>(key: string, maxAgeMs: number): T | null {
 
     return entry.value
   } catch {
-    // 저장 형식이 바뀌었거나 값이 깨진 경우. 새로 받으면 그만이다
     return null
   }
 }
@@ -29,6 +28,5 @@ export function writeCache<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(entry))
   } catch {
-    // 저장 공간이 꽉 찼을 뿐이다. 다음 방문이 조금 느려질 뿐 동작에는 지장이 없다
   }
 }

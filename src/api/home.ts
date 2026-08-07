@@ -1,4 +1,5 @@
-import { getPrice, getVolumeRank, toChangeRate, toTradingValue } from './market'
+import { getPrice, hasSessionData, toChangeRate, toVolume } from './market'
+import { readQuoteSnapshot, saveQuoteSnapshot } from './quoteSnapshot'
 import { loadCandles } from './candles'
 import { STOCK_LIST } from './stockList'
 import { daysAgo, toYmd } from '../utils/date'
@@ -104,20 +105,27 @@ export async function getHomeStocks(): Promise<Stock[]> {
     ...stock,
     currentPrice: null,
     changeRate: null,
-    tradingValue: null,
-    isTradingValueEstimated: false,
+    volume: null,
   }))
+}
+
+export interface QuoteResult {
+  quotes: Map<string, Quote>
+  /** 지난 장 값을 대신 쓴 경우 그 장의 날짜(YYYYMMDD). 오늘 장 값이면 null */
+  frozenDate: string | null
 }
 
 /**
  * 넘겨받은 종목들의 시세를 조회한다. 실패한 종목은 Map에 안 담기고 화면에 "-"로 남는다.
  * shouldStop은 홈을 떠났는지 묻는다. 참이면 남은 종목은 받지 않는다.
+ *
+ * 장이 열리기 전이면 증권사가 등락률과 거래량을 0으로 초기화해 보낸다.
+ * 그때는 마지막으로 받아둔 장 값을 대신 돌려주고, 어느 장 기준인지 함께 알린다.
  */
 export async function getQuotes(
   stocks: StockInfo[],
   shouldStop?: () => boolean,
-): Promise<Map<string, Quote>> {
-  const tradingValues = await getTradingValueByName()
+): Promise<QuoteResult> {
   /*
    * 묶음 사이에 120ms를 쉰다. 쉬지 않고 101종목을 몰아치면 백엔드 호출 제한에 걸려
    * 60종목이 500으로 떨어졌다. 간격을 주면 8종목까지 줄고 그마저 withRetry가 대부분 건진다.
@@ -131,6 +139,8 @@ export async function getQuotes(
   )
 
   const quotes = new Map<string, Quote>()
+  /* 한 종목이라도 시가가 잡혔으면 오늘 장이 열린 것이다 */
+  let hasToday = false
 
   stocks.forEach((stock, index) => {
     const result = results[index]
@@ -141,47 +151,34 @@ export async function getQuotes(
       return
     }
 
-    // 거래대금 순위(상위 30)에 든 종목은 실제값을, 나머지는 추정값을 쓴다
-    const exact = tradingValues.get(stock.stockName) ?? null
-    const estimate = exact === null ? toTradingValue(result.value) : null
+    const price = result.value
+    // 거래정지 종목도 시가가 0이다. 오늘 값이 없는 건 마찬가지라 담지 않고 넘어간다
+    if (!hasSessionData(price)) return
 
+    hasToday = true
     quotes.set(stock.stockCode, {
-      currentPrice: Number(result.value.stck_prpr),
-      changeRate: toChangeRate(result.value),
-      tradingValue: exact ?? estimate,
-      isTradingValueEstimated: estimate !== null,
+      currentPrice: Number(price.stck_prpr),
+      changeRate: toChangeRate(price),
+      volume: toVolume(price),
     })
   })
 
-  return quotes
-}
-
-/**
- * 종목명 → 거래대금.
- * 거래대금 상위 30종목만 내려오므로 순위 밖 종목은 값이 없다.
- * 한 번만 조회하고 재사용한다.
- *
- * 다 받은 값이 아니라 진행 중인 요청을 붙잡아 둔다. 값을 담아두면 첫 응답이 오기 전에
- * getQuotes가 두 번 불릴 때 둘 다 빈 캐시를 보고 각자 요청한다.
- * 실패한 요청도 그대로 둔다. 다시 불러봐야 같은 호출 제한에 걸릴 뿐이다.
- */
-let tradingValueRequest: Promise<Map<string, number>> | null = null
-
-function getTradingValueByName(): Promise<Map<string, number>> {
-  if (tradingValueRequest === null) {
-    tradingValueRequest = getVolumeRank()
-      .then(
-        (ranks) =>
-          new Map(
-            ranks.map((rank) => [rank.hts_kor_isnm, Number(rank.avrg_tr_pbmn)]),
-          ),
-      )
-      .catch((error: unknown) => {
-        console.warn('거래량 순위 조회 실패. 거래대금을 "-"로 표시합니다.', error)
-        return new Map<string, number>()
-      })
+  if (hasToday) {
+    saveQuoteSnapshot(toYmd(new Date()), quotes)
+    return { quotes, frozenDate: null }
   }
 
-  return tradingValueRequest
-}
+  /*
+   * 오늘 장이 아직 없다. 마지막으로 받아둔 장 값을 그대로 보여준다.
+   * 저장해둔 게 없으면(첫 방문이 장 시작 전이면) 빈 채로 둔다. 지어낼 값이 없다.
+   */
+  const snapshot = readQuoteSnapshot()
+  if (snapshot === null) return { quotes, frozenDate: null }
 
+  stocks.forEach((stock) => {
+    const saved = snapshot.quotes[stock.stockCode]
+    if (saved !== undefined) quotes.set(stock.stockCode, saved)
+  })
+
+  return { quotes, frozenDate: snapshot.date }
+}

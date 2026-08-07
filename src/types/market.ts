@@ -39,16 +39,6 @@ export interface PriceResponse {
   prdy_vrss_sign: string
 }
 
-/** 거래량 순위 응답. 종목코드와 등락률은 내려오지 않는다 */
-export interface VolumeRankResponse {
-  /** 종목명 */
-  hts_kor_isnm: string
-  data_rank: string
-  stck_prpr: string
-  /** 거래대금 */
-  avrg_tr_pbmn: string
-}
-
 /** 네이버 뉴스 검색 응답. title과 description에 <b> 태그와 HTML 엔티티가 섞여 온다 */
 export interface NewsSearchResponse {
   display: number

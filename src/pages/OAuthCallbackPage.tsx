@@ -32,5 +32,5 @@ export default function OAuthCallbackPage() {
     window.location.href = '/'
   }, [searchParams, navigate])
 
-  return <p className={styles.message}>로그인 중…</p>
+  return <p className={styles.message}>로그인 중</p>
 }

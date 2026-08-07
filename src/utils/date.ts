@@ -16,3 +16,13 @@ export function daysAgo(days: number): Date {
 export function toDashedYmd(ymd: string): string {
   return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`
 }
+
+/** "20260805" → "8월 5일" (화면에 읽히는 형태). 해가 바뀌면 연도까지 적는다 */
+export function toKoreanDate(ymd: string, today: Date = new Date()): string {
+  const year = ymd.slice(0, 4)
+  const month = Number(ymd.slice(4, 6))
+  const day = Number(ymd.slice(6, 8))
+  const prefix = year === String(today.getFullYear()) ? '' : `${year}년 `
+
+  return `${prefix}${month}월 ${day}일`
+}

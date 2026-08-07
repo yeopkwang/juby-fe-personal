@@ -28,10 +28,16 @@ export function formatPrice(price: number | null): string {
   return `${price.toLocaleString('ko-KR')}원`
 }
 
-/** 635800000000 → "6,358억원" */
-export function formatTradingValue(value: number | null): string {
-  if (value === null) return EMPTY
-  return `${Math.round(value / 100_000_000).toLocaleString('ko-KR')}억원`
+/**
+ * 12345678 → "1,235만주", 5432 → "5,432주"
+ *
+ * 거래량은 몇천 주에서 수천만 주까지 벌어진다. 원래 숫자를 다 적으면 칸을 넘기므로
+ * 만 단위가 넘으면 축약하고, 그 아래는 자릿수를 살려 0으로 뭉개지지 않게 둔다.
+ */
+export function formatVolume(volume: number | null): string {
+  if (volume === null) return EMPTY
+  if (volume < 10_000) return `${volume.toLocaleString('ko-KR')}주`
+  return `${Math.round(volume / 10_000).toLocaleString('ko-KR')}만주`
 }
 
 /** 뉴스 발행 시각. 하루가 넘으면 "8월 5일"처럼 날짜로 보여준다 */

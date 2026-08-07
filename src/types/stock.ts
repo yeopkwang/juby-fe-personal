@@ -9,25 +9,25 @@ export interface Stock extends StockInfo {
   currentPrice: number | null
   /** 등락률(%). 1.01이면 +1.01% */
   changeRate: number | null
-  /** 거래대금(원). 화면에는 억 단위로 축약 */
-  tradingValue: number | null
-  /** 거래대금이 실제값이 아니라 거래량 × 평균가로 계산한 추정치인지 */
-  isTradingValueEstimated: boolean
+  /**
+   * 누적 거래량(주). 화면에는 만 단위로 축약한다.
+   * 백엔드 daily_price 테이블에도 같은 이름의 컬럼이 있어, DB 조회 API가 생기면 그대로 받는다.
+   */
+  volume: number | null
 }
 
 /** 종목 하나의 시세 */
 export interface Quote {
   currentPrice: number
   changeRate: number
-  tradingValue: number | null
-  isTradingValueEstimated: boolean
+  volume: number | null
 }
 
 export type SortKey =
   | 'stockName'
   | 'currentPrice'
   | 'changeRate'
-  | 'tradingValue'
+  | 'volume'
 
 export type SortDirection = 'asc' | 'desc'
 

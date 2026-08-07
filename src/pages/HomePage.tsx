@@ -12,6 +12,7 @@ import {
   readCachedTopStocks,
 } from '../api/home'
 import { isLoggedIn } from '../utils/auth'
+import { toKoreanDate } from '../utils/date'
 import { nextSort, sortStocks } from '../utils/sort'
 import type { SortKey, SortState, Stock, TopStock } from '../types/stock'
 import styles from './HomePage.module.css'
@@ -33,6 +34,8 @@ export default function HomePage() {
   const [isSortLoading, setIsSortLoading] = useState(false)
   /** 관심종목. 등록 API가 없어 아직 화면 안에서만 유지된다 */
   const [favoriteCodes, setFavoriteCodes] = useState<Set<string>>(new Set())
+  /** 장 시작 전이라 지난 장 값을 보여주는 중이면 그 날짜. 표 옆에 기준일을 적는다 */
+  const [frozenDate, setFrozenDate] = useState<string | null>(null)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
 
   /** 이미 시세를 요청한 종목코드. 실패한 종목을 무한히 다시 부르는 걸 막는다 */
@@ -87,8 +90,12 @@ export default function HomePage() {
     if (fresh.length === 0) return
 
     fresh.forEach((stock) => requestedCodes.current.add(stock.stockCode))
-    const quotes = await getQuotes(fresh, () => hasLeft.current)
+    const { quotes, frozenDate: frozen } = await getQuotes(
+      fresh,
+      () => hasLeft.current,
+    )
 
+    setFrozenDate(frozen)
     setStocks((previous) =>
       previous.map((stock) => {
         const quote = quotes.get(stock.stockCode)
@@ -166,7 +173,7 @@ export default function HomePage() {
       <SearchBar />
 
       <section className={styles.section}>
-        <p className={styles.eyebrow}>백테스트 기법으로 투자한</p>
+        <p className={styles.eyebrow}>백테스트 기법으로 투자한 (??? 멘트 수정예정 - 광엽)</p>
         <h2 className={styles.heading}>테마별 대표 종목</h2>
 
         {/* 한 장도 못 받았을 때만 에러로 대체한다. 일부라도 왔으면 그건 보여주는 편이 낫다 */}
@@ -188,8 +195,14 @@ export default function HomePage() {
       <section className={styles.section}>
         <div className={styles.headingRow}>
           <h2 className={styles.heading}>현재 주가 보기</h2>
+          {/* 장 시작 전에는 지난 장 값이 그대로 떠 있다. 언제 것인지 밝혀둔다 */}
+          {frozenDate !== null && (
+            <span className={styles.asOf}>
+              {toKoreanDate(frozenDate)} 장 마감 기준
+            </span>
+          )}
           {isSortLoading && (
-            <span className={styles.note}>전체 시세를 불러오는 중…</span>
+            <span className={styles.note}>전체 시세를 불러오는 중입니다</span>
           )}
         </div>
 
@@ -214,7 +227,7 @@ export default function HomePage() {
         <p className={styles.modalMessage}>로그인 후 이용 가능한 기능입니다</p>
         <div className={styles.modalButtons}>
           <Link to="/login" className={styles.modalPrimary}>
-            로그인하러 가기
+            로그인
           </Link>
           <button
             type="button"

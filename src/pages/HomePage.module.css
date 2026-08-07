@@ -27,6 +27,17 @@
   color: var(--color-text-sub);
 }
 
+/* 지난 장 값을 보여주는 중이라는 표시. 숫자를 의심하기 전에 눈에 들어와야 한다 */
+.asOf {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-bg-sub, #f2f4f6);
+  color: var(--color-text-sub);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .loading {
   height: 288px;
   margin: 20px 0 0;
