@@ -4,6 +4,7 @@ import {
   normalizeScore,
   scoreToPersonality,
 } from '../utils/personality'
+import { isLoggedIn } from '../utils/auth'
 import type {
   PersonalityResult,
   PersonalityType,
@@ -93,6 +94,30 @@ export async function submitTest(
     type: result.personalityName,
     description: result.description || fallback.description,
     imageUrl: result.url || fallback.imageUrl,
+  }
+}
+
+interface MyPersonalityResponse {
+  personalityName: PersonalityType
+}
+
+/**
+ * 저장된 내 투자성향. AI 주가분석 빈 화면이 쓴다.
+ *
+ * 성향을 모르는 경우가 정상 흐름에 여럿 있다(비로그인, 아직 검사 전, 이 API 미구현).
+ * 어느 쪽이든 화면이 할 일은 같아서 — 그 영역을 통째로 숨긴다 — 전부 null로 뭉뚱그린다.
+ * 지어낸 기본값을 돌려주면 검사도 안 한 사람에게 성향을 알려주는 꼴이 된다.
+ */
+export async function getMyPersonality(): Promise<PersonalityType | null> {
+  // 토큰이 없으면 부를 이유가 없다. 401을 만들지 않는 편이 client.ts의 이동 규칙과도 안 엉킨다
+  if (!isLoggedIn()) return null
+
+  try {
+    const result = await get<MyPersonalityResponse>('/api/members/me/personality')
+    return result.personalityName ?? null
+  } catch (error: unknown) {
+    console.warn('투자성향 조회 실패', error)
+    return null
   }
 }
 

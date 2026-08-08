@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import ScrollToTop from './components/ScrollToTop'
 import HomePage from './pages/HomePage'
+import AiPage from './pages/AiPage'
 import StockChartPage from './pages/StockChartPage'
 import LoginPage from './pages/LoginPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
@@ -23,6 +24,7 @@ function Layout() {
       <main className={isLoginPage ? styles.bareMain : styles.main}>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/ai" element={<AiPage />} />
           <Route path="/stocks/:stockCode" element={<StockChartPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth/callback" element={<OAuthCallbackPage />} />

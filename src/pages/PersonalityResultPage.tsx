@@ -8,7 +8,10 @@ import styles from './PersonalityResultPage.module.css'
  * 마이페이지는 아직 없어 NotReadyPage로 떨어지고, 마이페이지를 만들 때 이어진다.
  */
 function doneRoute(from: string | null): string {
-  return from === 'mypage' ? '/mypage/personality' : '/'
+  if (from === 'mypage') return '/mypage/personality'
+  // AI 주가분석의 '투자성향 변경하기'로 들어온 경우. 하던 자리로 돌려보낸다
+  if (from === 'ai') return '/ai'
+  return '/'
 }
 
 export default function PersonalityResultPage() {
