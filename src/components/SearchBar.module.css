@@ -103,3 +103,25 @@
   color: var(--color-up);
   text-align: center;
 }
+
+@media (max-width: 600px) {
+  .form {
+    margin-top: 28px;
+  }
+
+  .box {
+    height: 50px;
+    padding: 0 6px 0 16px;
+    gap: 8px;
+  }
+
+  .input {
+    font-size: 15px;
+  }
+
+  .button {
+    height: 38px;
+    padding: 0 16px;
+    font-size: 15px;
+  }
+}

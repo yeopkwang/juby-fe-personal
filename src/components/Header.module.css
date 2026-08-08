@@ -31,3 +31,45 @@
   font-weight: 400;
   letter-spacing: 0.01em;
 }
+
+@media (max-width: 900px) {
+  .header {
+    padding: 0 32px;
+  }
+
+  .menu {
+    gap: 18px;
+    font-size: 15px;
+  }
+}
+
+/*
+ * 한 줄에 메뉴 넷과 로고가 다 들어가지 않는다.
+ * 로고를 위로 올리고 메뉴 두 벌을 아래 한 줄에 나란히 놓는다.
+ */
+@media (max-width: 600px) {
+  .header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 20px;
+    height: auto;
+    padding: 14px 16px;
+  }
+
+  .logo {
+    order: -1;
+    flex-basis: 100%;
+    text-align: center;
+    font-size: 20px;
+  }
+
+  .menu {
+    gap: 14px;
+    font-size: 13px;
+  }
+
+  .right {
+    justify-self: auto;
+  }
+}

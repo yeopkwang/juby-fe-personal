@@ -19,12 +19,20 @@ interface Props {
   onHeartClick: (stockCode: string) => void
 }
 
-/** isNumeric인 칸은 자릿수를 견주기 쉽도록 오른쪽에 붙인다 */
-const SORTABLE_COLUMNS: { key: SortKey; label: string; isNumeric: boolean }[] = [
+/**
+ * isNumeric인 칸은 자릿수를 견주기 쉽도록 오른쪽에 붙인다.
+ * hideAt은 화면이 좁아질 때 가장 먼저 접을 칸을 정한다(거래량 → 종목코드 순).
+ */
+const SORTABLE_COLUMNS: {
+  key: SortKey
+  label: string
+  isNumeric: boolean
+  hideAt?: 'small'
+}[] = [
   { key: 'stockName', label: '종목명', isNumeric: false },
   { key: 'currentPrice', label: '현재가', isNumeric: true },
   { key: 'changeRate', label: '등락률', isNumeric: true },
-  { key: 'volume', label: '거래량', isNumeric: true },
+  { key: 'volume', label: '거래량', isNumeric: true, hideAt: 'small' },
 ]
 
 function SortIcon({ direction }: { direction: SortDirection | null }) {
@@ -66,7 +74,7 @@ export default function StockTable({
     <div className={styles.table}>
       <div className={styles.head}>
         <span />
-        <span>번호</span>
+        <span className={styles.colCode}>번호</span>
 
         {SORTABLE_COLUMNS.map((column) => {
           const direction =
@@ -75,6 +83,7 @@ export default function StockTable({
           const classNames = [styles.sortButton]
           if (direction !== null) classNames.push(styles.sortButtonActive)
           if (column.isNumeric) classNames.push(styles.numericHead)
+          if (column.hideAt === 'small') classNames.push(styles.colVolume)
 
           return (
             <button
@@ -92,55 +101,70 @@ export default function StockTable({
         })}
       </div>
 
-      {stocks.map((stock) => {
-        const isFavorite = favoriteCodes.has(stock.stockCode)
+      <ul className={styles.body}>
+        {stocks.map((stock) => {
+          const isFavorite = favoriteCodes.has(stock.stockCode)
 
-        return (
-          <Link
-            key={stock.stockCode}
-            to={`/stocks/${stock.stockCode}`}
-            className={styles.row}
-            /* 마우스를 올린 순간부터 일봉을 받아 둔다. 누를 때쯤이면 차트가 이미 준비된다 */
-            onMouseEnter={() => prefetchCandles(stock.stockCode)}
-          >
-            <button
-              type="button"
-              className={
-                isFavorite ? `${styles.heart} ${styles.heartOn}` : styles.heart
-              }
-              onClick={(event) => handleHeartClick(event, stock.stockCode)}
-              aria-pressed={isFavorite}
-              aria-label={`${stock.stockName} 관심종목 ${isFavorite ? '해제' : '추가'}`}
+          return (
+            <li
+              key={stock.stockCode}
+              className={styles.row}
+              /* 마우스를 올린 순간부터 일봉을 받아 둔다. 누를 때쯤이면 차트가 이미 준비된다 */
+              onMouseEnter={() => prefetchCandles(stock.stockCode)}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill={isFavorite ? 'currentColor' : 'none'}
+              <button
+                type="button"
+                className={
+                  isFavorite ? `${styles.heart} ${styles.heartOn}` : styles.heart
+                }
+                onClick={(event) => handleHeartClick(event, stock.stockCode)}
+                aria-pressed={isFavorite}
+                aria-label={`${stock.stockName} 관심종목 ${isFavorite ? '해제' : '추가'}`}
               >
-                <path
-                  d="M12 20.3 4.1 12.4a4.9 4.9 0 0 1 6.9-6.9l1 1 1-1a4.9 4.9 0 0 1 6.9 6.9z"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill={isFavorite ? 'currentColor' : 'none'}
+                >
+                  <path
+                    d="M12 20.3 4.1 12.4a4.9 4.9 0 0 1 6.9-6.9l1 1 1-1a4.9 4.9 0 0 1 6.9 6.9z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
 
-            <span className={styles.code}>{stock.stockCode}</span>
-            <span className={styles.name}>{stock.stockName}</span>
-            <span className={styles.numeric}>
-              {formatPrice(stock.currentPrice)}
-            </span>
-            <span className={rateClassName(stock.changeRate)}>
-              {formatChangeRate(stock.changeRate)}
-            </span>
-            <span className={styles.numeric}>
-              {formatVolume(stock.volume)}
-            </span>
-          </Link>
-        )
-      })}
+              <span className={`${styles.code} ${styles.colCode}`}>
+                {stock.stockCode}
+              </span>
+
+              {/*
+                링크는 종목명 하나뿐이고, 그 링크가 ::after로 행 전체를 덮어 어디를 눌러도 이동한다.
+                예전에는 행 전체가 <a>고 그 안에 하트 <button>이 있었는데,
+                HTML은 <a> 안에 버튼 같은 조작 요소를 넣는 것을 허용하지 않는다.
+                하트는 z-index로 덮개 위에 띄워 두어 따로 눌린다.
+              */}
+              <span className={styles.name}>
+                <Link to={`/stocks/${stock.stockCode}`} className={styles.nameLink}>
+                  {stock.stockName}
+                </Link>
+              </span>
+
+              <span className={styles.numeric}>
+                {formatPrice(stock.currentPrice)}
+              </span>
+              <span className={rateClassName(stock.changeRate)}>
+                {formatChangeRate(stock.changeRate)}
+              </span>
+              <span className={`${styles.numeric} ${styles.colVolume}`}>
+                {formatVolume(stock.volume)}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

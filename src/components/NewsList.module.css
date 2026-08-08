@@ -14,7 +14,15 @@
 
 .tabs {
   display: flex;
+  align-items: center;
   gap: 6px;
+}
+
+.notice {
+  margin-right: 4px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+  white-space: nowrap;
 }
 
 .tab {
@@ -98,4 +106,31 @@
   margin: 20px 0 0;
   font-size: 15px;
   color: var(--color-text-sub);
+}
+
+@media (max-width: 900px) {
+  .heading {
+    font-size: 27px;
+  }
+}
+
+@media (max-width: 600px) {
+  /* 제목과 탭이 한 줄에 안 들어간다. 탭을 아래로 내린다 */
+  .headingRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .heading {
+    font-size: 23px;
+  }
+
+  .title {
+    font-size: 17px;
+  }
+
+  .card {
+    padding: 16px;
+  }
 }

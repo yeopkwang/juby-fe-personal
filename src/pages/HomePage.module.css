@@ -31,7 +31,7 @@
 .asOf {
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--color-bg-sub, #f2f4f6);
+  background: var(--color-bg-sub);
   color: var(--color-text-sub);
   font-size: 13px;
   font-weight: 600;
@@ -96,4 +96,36 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .section {
+    margin-top: 44px;
+  }
+
+  .heading {
+    font-size: 27px;
+  }
+
+  /* 카드 셋을 나란히 두면 스파크라인이 읽을 수 없을 만큼 좁아진다 */
+  .cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .heading {
+    font-size: 23px;
+  }
+
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  /* 기준일 배지와 제목이 한 줄에 다 안 들어간다 */
+  .headingRow {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }

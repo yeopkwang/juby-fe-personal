@@ -3,17 +3,32 @@ import { Link, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
 import NewsList from '../components/NewsList'
 import { loadCandles, readCachedCandles } from '../api/candles'
-import { getPrice, toChangeRate } from '../api/market'
+import { getPrice, toChangeRate, toVolume } from '../api/market'
 import { getNews } from '../api/news'
 import { findStock } from '../api/stock'
 import { withRetry } from '../utils/async'
-import { formatChangeRate, formatPrice, isFlatRate } from '../utils/format'
+import {
+  formatChangeRate,
+  formatPrice,
+  formatVolume,
+  isFlatRate,
+} from '../utils/format'
 import type { Candle, NewsItem } from '../types/market'
 import styles from './StockChartPage.module.css'
 
 interface Price {
   currentPrice: number
   changeRate: number
+  /** 장 시작 전에는 시·고·저가 0으로 온다. 그때는 null로 바꿔 담는다 */
+  open: number | null
+  high: number | null
+  low: number | null
+  volume: number | null
+}
+
+/** 0은 "아직 값이 없다"는 뜻이다. 0원이라고 적을 수는 없다 */
+function orNull(value: number): number | null {
+  return value > 0 ? value : null
 }
 
 function toRateClassName(rate: number | null): string | undefined {
@@ -79,6 +94,10 @@ export default function StockChartPage() {
         setPrice({
           currentPrice: Number(response.stck_prpr),
           changeRate: toChangeRate(response),
+          open: orNull(Number(response.stck_oprc)),
+          high: orNull(Number(response.stck_hgpr)),
+          low: orNull(Number(response.stck_lwpr)),
+          volume: toVolume(response),
         })
       })
       .catch((error: unknown) => {
@@ -132,10 +151,15 @@ export default function StockChartPage() {
   return (
     <>
       <section className={styles.section}>
-        <p className={styles.identity}>
+        {/* 뒤로 가기 말고는 목록으로 돌아갈 길이 없었다 */}
+        <Link to="/" className={styles.back}>
+          <span aria-hidden="true">‹</span> 홈으로 돌아가기
+        </Link>
+
+        <h1 className={styles.identity}>
           <span className={styles.name}>{stock.stockName}</span>
           <span className={styles.code}>{stock.stockCode}</span>
-        </p>
+        </h1>
 
         <p className={styles.price}>
           {formatPrice(price?.currentPrice ?? null)}
@@ -161,6 +185,37 @@ export default function StockChartPage() {
             <CandleChart candles={candles} />
           )}
         </div>
+
+        {/*
+          현재가 응답에 이미 담겨 오던 값들이다. 그동안 현재가와 등락률만 꺼내 쓰고 버렸다.
+          장 시작 전에는 시·고·저가 0으로 오므로 그때는 "-"가 찍힌다.
+        */}
+        {price !== null && (
+          <dl className={styles.summary}>
+            <div className={styles.summaryItem}>
+              <dt className={styles.summaryLabel}>시가</dt>
+              <dd className={styles.summaryValue}>{formatPrice(price.open)}</dd>
+            </div>
+            <div className={styles.summaryItem}>
+              <dt className={styles.summaryLabel}>고가</dt>
+              <dd className={`${styles.summaryValue} ${styles.up}`}>
+                {formatPrice(price.high)}
+              </dd>
+            </div>
+            <div className={styles.summaryItem}>
+              <dt className={styles.summaryLabel}>저가</dt>
+              <dd className={`${styles.summaryValue} ${styles.down}`}>
+                {formatPrice(price.low)}
+              </dd>
+            </div>
+            <div className={styles.summaryItem}>
+              <dt className={styles.summaryLabel}>거래량</dt>
+              <dd className={styles.summaryValue}>
+                {formatVolume(price.volume)}
+              </dd>
+            </div>
+          </dl>
+        )}
       </section>
 
       <section className={styles.section}>

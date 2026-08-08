@@ -9,6 +9,7 @@
   letter-spacing: -0.03em;
 }
 
+/* '목록에 없는 종목' 화면에서만 쓴다 */
 .backLink {
   display: inline-block;
   margin-top: 12px;
@@ -17,11 +18,26 @@
   text-decoration: underline;
 }
 
+.back {
+  display: inline-block;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+
+.back:hover {
+  color: var(--color-text);
+}
+
+/* h1이지만 크기는 자식이 각자 정한다. 굵기만 기본값으로 되돌린다 */
 .identity {
   display: flex;
   align-items: baseline;
   gap: 8px;
   margin: 0;
+  font-size: inherit;
+  font-weight: 400;
 }
 
 .name {
@@ -63,8 +79,12 @@
   color: var(--color-text);
 }
 
+/*
+ * 차트 높이를 420px에서 줄였다. 아래 시세 요약과 뉴스가 한 화면에 같이 들어와야
+ * 종목을 훑는 흐름이 끊기지 않는다. 봉은 최근 30개만 열려 있어 높이를 줄여도 읽힌다.
+ */
 .chartBox {
-  height: 420px;
+  height: clamp(260px, 38vh, 340px);
   margin-top: 24px;
   padding: 12px;
   border: 1px solid var(--color-border);
@@ -76,6 +96,36 @@
   margin: 0;
   font-size: 15px;
   color: var(--color-text-sub);
+}
+
+/* 현재가 응답에 함께 오던 값들. 네 칸이 같은 너비로 늘어선다 */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  margin: 16px 0 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  /* 칸 사이 선을 gap 1px과 배경색으로 만든다. 마지막 칸에 선이 남지 않는다 */
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.summaryItem {
+  padding: 14px 16px;
+  background: var(--color-surface);
+}
+
+.summaryLabel {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.summaryValue {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 /*
@@ -96,5 +146,35 @@
   }
   to {
     background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chartSkeleton {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .section {
+    margin-top: 40px;
+  }
+
+  .price {
+    font-size: 38px;
+  }
+}
+
+@media (max-width: 600px) {
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .price {
+    font-size: 32px;
+  }
+
+  .chartBox {
+    padding: 8px;
   }
 }

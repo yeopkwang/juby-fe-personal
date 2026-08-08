@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   CandlestickSeries,
   ColorType,
@@ -8,7 +8,8 @@ import {
 } from 'lightweight-charts'
 import type { IChartApi, ISeriesApi } from 'lightweight-charts'
 import type { Candle } from '../types/market'
-import { toDashedYmd } from '../utils/date'
+import { toDashedYmd, toKoreanDate } from '../utils/date'
+import { formatChangeRate, isFlatRate } from '../utils/format'
 import styles from './CandleChart.module.css'
 
 /** 국내 시장 관례대로 오르면 빨강, 내리면 파랑 */
@@ -41,11 +42,28 @@ interface Props {
   candles: Candle[]
 }
 
+/** 봉 하나와 그 전날 종가. 등락률을 내려면 전날 종가가 있어야 한다 */
+interface Point {
+  candle: Candle
+  /** 첫 봉은 이전 봉이 없어 null */
+  prevClose: number | null
+}
+
 export default function CandleChart({ candles }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const chartRef = useRef<IChartApi | null>(null)
+
+  /** 크로스헤어가 가리키는 봉. 차트 밖으로 나가면 null이 되고 마지막 봉을 대신 보여준다 */
+  const [hovered, setHovered] = useState<Point | null>(null)
+
+  /*
+   * 크로스헤어 핸들러가 봉을 찾아볼 표. 시간 문자열이 열쇠다.
+   * 구독은 차트를 만들 때 한 번만 걸고, 데이터가 바뀌면 이 ref의 내용만 갈아끼운다.
+   * candles를 클로저로 잡으면 종목이 바뀔 때마다 구독을 다시 걸어야 한다.
+   */
+  const pointsRef = useRef(new Map<string, Point>())
 
   // 차트는 마운트할 때 한 번만 만든다. 데이터가 바뀔 때마다 새로 만들면 눈에 띄게 깜빡인다
   useEffect(() => {
@@ -135,6 +153,16 @@ export default function CandleChart({ candles }: Props) {
     const observer = new ResizeObserver(resizeVolumePane)
     observer.observe(container)
 
+    /*
+     * 봉에 마우스를 올렸을 때 그 날의 시·고·저·종을 위에 띄운다.
+     * 크로스헤어만 있고 숫자가 없으면 어느 봉이 얼마인지 읽을 방법이 없다.
+     * 차트 밖으로 나가면 time이 비어 오는데, 그때는 마지막 봉으로 되돌린다.
+     */
+    chart.subscribeCrosshairMove((param) => {
+      const time = param.time
+      setHovered(typeof time === 'string' ? pointsRef.current.get(time) ?? null : null)
+    })
+
     chartRef.current = chart
     candleSeriesRef.current = candleSeries
     volumeSeriesRef.current = volumeSeries
@@ -152,6 +180,15 @@ export default function CandleChart({ candles }: Props) {
     const candleSeries = candleSeriesRef.current
     const volumeSeries = volumeSeriesRef.current
     if (candleSeries === null || volumeSeries === null) return
+
+    // 종목이 바뀌면 지난 종목의 봉이 남아 엉뚱한 값을 띄운다. 매번 새로 만든다
+    pointsRef.current = new Map(
+      candles.map((candle, index) => [
+        toDashedYmd(candle.date),
+        { candle, prevClose: index === 0 ? null : candles[index - 1].close },
+      ]),
+    )
+    setHovered(null)
 
     candleSeries.setData(
       candles.map((candle) => ({
@@ -181,5 +218,68 @@ export default function CandleChart({ candles }: Props) {
     }
   }, [candles])
 
-  return <div ref={containerRef} className={styles.chart} />
+  /*
+   * 마우스를 올리기 전에는 가장 최근 봉을 보여준다.
+   * 빈 자리로 두면 마우스가 들어올 때마다 줄이 생겼다 사라져 차트가 흔들린다.
+   */
+  const lastIndex = candles.length - 1
+  const shown =
+    hovered ??
+    (lastIndex < 0
+      ? null
+      : {
+          candle: candles[lastIndex],
+          prevClose: lastIndex < 1 ? null : candles[lastIndex - 1].close,
+        })
+
+  return (
+    <div className={styles.wrap}>
+      {shown !== null && <Legend point={shown} />}
+      <div ref={containerRef} className={styles.chart} />
+    </div>
+  )
+}
+
+/** 차트 위에 겹쳐 놓는 그날의 값. 마우스를 가리지 않도록 클릭은 통과시킨다(CSS) */
+function Legend({ point }: { point: Point }) {
+  const { candle, prevClose } = point
+
+  const rate =
+    prevClose === null || prevClose === 0
+      ? null
+      : ((candle.close - prevClose) / prevClose) * 100
+
+  const rateColor =
+    rate === null || isFlatRate(rate)
+      ? undefined
+      : rate > 0
+        ? UP_COLOR
+        : DOWN_COLOR
+
+  return (
+    <div className={styles.legend}>
+      <span className={styles.legendDate}>{toKoreanDate(candle.date)}</span>
+
+      <span>
+        시 <b>{formatPriceTick(candle.open)}</b>
+      </span>
+      <span>
+        고 <b>{formatPriceTick(candle.high)}</b>
+      </span>
+      <span>
+        저 <b>{formatPriceTick(candle.low)}</b>
+      </span>
+      <span>
+        종 <b style={{ color: rateColor }}>{formatPriceTick(candle.close)}</b>
+      </span>
+
+      {rate !== null && (
+        <b style={{ color: rateColor }}>{formatChangeRate(rate)}</b>
+      )}
+
+      <span className={styles.legendVolume}>
+        거래량 <b>{formatVolume(candle.volume)}주</b>
+      </span>
+    </div>
+  )
 }

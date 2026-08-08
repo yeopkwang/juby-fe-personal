@@ -13,3 +13,19 @@
 .bareMain {
   padding: 0;
 }
+
+/*
+ * 좌우 여백은 화면이 좁아질수록 줄인다. 80px을 그대로 두면
+ * 태블릿에서 본문에 남는 폭이 표 여섯 칸을 감당하지 못한다.
+ */
+@media (max-width: 900px) {
+  .main {
+    padding: 0 32px 56px;
+  }
+}
+
+@media (max-width: 600px) {
+  .main {
+    padding: 0 16px 40px;
+  }
+}

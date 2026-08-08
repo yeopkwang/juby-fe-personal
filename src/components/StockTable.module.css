@@ -1,3 +1,8 @@
+/*
+ * 행마다 카드를 띄우던 것을 한 덩어리 표로 바꿨다.
+ * 100종목이 세로로 늘어서는 화면이라 행마다 그림자와 여백을 주면
+ * 한 화면에 열 줄도 안 들어오고 시선도 줄마다 끊긴다(토스증권 시세 목록과 같은 결).
+ */
 .table {
   --columns: 48px 96px 1.5fr 1.4fr 1.1fr 1.1fr;
   margin-top: 20px;
@@ -11,10 +16,49 @@
   padding: 0 16px;
 }
 
+/*
+ * 목록이 길어 스크롤하면 어느 칸이 무엇인지 알 수 없게 된다. 머리글을 위에 붙여 둔다.
+ * 조상에 overflow: hidden이 있으면 sticky가 죽으므로 .head는 .body 바깥에 둔다.
+ */
 .head {
-  height: 44px;
-  font-size: 15px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 46px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px 12px 0 0;
+  background: var(--color-surface);
+  font-size: 14px;
   color: var(--color-text-sub);
+}
+
+.body {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  /* 마지막 행의 모서리를 컨테이너 곡률에 맞춰 잘라낸다 */
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.row {
+  /* 종목명 링크가 이 상자를 덮을 기준점 */
+  position: relative;
+  height: 56px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 15px;
+  transition: background 0.12s;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--color-page-bg);
 }
 
 .sortButton {
@@ -51,25 +95,10 @@
   transform: rotate(180deg);
 }
 
-.row {
-  height: 62px;
-  margin-bottom: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  /* 회색 바탕 위에 살짝 떠 보이게 한다. 100줄이 겹치므로 진하면 화면이 지저분해진다 */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  font-size: 16px;
-  transition: box-shadow 0.15s, border-color 0.15s;
-}
-
-.row:hover {
-  border-color: #d7dbe0;
-  background: #fafbfc;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
+/* 덮개(::after) 위로 올려야 하트가 먼저 눌린다 */
 .heart {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   padding: 0;
@@ -86,6 +115,27 @@
   color: var(--color-up);
 }
 
+.name {
+  font-weight: 600;
+}
+
+/*
+ * 행 전체를 누를 수 있게 링크를 펼친다.
+ * 행을 통째로 <a>로 감싸면 안에 든 하트 <button>이 HTML 규칙 위반이 되므로,
+ * 링크는 종목명 하나만 두고 그 링크의 클릭 영역만 행 크기로 넓힌다.
+ */
+.nameLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.nameLink:focus-visible::after {
+  outline: 2px solid var(--color-down);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
 /* 금액·비율은 오른쪽에 붙여야 자릿수를 위아래로 견주기 좋다 */
 .numeric {
   text-align: right;
@@ -97,10 +147,6 @@
 
 .code {
   color: var(--color-text-sub);
-}
-
-.name {
-  font-weight: 600;
 }
 
 .up {
@@ -117,4 +163,38 @@
 .flat {
   color: var(--color-text);
   font-weight: 600;
+}
+
+/*
+ * 좁아지면 덜 중요한 칸부터 접는다. 거래량 → 종목코드 순.
+ * 접는 칸 수만큼 --columns도 함께 줄여야 머리글과 행이 어긋나지 않는다.
+ */
+@media (max-width: 900px) {
+  .table {
+    --columns: 44px 1.6fr 1.3fr 1fr 1fr;
+  }
+
+  .colCode {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .table {
+    --columns: 38px 1.6fr 1.2fr 1fr;
+  }
+
+  .colVolume {
+    display: none;
+  }
+
+  .head,
+  .row {
+    padding: 0 12px;
+  }
+
+  .row {
+    height: 52px;
+    font-size: 14px;
+  }
 }

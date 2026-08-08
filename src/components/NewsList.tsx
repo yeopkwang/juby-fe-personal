@@ -21,6 +21,21 @@ interface Props {
 
 export default function NewsList({ news }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('date')
+  const [notice, setNotice] = useState('')
+
+  /*
+   * 관련도순은 아직 고를 수 없다. 백엔드가 sort를 무시해 최신순과 결과가 똑같이 나오는데,
+   * 그대로 두면 눌러도 목록이 그대로라 고장으로 보인다. 바꾼 척하느니 준비 중이라고 밝힌다.
+   * 백엔드가 sort를 받기 시작하면 아래 분기만 지우면 된다.
+   */
+  function handleTabClick(key: SortKey) {
+    if (key === 'sim') {
+      setNotice('준비중입니다')
+      return
+    }
+    setNotice('')
+    setSortKey(key)
+  }
 
   const sorted =
     sortKey === 'sim'
@@ -35,6 +50,12 @@ export default function NewsList({ news }: Props) {
         <h2 className={styles.heading}>뉴스 모아보기</h2>
 
         <div className={styles.tabs}>
+          {notice !== '' && (
+            <span className={styles.notice} role="status">
+              {notice}
+            </span>
+          )}
+
           {TABS.map((tab) => (
             <button
               key={tab.key}
@@ -44,7 +65,7 @@ export default function NewsList({ news }: Props) {
                   ? `${styles.tab} ${styles.tabActive}`
                   : styles.tab
               }
-              onClick={() => setSortKey(tab.key)}
+              onClick={() => handleTabClick(tab.key)}
               aria-pressed={sortKey === tab.key}
             >
               {tab.label}

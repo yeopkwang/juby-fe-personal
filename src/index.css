@@ -2,6 +2,8 @@
   --color-up: #f04452;
   --color-down: #3182f6;
   --color-page-bg: #f4f5f7;
+  /* 흰 바탕 위에 한 겹 얹는 옅은 배경(알약 배지 등) */
+  --color-bg-sub: #f2f4f6;
   --color-surface: #ffffff;
   --color-text: #191f28;
   --color-text-sub: #8b95a1;
