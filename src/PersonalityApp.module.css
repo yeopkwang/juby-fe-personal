@@ -1,11 +1,28 @@
 /*
  * 본 앱의 App.module.css .page + .main과 같은 틀.
- * 헤더가 없을 뿐 흰 판 위에 얹힌 모양은 같아야 나중에 합쳤을 때 어색하지 않다.
+ * 헤더까지 같은 것을 쓰므로 여백도 같은 값으로 맞춘다.
+ * 나중에 본 앱 라우트로 합칠 때 화면이 그대로 얹혀야 어색하지 않다.
  */
 .page {
   max-width: 1200px;
   min-height: 100vh;
   margin: 0 auto;
-  padding: 0 80px 80px;
   background: var(--color-surface);
+}
+
+.main {
+  padding: 0 80px 80px;
+}
+
+/* 좌우 여백은 화면이 좁아질수록 줄인다. App.module.css와 같은 기준점을 쓴다 */
+@media (max-width: 900px) {
+  .main {
+    padding: 0 32px 56px;
+  }
+}
+
+@media (max-width: 600px) {
+  .main {
+    padding: 0 16px 40px;
+  }
 }
