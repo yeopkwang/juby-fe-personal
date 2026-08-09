@@ -1,0 +1,219 @@
+.profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56px 24px 48px;
+  text-align: center;
+}
+
+.avatar {
+  width: 150px;
+  height: 150px;
+  /* 기본 아이콘의 선과 채움이 모두 이 색을 따라간다 */
+  color: var(--color-text);
+  border-radius: 50%;
+}
+
+.name {
+  margin: 24px 0 0;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.field {
+  margin: 6px 0 0;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.muted,
+.outline,
+.primary {
+  min-width: 150px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+
+/*
+ * 정보 수정하기. 아직 API를 연결하지 않아 주 버튼처럼 보이면 안 된다.
+ * 누를 수는 있게 두고(안내를 띄운다) 무게만 낮춘다.
+ */
+.muted {
+  border: 0;
+  background: #b0b8c1;
+  color: var(--color-surface);
+}
+
+.muted:hover {
+  background: #9aa4b0;
+}
+
+.outline {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.outline:hover {
+  background: var(--color-page-bg);
+}
+
+.notice {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+/* 조회 실패 화면 */
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 96px 24px;
+  text-align: center;
+}
+
+.messageText {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.hint {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.primary {
+  margin-top: 26px;
+  border: 0;
+  background: #4e5968;
+  color: var(--color-surface);
+}
+
+.primary:hover {
+  background: #3d4754;
+}
+
+.skeleton {
+  max-width: 560px;
+  height: 420px;
+  margin: 36px auto;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.modalText {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.modalError {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--color-up);
+}
+
+.modalButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.danger,
+.cancel {
+  height: 48px;
+  border: none;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 되돌릴 수 없는 동작이라 등락 빨강과 같은 경고색을 쓴다 */
+.danger {
+  background: var(--color-up);
+  color: #fff;
+}
+
+.danger:hover:not(:disabled) {
+  background: #d93a48;
+}
+
+.danger:disabled {
+  background: #f4a3ab;
+  cursor: default;
+}
+
+.cancel {
+  background: none;
+  color: var(--color-text-sub);
+}
+
+.cancel:disabled {
+  cursor: default;
+}
+
+@media (max-width: 600px) {
+  .profile {
+    padding: 40px 16px 36px;
+  }
+
+  .avatar {
+    width: 120px;
+    height: 120px;
+  }
+
+  .field,
+  .name {
+    font-size: 17px;
+  }
+
+  /* 버튼 두 개가 한 줄에 안 들어간다 */
+  .buttons {
+    flex-direction: column;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .message {
+    padding: 56px 16px;
+  }
+}

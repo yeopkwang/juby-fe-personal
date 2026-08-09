@@ -40,6 +40,23 @@ export function formatVolume(volume: number | null): string {
   return `${Math.round(volume / 10_000).toLocaleString('ko-KR')}만주`
 }
 
+/**
+ * "2002-05-07" → "2002년 05월 07일"
+ *
+ * 생년월일은 없을 수 있다. 백엔드 parseBirth()가 소셜에서 못 받으면 null을 저장하는데,
+ * 구글은 기본 스코프에 생일이 없어 실제로 자주 그렇다. 없으면 null을 그대로 돌려주고
+ * 화면이 그 줄을 어떻게 다룰지 정한다.
+ */
+export function formatBirth(birth: string | null): string | null {
+  if (birth === null) return null
+
+  const [year, month, day] = birth.split('-')
+  // 서버가 다른 형식을 주기 시작하면 엉뚱한 문자열을 조립하느니 없는 것으로 둔다
+  if (year === undefined || month === undefined || day === undefined) return null
+
+  return `${year}년 ${month}월 ${day}일`
+}
+
 /** 뉴스 발행 시각. 하루가 넘으면 "8월 5일"처럼 날짜로 보여준다 */
 export function formatRelativeTime(date: Date, now: Date = new Date()): string {
   const minutes = Math.floor((now.getTime() - date.getTime()) / 60_000)

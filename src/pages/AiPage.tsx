@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ask, getSessionDetail, getSessions } from '../api/ai'
-import { getMyPersonality } from '../api/personality'
+import { getMyPersonality } from '../api/member'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import SessionSidebar from '../components/SessionSidebar'
 import { isLoggedIn } from '../utils/auth'
@@ -45,8 +45,14 @@ export default function AiPage() {
         console.warn('AI 대화 목록 조회 실패', error)
       })
 
-    getMyPersonality().then(setPersonality)
-  }, [])
+    // 토큰이 없으면 부를 이유가 없다. 성향 영역은 어차피 숨겨진다
+    if (loggedIn) {
+      getMyPersonality()
+        // 이 화면은 실패 이유를 가리지 않는다. 못 받으면 성향 영역을 숨길 뿐이다
+        .catch(() => null)
+        .then((info) => setPersonality(info?.investPersonality ?? null))
+    }
+  }, [loggedIn])
 
   function nextLocalId(): number {
     const id = localIdRef.current

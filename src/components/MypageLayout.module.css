@@ -1,0 +1,90 @@
+.title {
+  margin: 44px 0 24px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 186px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* AI 주가분석 화면의 사이드바와 같은 결로 맞춘다 */
+.sidebar {
+  border-radius: 12px;
+  /* 회색 머리와 흰 목록이 한 덩어리로 보이도록 모서리 밖을 잘라낸다 */
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  align-self: start;
+}
+
+.head {
+  padding: 24px 16px;
+  background: #eceef0;
+}
+
+.headTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: block;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+}
+
+.list li:last-child .item {
+  border-bottom: 0;
+}
+
+.item:hover {
+  background: var(--color-page-bg);
+}
+
+.itemOn {
+  background: var(--color-page-bg);
+  font-weight: 700;
+}
+
+.content {
+  min-height: 420px;
+  padding: 8px 0 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+@media (max-width: 900px) {
+  .title {
+    margin: 32px 0 20px;
+    font-size: 27px;
+  }
+
+  /* 사이드바를 옆에 두면 카드 폭이 남지 않는다. 위아래로 쌓는다 */
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .title {
+    font-size: 23px;
+  }
+
+  .content {
+    min-height: 0;
+  }
+}

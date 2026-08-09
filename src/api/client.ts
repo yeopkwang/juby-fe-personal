@@ -82,6 +82,16 @@ export async function get<T>(path: string): Promise<T> {
   return unwrap(await requestJson<ApiResponse<T>>(path))
 }
 
+/** 서버 자원을 지운다. 본문 없이 경로만 보낸다 */
+export async function remove<T>(
+  path: string,
+  options?: RequestOptions,
+): Promise<T> {
+  return unwrap(
+    await requestJson<ApiResponse<T>>(path, { method: 'DELETE' }, options),
+  )
+}
+
 /**
  * 서버에 값을 보낼 때 쓴다. GET과 다른 점은 두 가지뿐이다.
  * 보낼 내용을 JSON 문자열로 바꾸고, 그게 JSON이라고 Content-Type으로 알려준다.
