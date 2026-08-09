@@ -5,6 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 프로젝트 소개·실행법·환경변수·코딩 규칙은 [README.md](README.md)에 있다. 먼저 읽는다.
 이 문서는 README에 없는 것, 즉 **여러 파일을 읽어야 보이는 구조**만 적는다.
 
+> **⚠️ 이어받는 작업이 있다.** 백테스트 화면(`/backtest`)을 2026-08-09에 새로 만들었는데
+> **브라우저로 확인하지 않았다.** 타입·린트·빌드만 통과한 상태다.
+> 점검 목록과 다음 할 일은 [docs/handoff-2026-08-09.md](docs/handoff-2026-08-09.md)에 있다.
+> 백테스트를 손대기 전에 그 문서를 먼저 읽는다.
+
 ## 명령어
 
 ```bash
