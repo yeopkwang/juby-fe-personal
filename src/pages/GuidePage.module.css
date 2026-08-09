@@ -1,0 +1,86 @@
+.title {
+  margin: 40px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.list {
+  margin: 28px 0 0;
+  padding: 0;
+  /* 번호를 직접 그리므로 목록 자체의 표식은 끈다 */
+  list-style: none;
+}
+
+.item {
+  padding: 24px 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.number {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-bg-sub);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.itemTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.body {
+  margin: 12px 0 0 36px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text-sub);
+}
+
+.skeleton {
+  height: 120px;
+  margin-top: 28px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .title {
+    margin-top: 28px;
+    font-size: 21px;
+  }
+
+  .body {
+    margin-left: 0;
+  }
+}

@@ -15,6 +15,8 @@ import OAuthCallbackPage from './pages/OAuthCallbackPage'
 import MypageLayout from './components/MypageLayout'
 import MypagePersonalityPage from './pages/MypagePersonalityPage'
 import MypageProfilePage from './pages/MypageProfilePage'
+import GuidePage from './pages/GuidePage'
+import BacktestPage from './pages/BacktestPage'
 import NotReadyPage from './pages/NotReadyPage'
 import styles from './App.module.css'
 
@@ -44,6 +46,13 @@ function Layout() {
             <Route path="personality" element={<MypagePersonalityPage />} />
             <Route path="profile" element={<MypageProfilePage />} />
           </Route>
+
+          <Route path="/guide" element={<GuidePage />} />
+          {/*
+            백엔드 GET /api/backtest/run은 이미 동작한다. 화면만 아직 없어서
+            헤더 링크가 죽지 않도록 안내 화면을 붙여 둔다.
+          */}
+          <Route path="/backtest" element={<BacktestPage />} />
 
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
