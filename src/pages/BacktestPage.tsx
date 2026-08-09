@@ -296,8 +296,16 @@ export default function BacktestPage() {
               )}
             </div>
 
+            {/*
+              좁은 화면에서는 가이드가 오른쪽이 아니라 아래로 내려간다.
+              방향을 말하면 절반은 틀린 말이 되므로 위치를 가리키지 않는다.
+              고른 전략이 무엇인지도 여기서 한 줄로 되짚어 준다 —
+              가이드까지 눈을 옮기지 않아도 무엇을 골랐는지 알 수 있어야 한다.
+            */}
             <p className={styles.hint}>
-              오른쪽 가이드에서 전략을 눌러도 선택돼요.
+              {selected === null
+                ? '백테스트 가이드에서 전략을 눌러 골라도 돼요.'
+                : selected.strategySummary}
             </p>
           </div>
 
@@ -573,7 +581,7 @@ function BacktestResult({
           */}
           <ul className={styles.axes}>
             {AXES.map((axis) => (
-              <li key={axis} className={styles.axis}>
+              <li key={axis}>
                 <div className={styles.axisHead}>
                   <span className={styles.axisName}>{AXIS_LABEL[axis]}</span>
                   <span className={styles.axisWeight}>
@@ -593,6 +601,24 @@ function BacktestResult({
             ))}
           </ul>
         </div>
+
+        {/* 위 4축에 붙은 '비중 %'가 왜 그 값인지를 바로 아래에서 설명한다 */}
+        <ul className={styles.notes}>
+          <li>
+            <b>{info.personality}</b>은 이런 스타일이에요.
+            <span className={styles.noteBody}>
+              {PERSONALITY_INFO[info.personality].description}
+            </span>
+          </li>
+          <li>
+            그래서 <b>{info.focusMetrics}</b>를 특히 눈여겨봐요.
+            <span className={styles.noteBody}>
+              적합도를 매길 때 {AXIS_LABEL.stable}에{' '}
+              {Math.round(info.weights.stable * 100)}%, {AXIS_LABEL.profit}에{' '}
+              {Math.round(info.weights.profit * 100)}% 비중을 둡니다.
+            </span>
+          </li>
+        </ul>
 
         {/*
           표 대신 낱장 카드로 편다. 표는 가로로 길어 좁은 화면에서 밀어 봐야 하고,
@@ -628,55 +654,40 @@ function BacktestResult({
           </p>
         )}
 
-        {/* 종목 성향이 어떻게 정해졌는지, 근거가 되는 다섯 점수를 그대로 편다 */}
-        <div className={styles.ranking}>
-          <h3 className={styles.rankingTitle}>
-            전략별 적합도 <span className={styles.rankingNote}>1년 기준</span>
-          </h3>
+      </div>
 
-          <ul className={styles.rankList}>
-            {ranking.map((item, index) => {
-              const rankInfo = findInvestType(item.investType)
-              if (rankInfo === null) return null
+      {/*
+        카드마다 맡은 말이 하나씩이다.
+        ① 결론(내 성향 ↔ 종목 성향) ② 고른 전략의 성적 ③ 왜 그 성향으로 판정됐는가.
+        한 카드에 다 넣으면 스크롤만 길고 무엇을 먼저 봐야 할지 알 수 없다.
+      */}
+      <div className={styles.card}>
+        <h3 className={styles.cardTitle}>
+          {withTopicParticle(stockName)} 어떤 성향에 맞나요?
+          <span className={styles.cardNote}>1년 기준으로 다섯 전략을 비교</span>
+        </h3>
 
-              return (
-                <li key={item.investType} className={styles.rank}>
-                  <span className={styles.rankName}>
-                    {index === 0 && <b className={styles.crown}>최고</b>}
-                    {rankInfo.personality}
-                  </span>
-                  <div className={styles.bar}>
-                    <div
-                      className={
-                        index === 0 ? styles.barFillTop : styles.barFill
-                      }
-                      style={{ width: `${item.score}%` }}
-                    />
-                  </div>
-                  <span className={styles.rankScore}>
-                    {item.score.toFixed(1)}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
+        <ul className={styles.rankList}>
+          {ranking.map((item, index) => {
+            const rankInfo = findInvestType(item.investType)
+            if (rankInfo === null) return null
 
-        <ul className={styles.notes}>
-          <li>
-            <b>{info.personality}</b>은 이런 스타일이에요.
-            <span className={styles.noteBody}>
-              {PERSONALITY_INFO[info.personality].description}
-            </span>
-          </li>
-          <li>
-            그래서 <b>{info.focusMetrics}</b>를 특히 눈여겨봐요.
-            <span className={styles.noteBody}>
-              적합도를 매길 때 {AXIS_LABEL.stable}에{' '}
-              {Math.round(info.weights.stable * 100)}%, {AXIS_LABEL.profit}에{' '}
-              {Math.round(info.weights.profit * 100)}% 비중을 둡니다.
-            </span>
-          </li>
+            return (
+              <li key={item.investType} className={styles.rank}>
+                <span className={styles.rankName}>
+                  {index === 0 && <b className={styles.crown}>최고</b>}
+                  {rankInfo.personality}
+                </span>
+                <div className={styles.bar}>
+                  <div
+                    className={index === 0 ? styles.barFillTop : styles.barFill}
+                    style={{ width: `${item.score}%` }}
+                  />
+                </div>
+                <span className={styles.rankScore}>{item.score.toFixed(1)}</span>
+              </li>
+            )
+          })}
         </ul>
 
         <p className={styles.meta}>

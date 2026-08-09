@@ -267,9 +267,20 @@
 }
 
 .cardTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
   margin: 0 0 20px;
   font-size: 16px;
   font-weight: 700;
+}
+
+/* 제목 옆 단서. 제목만큼 중요하지 않아 크기와 색을 낮춘다 */
+.cardNote {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-sub);
 }
 
 /* 한국식 색: 좋은 쪽이 빨강이다 */
@@ -507,27 +518,6 @@
   background: var(--color-bg-sub);
   font-size: 13px;
   line-height: 1.6;
-  color: var(--color-text-sub);
-}
-
-.ranking {
-  margin-top: 26px;
-  padding-top: 22px;
-  border-top: 1px solid var(--color-border);
-}
-
-.rankingTitle {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.rankingNote {
-  font-size: 12px;
-  font-weight: 500;
   color: var(--color-text-sub);
 }
 
