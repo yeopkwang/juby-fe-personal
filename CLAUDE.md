@@ -88,12 +88,47 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 - `src/utils/cache.ts` — TTL 있는 임시 캐시(`readCache`/`writeCache`). 읽기·쓰기 실패는
   전부 삼키고 "없는 셈" 친다. 키: `candles:<종목코드>`(12h), `topStocks`(12h), `quoteSnapshot`(7d)
 
+## ⛔ 지금 백엔드 호출이 전부 막혀 있다
+
+**화면이 아무것도 못 불러오는 게 정상이다. 고장난 게 아니다.**
+백엔드가 한국투자증권 API를 중계하는데 홈 한 번이 108건이라 증권사 계정이 정지될 수 있다는
+경고를 받아 나가는 길을 전부 끊었다. 세 곳이 함께 잠겨 있고 **되돌릴 때도 함께 풀어야 한다.**
+
+| 위치 | 무엇 |
+| --- | --- |
+| `src/api/client.ts`의 `API_DISABLED` | 모든 fetch를 요청 전에 끊는다 |
+| `src/pages/LoginPage.tsx` | 소셜 로그인 이동. fetch가 아니라 주소창을 옮기는 것이라 위 스위치가 못 잡는다 |
+| `vite.config.ts`의 `server.proxy` | 개발 프록시. 두 번째 자물쇠 |
+
+호출부를 하나씩 주석 처리하지 않은 이유는 `client.ts`의 fetch가 **앱 전체에서 유일한 통신
+창구**이기 때문이다(전수 확인함). 창구를 잠그면 빠뜨릴 곳이 없고 새로 추가되는 코드까지 막힌다.
+
 ## 백엔드 미완성 구간 토글
 
 `src/api/personality.ts` 상단의 `USE_BACKEND_QUESTIONS` / `USE_BACKEND_SUBMIT`가 **둘 다 false**다.
-백엔드 `personality_test`·`choices` 테이블이 비어 있어서다. `MOCK_QUESTIONS`(7문항)를 쓰고
-채점도 프론트에서 한다. 문항 데이터가 들어오면 조회부터 켜고, 제출은 로그인이 필요하니 나중에 켠다.
+`MOCK_QUESTIONS`(7문항)를 쓰고 채점도 프론트에서 한다.
 mock은 실제 API 응답과 같은 모양이라 플래그만 바꾸면 화면 코드는 그대로다.
+
+**백엔드 소스(`JUBYInvest/JUBY-BE`)를 읽어 확인한 것.** 다시 파지 않아도 되게 적어 둔다.
+
+- 문항을 넣는 코드가 **백엔드 어디에도 없다.** `data.sql`·마이그레이션·`CommandLineRunner`가 없고
+  저장소 전체에 `INSERT`문이 0건이다(`SQL.sql`은 7줄짜리 임시 쿼리, `/api/initiate`는
+  stock·daily_price 적재용이라 무관). 누가 DB에 직접 넣지 않으면 비어 있다.
+- `PersonalityTestService`의 채점 구간이 **10문항을 못 박아 놨다.** 합계 유효 범위가 `10~90`이고
+  (10문항 × 보기 1~9점) **범위를 벗어나면 결과가 아니라 `SCORE_NOT_FOUND` 예외를 던진다.**
+  주석에도 "10개의 질문, 각 5개의 보기"라고 적혀 있다.
+  → **7문항의 낱개 점수를 그대로 보내면 최소 7점이라 500이 난다.** `submitTest()`가 낱개 대신
+  `normalizeScore()`로 환산한 값 하나만 보내는 건 이걸 피하려는 것이다.
+  `src/utils/personality.ts`의 `SERVER_MIN=10`/`SERVER_MAX=90`은 위 유효 범위에서 나온 값이다.
+- 백엔드 `InvestPersonality` enum이 프론트 `PersonalityType`과 **정확히 같다**(안정형·안정추구형·
+  위험중립형·적극투자형·공격투자형). 서버 채점으로 넘어가도 타입은 그대로 맞는다.
+- `getQuestions()`가 `findAll()`을 **정렬 없이** 부른다. `sortByIds()`는 실제로 필요한 방어다.
+- SecurityConfig의 허용 목록에 **`/api/**`가 통째로 `permitAll`**이다. 문항 조회는 비로그인도 된다.
+  대신 POST는 `@AuthenticationPrincipal`로 받은 user에서 id를 꺼내므로 **토큰 없이 부르면
+  401이 아니라 NPE로 500**이 난다. 마이페이지·성향 화면이 401 대신 500을 다루는 이유가 이것이다.
+
+남은 것은 **DB에 문항 10개를 넣는 일 하나**다. 들어오면 조회 플래그부터 켜고, 제출은 로그인이
+필요하니 나중에 켠다.
 
 프론트에 하드코딩된 다른 데이터: `src/api/stockList.ts`의 102종목, `home.ts`의 `TOP_THEMES` 3개.
 
