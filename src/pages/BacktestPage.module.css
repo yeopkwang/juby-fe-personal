@@ -1,0 +1,911 @@
+/* 왼쪽 입력·결과, 오른쪽 가이드. 가이드는 폭을 고정해 읽는 줄 길이를 지킨다 */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 32px;
+  align-items: start;
+  margin-top: 40px;
+}
+
+.content {
+  min-width: 0;
+}
+
+/* 홈·AI·성향테스트와 같은 규격. 페이지마다 제목 크기가 다르면 화면을 옮길 때 눈이 흔들린다 */
+.title {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* ── 내 투자성향 안내 ──────────────────────────────────────────────── */
+
+/* 고르는 칸이 아니라 이미 정해진 사실이라, 입력과 다른 모양으로 구분한다 */
+.myBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--color-bg-sub);
+}
+
+.myText {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.myAction {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.myAction:hover {
+  border-color: var(--color-text-sub);
+}
+
+/* ── 입력 ──────────────────────────────────────────────────────────── */
+
+.form {
+  margin-top: 24px;
+}
+
+.field + .field {
+  margin-top: 22px;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 세 칸을 순서대로 채우는 흐름이라는 걸 번호로 알린다 */
+.step {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 입력칸과 선택칸의 겉모습을 하나로 맞춘다 */
+.control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 8px 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-sub);
+}
+
+.control:focus-within {
+  border-color: var(--color-text-sub);
+}
+
+.input,
+.select {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-sub);
+}
+
+.select:disabled {
+  color: var(--color-text-sub);
+  cursor: not-allowed;
+}
+
+.code {
+  flex: 0 0 auto;
+  padding-right: 8px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.reset {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.reset:hover {
+  background: var(--color-border);
+}
+
+.hint {
+  margin: 8px 2px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+/* ── 종목 검색 결과 ─────────────────────────────────────────────────── */
+
+.searchWrap {
+  position: relative;
+}
+
+.matches {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 8%);
+}
+
+.match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 15px;
+  text-align: left;
+}
+
+.match:hover {
+  background: var(--color-bg-sub);
+}
+
+/* ── 실행 버튼 ──────────────────────────────────────────────────────── */
+
+.submitRow {
+  margin-top: 32px;
+  text-align: center;
+}
+
+/* 다음에 할 일이 하나뿐인 자리라 폭을 채워 눈에 먼저 걸리게 한다 */
+.submit {
+  width: 100%;
+  padding: 15px 28px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.submitHint {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.submit:disabled {
+  background: var(--color-border);
+  color: var(--color-text-sub);
+  cursor: not-allowed;
+}
+
+/* ── 결과 ──────────────────────────────────────────────────────────── */
+
+.result {
+  margin-top: 48px;
+}
+
+.resultHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.resultTitle {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.retry {
+  flex: 0 0 auto;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.card {
+  margin-top: 16px;
+  padding: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.cardTitle {
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* 한국식 색: 좋은 쪽이 빨강이다 */
+.good {
+  color: var(--color-up);
+}
+
+/* 중간은 색을 주지 않는다. 셋 다 물들이면 어느 쪽이 좋은 건지 되레 안 보인다 */
+.normal {
+  color: var(--color-text);
+}
+
+.bad {
+  color: var(--color-down);
+}
+
+/* ── 내 성향 ↔ 종목 성향 ───────────────────────────────────────────── */
+
+.compare {
+  margin-top: 20px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+/* 결과에서 가장 먼저 읽혀야 하는 문장이라 본문보다 크게 둔다 */
+.story {
+  margin: 0 0 20px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.matchRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.matchSide {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  padding: 16px 12px;
+  border-radius: 12px;
+  background: var(--color-bg-sub);
+  text-align: center;
+}
+
+.matchLabel {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.matchValue {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.matchFrom {
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
+
+.matchSign {
+  flex: 0 0 auto;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.matchText {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+  text-align: center;
+}
+
+/* ── 적합도 점수 ───────────────────────────────────────────────────── */
+
+.scoreRow {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--color-bg-sub);
+}
+
+.scoreBox {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  padding-right: 24px;
+  border-right: 1px solid var(--color-border);
+}
+
+.scoreLabel {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.score {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.scoreMax {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-sub);
+}
+
+.scoreVerdict {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.axes {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.axisHead {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+.axisName {
+  font-weight: 700;
+}
+
+.axisWeight {
+  color: var(--color-text-sub);
+  font-size: 12px;
+}
+
+.axisScore {
+  margin-left: auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-text);
+}
+
+/* ── 지표 카드 ─────────────────────────────────────────────────────── */
+
+/* 폭에 따라 3 → 2 → 1열로 저절로 접힌다. 칸 수를 화면 크기마다 정하지 않아도 된다 */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 12px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.metricLabel {
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
+
+.metricValue {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* 등락 색은 한국식이다 — 오르면 빨강, 내리면 파랑 */
+.up {
+  color: var(--color-up);
+}
+
+.down {
+  color: var(--color-down);
+}
+
+.metricDesc {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-sub);
+}
+
+/* ── 경고·랭킹·설명 ────────────────────────────────────────────────── */
+
+.warn {
+  margin: 20px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--color-bg-sub);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.ranking {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border);
+}
+
+.rankingTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rankingNote {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-sub);
+}
+
+.rankList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rank {
+  display: grid;
+  /* 이름 칸을 고정해야 막대의 왼쪽 끝이 한 줄로 맞는다 */
+  grid-template-columns: 104px minmax(0, 1fr) 44px;
+  gap: 12px;
+  align-items: center;
+}
+
+.rank + .rank {
+  margin-top: 8px;
+}
+
+.rankName {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+
+.crown {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--color-up);
+  color: var(--color-surface);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.rankScore {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.barFillTop {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-up);
+}
+
+.notes {
+  margin: 24px 0 0;
+  padding-left: 18px;
+}
+
+.notes li + li {
+  margin-top: 12px;
+}
+
+.notes li {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.noteBody {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-text-sub);
+  /* 성향 설명에 든 줄바꿈을 살린다 */
+  white-space: pre-line;
+}
+
+.meta {
+  margin: 22px 0 0;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.sample {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+/* ── 오른쪽 가이드 ─────────────────────────────────────────────────── */
+
+.guide {
+  position: sticky;
+  top: 24px;
+}
+
+.guideTitle {
+  margin: 0 0 14px;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.guideCard {
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  /* 화면을 넘어가면 카드 안에서 굴린다 */
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+}
+
+.guideSection + .guideSection {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border);
+}
+
+.guideHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 누를 수 있다는 걸 제목 옆에서 먼저 알린다 */
+.guideTip {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--color-bg-sub);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-sub);
+}
+
+.guideBody {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--color-text-sub);
+}
+
+/* ── 전략 고르기 ───────────────────────────────────────────────────── */
+
+.strategyList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.strategyList li + li {
+  margin-top: 8px;
+}
+
+/* 설명과 선택을 한 몸으로 만든다. 카드 전체가 버튼이다 */
+.strategyOff,
+.strategyOn {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.strategyOff:hover {
+  border-color: var(--color-text-sub);
+  background: var(--color-bg-sub);
+}
+
+/* 고른 것은 테두리를 굵게 해서 목록에서 바로 튀어나오게 한다 */
+.strategyOn {
+  border-color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-text);
+}
+
+.strategyTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.strategyName {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.strategyDesc {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-sub);
+}
+
+.badge {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 고른 전략만 펼쳐 매수·매도 조건을 보인다 */
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid var(--color-border);
+}
+
+.detailRow {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-sub);
+}
+
+/* 매수 빨강, 매도 파랑 — 표와 차트에서 쓰는 한국식 색과 같게 */
+.buy {
+  color: var(--color-up);
+  font-weight: 700;
+}
+
+.sell {
+  color: var(--color-down);
+  font-weight: 700;
+}
+
+.term {
+  color: var(--color-text-sub);
+  font-weight: 700;
+}
+
+/* ── 위험도 점 ─────────────────────────────────────────────────────── */
+
+.dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.dotOn,
+.dotOff {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dotOn {
+  background: var(--color-text);
+}
+
+.dotOff {
+  background: var(--color-border);
+}
+
+/* ── 점수 설명 ─────────────────────────────────────────────────────── */
+
+.axisGuide {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 10px;
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.axisGuide dt {
+  font-weight: 700;
+}
+
+.axisGuide dd {
+  margin: 0;
+  color: var(--color-text-sub);
+}
+
+/* ── 좁은 화면 ─────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .title {
+    font-size: 27px;
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 28px;
+  }
+
+  /* 가이드는 참고용이라 내용 아래로 내린다 */
+  .guide {
+    position: static;
+  }
+
+  .guideCard {
+    max-height: none;
+  }
+
+  .scoreRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .scoreBox {
+    flex-direction: row;
+    gap: 8px;
+    align-items: baseline;
+    justify-content: center;
+    padding: 0 0 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .axes {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .title {
+    font-size: 23px;
+  }
+
+  .myBanner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .myAction {
+    text-align: center;
+  }
+
+  .resultHead {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .resultTitle {
+    font-size: 21px;
+  }
+
+  .card,
+  .compare {
+    padding: 20px 16px;
+  }
+
+  .story {
+    font-size: 16px;
+  }
+
+  .axes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* 좌우로 놓을 폭이 안 나오면 위아래로 세운다. 기호도 방향을 바꾼다 */
+  .matchRow {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .matchSide {
+    width: 100%;
+  }
+
+  .matchSign {
+    transform: rotate(90deg);
+  }
+
+  .rank {
+    grid-template-columns: 88px minmax(0, 1fr) 40px;
+    gap: 8px;
+  }
+}
