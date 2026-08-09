@@ -19,6 +19,26 @@ function authHeaders(): Record<string, string> {
 }
 
 /**
+ * ⛔ 백엔드 호출 전면 차단 스위치.
+ *
+ * 백엔드가 한국투자증권(KIS) API를 중계하는 구조라, 프론트가 화면을 열 때마다
+ * 그쪽으로 요청이 흘러간다. 홈 한 번이 100건이 넘어서 증권사 계정이 정지될 수 있다는
+ * 경고를 받아 전부 막아 둔다.
+ *
+ * **여기 한 곳만 막으면 된다.** 이 파일의 fetch가 앱 전체에서 유일한 통신 창구다.
+ * 화면·API 모듈은 전부 이 아래를 거치므로 호출부를 하나씩 주석 처리할 필요가 없고,
+ * 그렇게 해야 새로 추가되는 코드까지 자동으로 막힌다(빠뜨릴 곳이 없다).
+ *
+ * 막힌 요청은 '실패'로 떨어진다. 화면들은 이미 실패를 다루게 되어 있어서
+ * 홈은 저장해 둔 지난 시세로, 나머지는 각자의 에러 안내로 넘어간다.
+ *
+ * 다시 켜려면 이 값을 false로 바꾼다. 함께 막아 둔 두 곳도 같이 되돌려야 한다.
+ *   1. src/pages/LoginPage.tsx  — 소셜 로그인 이동(백엔드로 주소창을 옮긴다)
+ *   2. vite.config.ts           — server.proxy(개발 중 /api를 백엔드로 넘긴다)
+ */
+const API_DISABLED = true
+
+/**
  * 응답을 이만큼 기다려도 안 오면 실패로 친다.
  *
  * fetch는 기본적으로 기다리는 시간에 제한이 없다. 백엔드가 멈춰 서면(응답도 거절도 안 하면)
@@ -102,6 +122,16 @@ async function requestJson<T>(
   init?: RequestInit,
   options?: RequestOptions,
 ): Promise<T> {
+  /*
+   * 무엇보다 먼저 확인한다. 아래 어떤 경로로도 fetch에 닿지 못하게 여기서 끊는다.
+   * 증권사 계정 보호를 위한 조치라 실수로 새어 나가면 안 된다.
+   */
+  if (API_DISABLED) {
+    throw new Error(
+      `백엔드 호출이 차단되어 있습니다 (src/api/client.ts의 API_DISABLED) ${path}`,
+    )
+  }
+
   // 방금 전까지 연달아 무응답이었다. 보내봐야 제한 시간만 태운다
   if (Date.now() < breakerUntil) {
     throw new Error(`서버 무응답 상태 ${path}`)
