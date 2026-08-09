@@ -15,6 +15,39 @@ export async function getDailyCandles(
     `/api/market/daily_itemchartprice?stockcode=${stockCode}&startdate=${startDate}&enddate=${endDate}`,
   )
 
+  return toCandles(candles)
+}
+
+/**
+ * 실전 서버로 나가는 요청의 제한 시간.
+ *
+ * 현재가 56ms, 최근 일봉 30~90ms가 실측값이다. 호출 제한에 걸려 밀려도 1초를 넘지 않는다.
+ * client.ts의 기본값 12초는 모의투자 서버를 거치는 1년치 일봉(1.5~2.4초)에 맞춘 값이라
+ * 이쪽에 쓰면 서버가 멈췄을 때 실패를 확인하는 데만 재시도까지 36초가 걸린다.
+ */
+const FAST_TIMEOUT = 3_500
+
+/**
+ * 최근 30거래일 일봉. 기간을 못 고르는 대신 **훨씬 빠르다.**
+ *
+ * 위 getDailyCandles는 증권사 **모의투자** 서버를 거쳐 건당 1.5~2.4초가 걸리는데,
+ * 이 API는 **실전** 서버라 60ms 안팎이다(실측). 홈 카드처럼 최근 흐름만 필요한 곳은
+ * 이쪽을 쓴다. 대신 초당 호출 제한이 빡빡해서(EGW00201) 몰아치면 안 되고,
+ * 부르는 쪽에서 순차 + withRetry로 감싼다.
+ *
+ * 응답 모양과 정렬(최신순)은 위와 같다.
+ */
+export async function getRecentCandles(stockCode: string): Promise<Candle[]> {
+  const candles = await getRaw<DailyCandleResponse[]>(
+    `/api/market/daily-stock?stockCode=${stockCode}`,
+    { timeoutMs: FAST_TIMEOUT },
+  )
+
+  return toCandles(candles)
+}
+
+/** 백엔드는 최신 날짜부터 내려주므로 뒤집어서 오름차순으로 돌려준다 */
+function toCandles(candles: DailyCandleResponse[]): Candle[] {
   return candles
     .map((candle) => ({
       date: candle.stck_bsop_date,
@@ -28,7 +61,9 @@ export async function getDailyCandles(
 }
 
 export function getPrice(stockCode: string): Promise<PriceResponse> {
-  return getRaw<PriceResponse>(`/api/market/price?code=${stockCode}`)
+  return getRaw<PriceResponse>(`/api/market/price?code=${stockCode}`, {
+    timeoutMs: FAST_TIMEOUT,
+  })
 }
 
 /**

@@ -1,4 +1,4 @@
-import { getDailyCandles } from './market'
+import { getDailyCandles, getRecentCandles } from './market'
 import { daysAgo, toYmd } from '../utils/date'
 import { withRetry } from '../utils/async'
 import { readCache, writeCache } from '../utils/cache'
@@ -69,6 +69,20 @@ export function loadCandles(stockCode: string): Promise<Candle[]> {
 
   inFlight.set(stockCode, request)
   return request
+}
+
+/**
+ * 최근 30거래일(약 6주)만 받는 빠른 길.
+ *
+ * 위 loadCandles는 1년치를 받으려고 모의투자 서버를 거쳐 건당 1.5~2.4초가 걸린다.
+ * 홈 카드는 최근 흐름만 그리면 되므로 실전 서버 쪽(60ms)으로 받는다.
+ *
+ * 초당 호출 제한(EGW00201)에 걸리면 500이 오는데, 잠깐 쉬었다 부르면 대개 통과한다.
+ * 상세 화면 캐시와는 담는 내용이 달라(구간이 짧다) 섞이지 않게 저장하지 않는다.
+ * 카드 자체는 home.ts의 topStocks 캐시가 따로 들고 있다.
+ */
+export function loadRecentCandles(stockCode: string): Promise<Candle[]> {
+  return withRetry(() => getRecentCandles(stockCode), 2, 400).then(dropUnsettled)
 }
 
 /**

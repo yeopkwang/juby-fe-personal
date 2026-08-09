@@ -11,6 +11,7 @@ import {
   loadTopStocks,
   readCachedTopStocks,
 } from '../api/home'
+import { delay } from '../utils/async'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
 import { nextSort, sortStocks } from '../utils/sort'
@@ -18,6 +19,13 @@ import type { SortKey, SortState, Stock, TopStock } from '../types/stock'
 import styles from './HomePage.module.css'
 
 const PAGE_SIZE = 20
+
+/**
+ * 시세 루프가 카드를 기다려 주는 최대 시간.
+ * 카드 세 건이 정상이면 0.5초 안에 끝난다. 그보다 오래 걸리면 백엔드가 아픈 것이므로
+ * 표까지 붙잡혀 있을 이유가 없다.
+ */
+const CARD_HEAD_START = 1200
 
 export default function HomePage() {
   /*
@@ -44,6 +52,8 @@ export default function HomePage() {
 
   /** 전체 시세를 받는 중인 작업. 정렬을 누르면 이게 끝나기를 기다린다 */
   const allQuotesRef = useRef<Promise<void> | null>(null)
+  /** 카드 조회 작업. 시세 루프가 이게 끝나기를 기다렸다가 출발한다 */
+  const topStocksRef = useRef<Promise<void> | null>(null)
   const hasStartedQuotes = useRef(false)
   const hasStartedTop = useRef(false)
   const [isQuotesReady, setIsQuotesReady] = useState(false)
@@ -69,7 +79,7 @@ export default function HomePage() {
     if (hasStartedTop.current) return
     hasStartedTop.current = true
 
-    loadTopStocks((index, stock) => {
+    topStocksRef.current = loadTopStocks((index, stock) => {
       setTopStocks((previous) =>
         previous.map((item, i) => (i === index ? stock : item)),
       )
@@ -80,7 +90,11 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
-    getHomeStocks().then(setStocks)
+    /* 저장해 둔 값이 있으면 표가 처음부터 채워진 채로 뜬다. 없으면 '-'로 시작한다 */
+    getHomeStocks().then((home) => {
+      setStocks(home.stocks)
+      setFrozenDate(home.frozenDate)
+    })
   }, [])
 
   const loadQuotes = useCallback(async (targets: Stock[]) => {
@@ -117,6 +131,19 @@ export default function HomePage() {
     hasStartedQuotes.current = true
 
     allQuotesRef.current = (async () => {
+      /*
+       * 카드가 먼저 나오도록 길을 비켜주되, 기다리는 시간에 반드시 상한을 둔다.
+       *
+       * 둘 다 증권사 초당 호출 제한을 함께 쓴다. 동시에 출발하면 102종목 쪽이 창구를
+       * 가득 채워서, 세 건이면 끝날 카드가 500을 맞고 재시도하느라 몇 초씩 늦어졌다.
+       *
+       * 그렇다고 카드를 무작정 기다리면 안 된다. 백엔드가 응답을 멈췄을 때
+       * 카드 요청이 안 끝나는 바람에 표가 시세를 아예 한 번도 요청하지 못했고,
+       * 그래서 실패했을 때 쓰라고 만들어 둔 대체 값까지 못 쓰고 전부 '-'로 남았다.
+       * 카드는 세 건이라 정상이면 0.5초면 끝난다. 넘어가면 그냥 같이 달린다.
+       */
+      await Promise.race([topStocksRef.current, delay(CARD_HEAD_START)])
+
       await loadQuotes(stocks.slice(0, PAGE_SIZE))
       await loadQuotes(stocks)
       setIsQuotesReady(true)

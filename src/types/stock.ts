@@ -43,7 +43,7 @@ export type TopTheme = Pick<TopStock, 'stockCode' | 'stockName' | 'theme'>
 export interface TopStock extends StockInfo {
   /** "기술주 대장" 같은 테마 라벨 */
   theme: string
-  /** 90일 전 대비 등락률(%) */
+  /** 받아온 구간(최근 30거래일 ≈ 6주) 처음 대비 등락률(%) */
   changeRate: number
   prices: number[]
   /** prices와 같은 길이 */
