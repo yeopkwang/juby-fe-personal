@@ -1,20 +1,15 @@
+import { Suspense, lazy } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  Bar,
-  ComposedChart,
-  Line,
-  ResponsiveContainer,
-  YAxis,
-} from 'recharts'
 import { prefetchCandles } from '../api/candles'
 import type { TopStock, TopTheme } from '../types/stock'
-import { formatChangeRate, isFlatRate } from '../utils/format'
 import styles from './TopStockCard.module.css'
 
-const UP_COLOR = '#f04452'
-const DOWN_COLOR = '#3182f6'
-/** 보합 글자색. index.css의 --color-text와 같은 값 */
-const FLAT_COLOR = '#191f28'
+/*
+ * recharts(gzip 100KB 남짓)를 홈 첫 묶음에서 뺀다.
+ * 어차피 일봉이 오기 전까지는 CardPlaceholder가 떠 있어서,
+ * 그 사이에 받아오면 사용자 입장에서 기다림이 늘지 않는다.
+ */
+const CardChart = lazy(() => import('./CardChart'))
 
 interface Props {
   theme: TopTheme
@@ -36,7 +31,14 @@ export default function TopStockCard({ theme, stock }: Props) {
       <p className={styles.theme}>{theme.theme}</p>
       <p className={styles.name}>{theme.stockName}</p>
 
-      {stock === null ? <CardPlaceholder /> : <CardChart stock={stock} />}
+      {stock === null ? (
+        <CardPlaceholder />
+      ) : (
+        /* 자리표시자를 그대로 물려줘 그래프가 도착해도 화면이 흔들리지 않는다 */
+        <Suspense fallback={<CardPlaceholder />}>
+          <CardChart stock={stock} />
+        </Suspense>
+      )}
     </Link>
   )
 }
@@ -47,83 +49,9 @@ function CardPlaceholder() {
     <>
       <p className={styles.rateRow}>
         <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
-        <span className={styles.caption}>90일 전 대비</span>
+        <span className={styles.caption}>6주 전 대비</span>
       </p>
       <div className={`${styles.chart} ${styles.chartEmpty}`} />
-    </>
-  )
-}
-
-function CardChart({ stock }: { stock: TopStock }) {
-  const lineColor = stock.changeRate >= 0 ? UP_COLOR : DOWN_COLOR
-  /* 선은 90일 흐름의 방향이라 그대로 두고, 숫자만 보합이면 검게 적는다 */
-  const rateColor = isFlatRate(stock.changeRate, 1) ? FLAT_COLOR : lineColor
-  const lastIndex = stock.prices.length - 1
-
-  const first = stock.prices[0]
-  const last = stock.prices[lastIndex]
-  const chartData = stock.prices.map((price, index) => ({
-    price,
-    volume: stock.volumes[index],
-    trend: first + ((last - first) * index) / lastIndex,
-  }))
-
-  const maxVolume = Math.max(...stock.volumes)
-
-  return (
-    <>
-      <p className={styles.rateRow}>
-        <span className={styles.rate} style={{ color: rateColor }}>
-          {formatChangeRate(stock.changeRate, 1)}
-        </span>
-        <span className={styles.caption}>90일 전 대비</span>
-      </p>
-
-      <div className={styles.chart}>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
-            <YAxis yAxisId="price" hide domain={['dataMin', 'dataMax']} />
-            <YAxis yAxisId="volume" hide domain={[0, maxVolume * 4]} />
-
-            <Bar yAxisId="volume" dataKey="volume" fill="#eef0f3" isAnimationActive={false} />
-
-            <Line
-              yAxisId="price"
-              dataKey="trend"
-              stroke="#b5bcc4"
-              strokeWidth={1}
-              strokeDasharray="4 4"
-              dot={false}
-              isAnimationActive={false}
-            />
-
-            <Line
-              yAxisId="price"
-              type="monotone"
-              dataKey="price"
-              stroke={lineColor}
-              strokeWidth={1.8}
-              isAnimationActive={false}
-              dot={(props: { cx?: number; cy?: number; index?: number }) => {
-                if (props.index !== lastIndex || props.cx == null || props.cy == null) {
-                  return <g key="empty" />
-                }
-                return (
-                  <circle
-                    key="last"
-                    cx={props.cx}
-                    cy={props.cy}
-                    r={3.5}
-                    fill="#fff"
-                    stroke={lineColor}
-                    strokeWidth={2}
-                  />
-                )
-              }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
     </>
   )
 }
