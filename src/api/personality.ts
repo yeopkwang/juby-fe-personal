@@ -16,14 +16,17 @@ import type {
  *   USE_BACKEND_QUESTIONS  false → 아래 MOCK_QUESTIONS / true → GET /api/personality-tests
  *   USE_BACKEND_SUBMIT     false → 프론트에서 채점    / true → POST /api/personality-tests
  *
- * 지금은 둘 다 false다. 백엔드 personality_test·choices 테이블이 비어 있어
- * 조회 API가 200에 빈 배열을 돌려주기 때문이다.
+ * 조회는 켰다. 2026-08-10에 백엔드가 personality_test·choices 테이블을 채웠고
+ * 실제 응답을 확인했다 — 문항 10개 × 보기 5개, 배점은 전 문항 1/3/5/7/9라
+ * 합계가 10~90으로 서버 채점 구간과 정확히 맞는다.
  *
- * 문항 데이터가 들어오면 USE_BACKEND_QUESTIONS만 true로,
- * personality 테이블까지 채워지면 USE_BACKEND_SUBMIT도 true로 바꾼다.
- * 제출은 로그인이 있어야 하므로 조회보다 늦게 켜야 한다.
+ * 제출은 아직 false다. 로그인이 있어야 하고(토큰 없이 부르면 401이 아니라 500),
+ * 설명·이미지를 담는 personality 테이블까지 채워졌는지는 확인하지 않았다.
+ *
+ * MOCK_QUESTIONS는 지우지 않는다. 통신이 막힌 채로 화면을 손볼 때
+ * 이 플래그만 내리면 오프라인으로 돌려볼 수 있다.
  */
-const USE_BACKEND_QUESTIONS = false
+const USE_BACKEND_QUESTIONS = true
 const USE_BACKEND_SUBMIT = false
 
 interface QuestionListResponse {
