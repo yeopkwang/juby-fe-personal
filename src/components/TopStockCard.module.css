@@ -4,26 +4,26 @@
   border: 1px solid var(--color-border);
   border-radius: 12px;
   background: var(--color-surface);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(25, 31, 40, 0.04);
   transition: box-shadow 0.15s, transform 0.15s;
 }
 
 .card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 16px rgba(25, 31, 40, 0.08);
   transform: translateY(-2px);
 }
 
 .theme {
   margin: 0;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   color: var(--color-text-sub);
 }
 
 .name {
   margin: 4px 0 0;
-  font-size: 19px;
-  font-weight: 700;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
 }
 
 .rateRow {
@@ -34,13 +34,13 @@
 }
 
 .rate {
-  font-size: 34px;
-  font-weight: 700;
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-bold);
   letter-spacing: -0.02em;
 }
 
 .caption {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--color-text-sub);
 }
 
@@ -51,12 +51,12 @@
 
 /* 값이 오기 전 자리. 빈 칸으로 두면 카드가 찌그러져 보인다 */
 .rateEmpty {
-  color: #d7dbe0;
+  color: var(--grey-300);
 }
 
 .chartEmpty {
   border-radius: 8px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  background: linear-gradient(90deg, var(--grey-50) 25%, var(--grey-100) 50%, var(--grey-50) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }

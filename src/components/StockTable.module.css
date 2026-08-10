@@ -28,7 +28,7 @@
   border: 1px solid var(--color-border);
   border-radius: 12px 12px 0 0;
   background: var(--color-surface);
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--color-text-sub);
 }
 
@@ -49,7 +49,7 @@
   position: relative;
   height: 56px;
   border-bottom: 1px solid var(--color-border);
-  font-size: 15px;
+  font-size: var(--fs-md);
   transition: background 0.12s;
 }
 
@@ -84,7 +84,7 @@
 
 .sortButtonActive {
   color: var(--color-text);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .sortIcon {
@@ -104,7 +104,7 @@
   padding: 0;
   border: none;
   background: none;
-  color: #c9cfd6;
+  color: var(--grey-300);
 }
 
 .heart:hover {
@@ -116,7 +116,7 @@
 }
 
 .name {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 /*
@@ -139,6 +139,11 @@
 /* 금액·비율은 오른쪽에 붙여야 자릿수를 위아래로 견주기 좋다 */
 .numeric {
   text-align: right;
+  /*
+   * 기본 서체는 1과 7의 폭이 달라, 값이 세로로 늘어서면 자릿수가 어긋나 보인다.
+   * 숫자 폭을 고정하면 천 단위 자리가 위아래로 딱 맞는다.
+   */
+  font-variant-numeric: tabular-nums;
 }
 
 .numericHead {
@@ -147,22 +152,23 @@
 
 .code {
   color: var(--color-text-sub);
+  font-variant-numeric: tabular-nums;
 }
 
 .up {
   color: var(--color-up);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .down {
   color: var(--color-down);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 /* 보합. 한 칸에 세로로 늘어서는 값이라 굵기는 위아래와 맞추고 색만 기본 글자색으로 둔다 */
 .flat {
   color: var(--color-text);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 /*
@@ -195,6 +201,6 @@
 
   .row {
     height: 52px;
-    font-size: 14px;
+    font-size: var(--fs-sm);
   }
 }

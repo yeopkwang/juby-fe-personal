@@ -9,16 +9,16 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 16px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 18px rgba(25, 31, 40, 0.06);
   text-align: center;
 }
 
 .eyebrow {
   margin: 0;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
   letter-spacing: -0.02em;
-  color: #6b7684;
+  color: var(--grey-600);
 }
 
 .image {
@@ -29,16 +29,16 @@
 
 .type {
   margin: 0;
-  font-size: 34px;
-  font-weight: 800;
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-heavy);
   letter-spacing: -0.03em;
 }
 
 /* 설명은 두 줄로 들어온다. 서버 문구에 줄바꿈이 없으면 그냥 이어져 흐른다 */
 .description {
   margin: 12px 0 0;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   line-height: 1.6;
   color: var(--color-text-sub);
   white-space: pre-line;

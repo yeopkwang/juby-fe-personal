@@ -1,7 +1,7 @@
 .title {
   margin: 56px 0 0;
-  font-size: 34px;
-  font-weight: 800;
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-heavy);
   letter-spacing: -0.03em;
   text-align: center;
 }
@@ -15,13 +15,13 @@
   height: 14px;
   margin: 28px auto 0;
   overflow: hidden;
-  background: #e8ebed;
+  background: var(--grey-200);
   border-radius: 999px;
 }
 
 .progressFill {
   height: 100%;
-  background: #87c79b;
+  background: var(--color-brand);
   border-radius: 999px;
   transition: width 0.3s ease;
 }
@@ -33,7 +33,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 16px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 18px rgba(25, 31, 40, 0.06);
 }
 
 /* 번호는 왼쪽, 진행 표시는 오른쪽. baseline으로 맞춰야 글자 크기가 달라도 밑선이 붙는다 */
@@ -44,21 +44,21 @@
 }
 
 .questionNo {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
 }
 
 .counter {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   color: var(--color-text-sub);
 }
 
 /* mock 문항에 넣어둔 줄바꿈을 살린다. 줄바꿈이 없는 문장은 그대로 흘러 넘어간다 */
 .question {
   margin: 10px 0 0;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
   line-height: 1.5;
   letter-spacing: -0.02em;
   white-space: pre-line;
@@ -74,12 +74,12 @@
 .choice {
   width: 100%;
   padding: 14px 16px;
-  background: #f5f5f5;
+  background: var(--grey-100);
   /* 평소에도 같은 두께의 투명 테두리를 둬야 선택할 때 글자가 밀리지 않는다 */
   border: 1.5px solid transparent;
   border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   line-height: 1.45;
   color: var(--color-text);
   text-align: left;
@@ -87,14 +87,14 @@
 }
 
 .choice:hover {
-  background: #eceef0;
+  background: var(--grey-200);
 }
 
 .choiceSelected,
 .choiceSelected:hover {
-  background: #f0f7f2;
-  border-color: #87c79b;
-  font-weight: 600;
+  background: var(--color-brand-weak);
+  border-color: var(--color-brand);
+  font-weight: var(--fw-semibold);
 }
 
 .buttons {
@@ -109,30 +109,30 @@
   padding: 9px 20px;
   border: none;
   border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
 }
 
 .prev {
-  background: #f2f4f6;
+  background: var(--grey-100);
   color: var(--color-text-sub);
 }
 
 .next {
-  background: var(--color-text);
+  background: var(--color-brand-deep);
   color: var(--color-surface);
 }
 
 .prev:disabled,
 .next:disabled {
-  background: #f2f4f6;
-  color: #c4cbd3;
+  background: var(--grey-100);
+  color: var(--grey-300);
   cursor: default;
 }
 
 .message {
   margin: 120px 0;
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--color-text-sub);
   text-align: center;
 }

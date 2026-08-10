@@ -1,7 +1,10 @@
+/*
+ * 폭을 본문 칸에 맞춘다. 예전에는 660px로 가운데 띄워 두어, 아래 카드와 표는 왼쪽 끝에서
+ * 시작하는데 검색만 안쪽에서 시작해 세로 기준선이 두 개로 보였다.
+ */
 .form {
   position: relative;
-  max-width: 660px;
-  margin: 48px auto 0;
+  margin: 40px 0 0;
 }
 
 .box {
@@ -13,7 +16,7 @@
   padding: 0 7px 0 22px;
   border: 1px solid transparent;
   border-radius: 10px;
-  background: #f4f5f7;
+  background: var(--color-page-bg);
 }
 
 /* 버튼이 흰색이라 포커스가 가도 바탕은 회색으로 둔다 */
@@ -28,7 +31,7 @@
   outline: none;
   background: transparent;
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-md);
   color: var(--color-text);
 }
 
@@ -43,14 +46,14 @@
   border: none;
   border-radius: 8px;
   background: var(--color-surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  font-size: 16px;
-  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(25, 31, 40, 0.08);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
   color: var(--color-text);
 }
 
 .button:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 6px rgba(25, 31, 40, 0.12);
 }
 
 /* 아래 내용을 밀어내지 않도록 띄워서 겹친다 */
@@ -65,7 +68,7 @@
   border: 1px solid var(--color-border);
   border-radius: 10px;
   background: var(--color-surface);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 20px rgba(25, 31, 40, 0.1);
 }
 
 .option {
@@ -88,18 +91,18 @@
 }
 
 .optionName {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
 }
 
 .optionCode {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--color-text-sub);
 }
 
 .message {
   margin: 10px 0 0;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--color-up);
   text-align: center;
 }
@@ -116,12 +119,12 @@
   }
 
   .input {
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
 
   .button {
     height: 38px;
     padding: 0 16px;
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
 }

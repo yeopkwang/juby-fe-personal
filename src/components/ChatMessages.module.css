@@ -22,7 +22,7 @@
   padding: 12px 16px;
   border-radius: 14px;
   background: var(--color-page-bg);
-  font-size: 15px;
+  font-size: var(--fs-md);
   line-height: 1.6;
   /* 답변 안의 줄바꿈을 화면에 그대로 반영한다. 긴 단어는 강제로 접는다 */
   white-space: pre-wrap;
@@ -30,8 +30,8 @@
 }
 
 .bubbleUser {
-  background: #333d4b;
-  color: #ffffff;
+  background: var(--grey-800);
+  color: var(--color-surface);
 }
 
 .loading {
@@ -88,8 +88,8 @@
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   color: var(--color-text);
 }
 

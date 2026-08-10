@@ -1,7 +1,8 @@
+/* 다른 화면 제목과 같은 단계를 쓴다. 여기만 24px이라 미묘하게 작아 보였다 */
 .title {
   margin: 40px 0 0;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-heavy);
 }
 
 .list {
@@ -32,20 +33,20 @@
   height: 26px;
   border-radius: 50%;
   background: var(--color-bg-sub);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
   color: var(--color-text-sub);
 }
 
 .itemTitle {
   margin: 0;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
 }
 
 .body {
   margin: 12px 0 0 36px;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   line-height: 1.7;
   color: var(--color-text-sub);
 }
@@ -54,7 +55,7 @@
   height: 120px;
   margin-top: 28px;
   border-radius: 12px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  background: linear-gradient(90deg, var(--grey-50) 25%, var(--grey-100) 50%, var(--grey-50) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -77,7 +78,7 @@
 @media (max-width: 600px) {
   .title {
     margin-top: 28px;
-    font-size: 21px;
+    font-size: var(--fs-xl);
   }
 
   .body {

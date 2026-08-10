@@ -11,8 +11,8 @@
 .menu {
   display: flex;
   gap: 28px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
 }
 
@@ -27,8 +27,8 @@
 /* Michroma는 굵기가 400 하나뿐이고 글자폭이 넓어서 크기와 자간을 따로 잡는다 */
 .logo {
   font-family: 'Michroma', sans-serif;
-  font-size: 23px;
-  font-weight: 400;
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-normal);
   letter-spacing: 0.01em;
 }
 
@@ -39,7 +39,7 @@
 
   .menu {
     gap: 18px;
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
 }
 
@@ -61,12 +61,12 @@
     order: -1;
     flex-basis: 100%;
     text-align: center;
-    font-size: 20px;
+    font-size: var(--fs-xl);
   }
 
   .menu {
     gap: 14px;
-    font-size: 13px;
+    font-size: var(--fs-sm);
   }
 
   .right {

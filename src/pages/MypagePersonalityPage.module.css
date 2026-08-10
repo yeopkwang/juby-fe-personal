@@ -4,7 +4,7 @@
   height: 420px;
   margin: 36px auto;
   border-radius: 16px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  background: linear-gradient(90deg, var(--grey-50) 25%, var(--grey-100) 50%, var(--grey-50) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -35,13 +35,13 @@
 
 .messageText {
   margin: 0;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
 }
 
 .hint {
   margin: 10px 0 0;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
@@ -52,15 +52,15 @@
   padding: 12px 40px;
   border: 0;
   border-radius: 10px;
-  background: #4e5968;
-  font-size: 15px;
-  font-weight: 700;
+  background: var(--color-solid);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
   color: var(--color-surface);
   transition: background 0.15s;
 }
 
 .primary:hover {
-  background: #3d4754;
+  background: var(--color-solid-hover);
 }
 
 /* 카드 아래 보조 버튼. 결과 화면의 '검사 다시하기'와 같은 자리, 같은 무게 */
@@ -69,15 +69,15 @@
   margin-top: 26px;
   padding: 12px 40px;
   border-radius: 10px;
-  background: #4e5968;
-  font-size: 15px;
-  font-weight: 700;
+  background: var(--color-solid);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
   color: var(--color-surface);
   transition: background 0.15s;
 }
 
 .retest:hover {
-  background: #3d4754;
+  background: var(--color-solid-hover);
 }
 
 @media (max-width: 600px) {

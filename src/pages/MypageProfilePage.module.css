@@ -16,14 +16,14 @@
 
 .name {
   margin: 24px 0 0;
-  font-size: 19px;
-  font-weight: 700;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
 }
 
 .field {
   margin: 6px 0 0;
-  font-size: 19px;
-  font-weight: 700;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
 }
 
 .buttons {
@@ -38,8 +38,8 @@
   min-width: 150px;
   padding: 12px 24px;
   border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
   transition: background 0.15s;
 }
 
@@ -49,12 +49,12 @@
  */
 .muted {
   border: 0;
-  background: #b0b8c1;
+  background: var(--grey-400);
   color: var(--color-surface);
 }
 
 .muted:hover {
-  background: #9aa4b0;
+  background: var(--grey-500);
 }
 
 .outline {
@@ -69,7 +69,7 @@
 
 .notice {
   margin: 14px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--color-text-sub);
 }
 
@@ -84,13 +84,13 @@
 
 .messageText {
   margin: 0;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
 }
 
 .hint {
   margin: 10px 0 0;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
@@ -98,12 +98,12 @@
 .primary {
   margin-top: 26px;
   border: 0;
-  background: #4e5968;
+  background: var(--color-solid);
   color: var(--color-surface);
 }
 
 .primary:hover {
-  background: #3d4754;
+  background: var(--color-solid-hover);
 }
 
 .skeleton {
@@ -111,7 +111,7 @@
   height: 420px;
   margin: 36px auto;
   border-radius: 16px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  background: linear-gradient(90deg, var(--grey-50) 25%, var(--grey-100) 50%, var(--grey-50) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -133,20 +133,20 @@
 
 .modalTitle {
   margin: 0;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
 }
 
 .modalText {
   margin: 10px 0 0;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
 
 .modalError {
   margin: 14px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--color-up);
 }
 
@@ -163,22 +163,22 @@
   border: none;
   border-radius: 10px;
   font: inherit;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
 }
 
 /* 되돌릴 수 없는 동작이라 등락 빨강과 같은 경고색을 쓴다 */
 .danger {
   background: var(--color-up);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .danger:hover:not(:disabled) {
-  background: #d93a48;
+  background: var(--color-up-strong);
 }
 
 .danger:disabled {
-  background: #f4a3ab;
+  background: var(--color-up-weak);
   cursor: default;
 }
 
@@ -203,7 +203,7 @@
 
   .field,
   .name {
-    font-size: 17px;
+    font-size: var(--fs-lg);
   }
 
   /* 버튼 두 개가 한 줄에 안 들어간다 */

@@ -13,8 +13,8 @@
   margin: 0;
   padding-bottom: 4px;
   border-bottom: 2px solid var(--color-text);
-  font-size: 26px;
-  font-weight: 700;
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-bold);
   letter-spacing: -0.02em;
 }
 
@@ -42,8 +42,8 @@
 
 .headline {
   margin: 0;
-  font-size: 34px;
-  font-weight: 800;
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-heavy);
   line-height: 1.4;
   letter-spacing: -0.03em;
   text-align: center;
@@ -51,15 +51,15 @@
 
 .caption {
   margin: 20px 0 0;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
   color: var(--color-text-sub);
 }
 
 .error {
   margin: 14px 0 0;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   color: var(--color-up);
 }
 
@@ -83,7 +83,7 @@
 
 .social:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 6px 14px rgba(25, 31, 40, 0.14);
 }
 
 .naver {

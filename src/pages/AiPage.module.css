@@ -1,7 +1,7 @@
 .title {
   margin: 44px 0 24px;
-  font-size: 34px;
-  font-weight: 800;
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-heavy);
   letter-spacing: -0.02em;
 }
 
@@ -44,16 +44,16 @@
   margin: 0;
   font-family: 'Michroma', sans-serif;
   font-size: 62px;
-  font-weight: 400;
+  font-weight: var(--fw-normal);
   letter-spacing: 0.02em;
   /* 배경 장식이라 본문보다 훨씬 연하게 둔다 */
-  color: #eceef0;
+  color: var(--grey-200);
   line-height: 1.1;
 }
 
 .watermarkSub {
   margin: 6px 0 0;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--color-text-sub);
 }
 
@@ -63,7 +63,7 @@
 
 .personalityText {
   margin: 0 0 14px;
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--color-text-sub);
 }
 
@@ -72,26 +72,26 @@
   padding: 11px 22px;
   border: 0;
   border-radius: 8px;
-  background: #333d4b;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
+  background: var(--grey-800);
+  color: var(--color-surface);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
 }
 
 .darkButton:hover {
-  background: #262f3a;
+  background: var(--grey-900);
 }
 
 .errorText {
   margin: 0 0 14px;
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--color-text-sub);
 }
 
 .notice {
   margin: 0;
   padding: 0 28px 8px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--color-text-sub);
   text-align: center;
 }
@@ -117,7 +117,7 @@
   background: none;
   padding: 8px 0;
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--color-text);
   /* Shift+Enter로 줄을 늘려도 입력창이 커지지 않고 안에서 스크롤된다 */
   resize: none;
@@ -138,12 +138,12 @@
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
 }
 
 .send:hover:not(:disabled) {
-  background: #eceef0;
+  background: var(--grey-200);
 }
 
 .send:disabled,
@@ -171,7 +171,7 @@
 .skeletonUser {
   align-self: flex-end;
   width: 35%;
-  background: #e8ebee;
+  background: var(--color-border);
 }
 
 @keyframes pulse {
@@ -194,7 +194,7 @@
 @media (max-width: 900px) {
   .title {
     margin: 32px 0 20px;
-    font-size: 27px;
+    font-size: var(--fs-3xl);
   }
 
   .layout {
@@ -204,7 +204,7 @@
 
 @media (max-width: 600px) {
   .title {
-    font-size: 23px;
+    font-size: var(--fs-2xl);
   }
 
   .watermark {

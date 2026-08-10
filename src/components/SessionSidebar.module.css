@@ -9,13 +9,13 @@
 
 .head {
   padding: 20px 16px 16px;
-  background: #eceef0;
+  background: var(--grey-200);
 }
 
 .headTitle {
   margin: 0;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
 }
 
 .newChat {
@@ -23,8 +23,8 @@
   padding: 0;
   border: 0;
   background: none;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   color: var(--color-text-sub);
 }
 
@@ -45,7 +45,7 @@
   border: 0;
   border-bottom: 1px solid var(--color-border);
   background: none;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   text-align: left;
   /* 제목 길이가 제각각이라 한 줄로 자른다 */
   white-space: nowrap;
@@ -63,13 +63,13 @@
 
 .itemOn {
   background: var(--color-page-bg);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
 }
 
 .empty {
   margin: 0;
   padding: 20px 16px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   color: var(--color-text-sub);
 }

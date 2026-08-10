@@ -20,23 +20,23 @@
   min-width: 180px;
   margin-top: 26px;
   padding: 12px 40px;
-  background: #4e5968;
+  background: var(--color-brand-deep);
   border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
   color: var(--color-surface);
   transition: background 0.15s;
 }
 
 .done:hover {
-  background: #3d4754;
+  background: var(--color-brand-deep-hover);
 }
 
 /* 주 버튼 아래 보조 링크. 다시 푸는 쪽은 눈에 덜 띄어야 한다 */
 .retry {
   margin-top: 14px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   color: var(--color-text-sub);
   text-decoration: underline;
   text-underline-offset: 3px;

@@ -4,8 +4,8 @@
 
 .heading {
   margin: 0;
-  font-size: 34px;
-  font-weight: 700;
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-bold);
   letter-spacing: -0.03em;
 }
 
@@ -13,7 +13,7 @@
 .backLink {
   display: inline-block;
   margin-top: 12px;
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--color-text-sub);
   text-decoration: underline;
 }
@@ -21,8 +21,8 @@
 .back {
   display: inline-block;
   margin-bottom: 12px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   color: var(--color-text-sub);
 }
 
@@ -37,45 +37,45 @@
   gap: 8px;
   margin: 0;
   font-size: inherit;
-  font-weight: 400;
+  font-weight: var(--fw-normal);
 }
 
 .name {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
 }
 
 .code {
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--color-text-sub);
 }
 
 .price {
   margin: 6px 0 0;
-  font-size: 46px;
-  font-weight: 700;
+  font-size: var(--fs-5xl);
+  font-weight: var(--fw-bold);
   letter-spacing: -0.03em;
 }
 
 .change {
   margin: 4px 0 0;
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--color-text-sub);
 }
 
 .up {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--color-up);
 }
 
 .down {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--color-down);
 }
 
 /* 보합. 이 줄 자체가 회색이라 클래스를 빼면 회색이 된다. 검은색은 따로 지정해야 한다 */
 .flat {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--color-text);
 }
 
@@ -94,7 +94,7 @@
 
 .chartMessage {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--color-text-sub);
 }
 
@@ -118,14 +118,14 @@
 }
 
 .summaryLabel {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--color-text-sub);
 }
 
 .summaryValue {
   margin: 4px 0 0;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
 }
 
 /*
@@ -135,7 +135,7 @@
 .chartSkeleton {
   height: 100%;
   border-radius: 8px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  background: linear-gradient(90deg, var(--grey-50) 25%, var(--grey-100) 50%, var(--grey-50) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -161,7 +161,7 @@
   }
 
   .price {
-    font-size: 38px;
+    font-size: var(--fs-4xl);
   }
 }
 
@@ -171,7 +171,7 @@
   }
 
   .price {
-    font-size: 32px;
+    font-size: var(--fs-3xl);
   }
 
   .chartBox {

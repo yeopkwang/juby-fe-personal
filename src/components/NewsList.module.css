@@ -7,8 +7,8 @@
 
 .heading {
   margin: 0;
-  font-size: 34px;
-  font-weight: 700;
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-bold);
   letter-spacing: -0.03em;
 }
 
@@ -20,7 +20,7 @@
 
 .notice {
   margin-right: 4px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--color-text-sub);
   white-space: nowrap;
 }
@@ -31,8 +31,8 @@
   border: 1px solid var(--color-border);
   border-radius: 18px;
   background: var(--color-surface);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   color: var(--color-text-sub);
 }
 
@@ -43,7 +43,7 @@
 .tabActive {
   border-color: var(--color-text);
   background: var(--color-text);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .tabActive:hover {
@@ -69,13 +69,13 @@
 }
 
 .card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 16px rgba(25, 31, 40, 0.08);
   transform: translateY(-2px);
 }
 
 .meta {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--color-text-sub);
 }
 
@@ -85,14 +85,14 @@
 
 .title {
   margin: 6px 0 0;
-  font-size: 19px;
-  font-weight: 700;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
   letter-spacing: -0.02em;
 }
 
 .description {
   margin: 8px 0 0;
-  font-size: 15px;
+  font-size: var(--fs-md);
   line-height: 1.55;
   color: var(--color-text-sub);
   /* 두 줄까지만 보여주고 넘치면 자른다 */
@@ -104,13 +104,13 @@
 
 .empty {
   margin: 20px 0 0;
-  font-size: 15px;
+  font-size: var(--fs-md);
   color: var(--color-text-sub);
 }
 
 @media (max-width: 900px) {
   .heading {
-    font-size: 27px;
+    font-size: var(--fs-3xl);
   }
 }
 
@@ -123,11 +123,11 @@
   }
 
   .heading {
-    font-size: 23px;
+    font-size: var(--fs-2xl);
   }
 
   .title {
-    font-size: 17px;
+    font-size: var(--fs-lg);
   }
 
   .card {

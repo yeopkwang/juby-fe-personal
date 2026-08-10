@@ -1,13 +1,104 @@
+/*
+ * 디자인 토큰. 화면 파일에서는 여기 정의한 이름만 쓰고 색·크기를 직접 적지 않는다.
+ * 직접 적으면 같은 회색이 파일마다 조금씩 달라지고(#f7f8f9 / #eef0f3 / #eceef0 …),
+ * 나중에 한 색을 바꾸려면 파일을 전부 열어야 한다.
+ */
+
 :root {
-  --color-up: #f04452;
-  --color-down: #3182f6;
-  --color-page-bg: #f4f5f7;
-  /* 흰 바탕 위에 한 겹 얹는 옅은 배경(알약 배지 등) */
-  --color-bg-sub: #f2f4f6;
+  /*
+   * 회색 10단계. 토스 디자인 시스템(TDS)의 grey 램프를 그대로 쓴다.
+   * 원래도 #191f28 · #8b95a1 · #e5e8eb 처럼 이 램프의 값을 쓰고 있었는데
+   * 중간중간 램프에 없는 값이 섞여 있었다. 열 단계로 못 박아 흔들리지 않게 한다.
+   */
+  --grey-50: #f9fafb;
+  --grey-100: #f2f4f6;
+  --grey-200: #e5e8eb;
+  --grey-300: #d1d6db;
+  --grey-400: #b0b8c1;
+  --grey-500: #8b95a1;
+  --grey-600: #6b7684;
+  --grey-700: #4e5968;
+  --grey-800: #333d4b;
+  --grey-900: #191f28;
+
+  /*
+   * 글자와 배경에 순수 검정(#000)을 쓰지 않는다.
+   * 흰 바탕과 21:1로 부딪혀 눈이 쉽게 피로해지고, 화면에서 유일하게 '빛이 하나도 없는 면'이라
+   * 어색하게 뜬다. --grey-900은 흰 바탕과 약 16:1이라 읽기 기준을 넉넉히 넘기면서 훨씬 부드럽다.
+   */
+  --color-text: var(--grey-900);
+  --color-text-sub: var(--grey-500);
+  --color-text-mute: var(--grey-400);
+
+  --color-page-bg: var(--grey-100);
   --color-surface: #ffffff;
-  --color-text: #191f28;
-  --color-text-sub: #8b95a1;
-  --color-border: #e5e8eb;
+  /* 흰 판 위에 한 겹 얹는 옅은 면(알약 배지, 입력칸, 접힌 카드) */
+  --color-bg-sub: var(--grey-50);
+  --color-border: var(--grey-200);
+  --color-divider: var(--grey-100);
+
+  /*
+   * 브랜드 초록.
+   *
+   * 상승 빨강·하락 파랑이 이미 정해져 있어 그 둘로는 버튼을 만들 수 없다.
+   * 파란 버튼은 하락으로, 빨간 버튼은 상승으로 읽히기 때문이다.
+   * 초록은 그 사이에 비어 있던 자리이고, 투자성향테스트 진행 바와 캐릭터에 이미 쓰고 있다.
+   */
+  --color-brand: #87c79b;
+  --color-brand-strong: #6fb587;
+  --color-brand-weak: #f0f7f2;
+  /*
+   * 흰 글자를 얹는 초록. --color-brand는 밝아서 흰 글자를 올리면 대비가 2:1까지 떨어져
+   * 버튼 글씨가 안 읽힌다. 같은 계열을 어둡게 내려 흰 글자와 약 5:1을 만든다.
+   */
+  --color-brand-deep: #2e7d5b;
+  --color-brand-deep-hover: #266a4c;
+
+  /* 눌러야 하는 짙은 버튼. 검정 대신 grey-700을 쓴다 */
+  --color-solid: var(--grey-700);
+  --color-solid-hover: var(--grey-800);
+
+  /* 시세 색은 한국식이다. 상승 빨강, 하락 파랑, 보합은 본문 검정 */
+  --color-up: #f04452;
+  --color-up-strong: #d93a48;
+  --color-up-weak: #f4a3ab;
+  --color-down: #3182f6;
+
+  /*
+   * 그림자도 순수 검정으로 깔지 않는다. 검정 그림자는 색이 빠진 회색 얼룩처럼 번져
+   * 판이 떠 보이지 않고 지저분해진다. 본문 색(grey-900)을 옅게 깔면 화면과 같은 계열로 가라앉는다.
+   */
+  --shadow-sm: 0 1px 3px rgba(25, 31, 40, 0.08);
+  --shadow-md: 0 4px 12px rgba(25, 31, 40, 0.08);
+  --shadow-lg: 0 8px 24px rgba(25, 31, 40, 0.12);
+
+  /*
+   * 글자 크기 10단계.
+   *
+   * 정리하기 전에는 23종류가 쓰이고 있었고, 그중 12·13·14·15·16이 한꺼번에 섞여 있었다.
+   * 4px 안에 다섯 단계가 들어가면 사람 눈으로는 구분이 안 되고, 무엇이 더 중요한지도 안 보인다.
+   * 단계마다 눈에 띄게 차이 나도록 줄였다.
+   */
+  --fs-2xs: 11px; /* 아주 작은 배지 */
+  --fs-xs: 12px; /* 캡션, 메타 정보 */
+  --fs-sm: 13px; /* 보조 설명 */
+  --fs-md: 15px; /* 본문, 표, 입력칸, 버튼 */
+  --fs-lg: 17px; /* 강조 본문, 작은 카드 제목 */
+  --fs-xl: 20px; /* 카드 제목 */
+  --fs-2xl: 23px; /* 섹션 제목 */
+  --fs-3xl: 27px; /* 페이지 제목 */
+  --fs-4xl: 34px; /* 디스플레이(성향 이름 등) */
+  --fs-5xl: 46px; /* 현재가처럼 화면의 주인공이 되는 숫자 */
+
+  /*
+   * 굵기 5단계. Pretendard는 600과 700의 차이가 작아 둘을 아무렇게나 섞으면
+   * 굵기가 달라진 게 아니라 렌더링이 흔들린 것처럼 보인다. 역할을 못 박아 둔다.
+   */
+  --fw-normal: 400; /* 본문 */
+  --fw-medium: 500; /* 라벨, 보조 강조 */
+  --fw-semibold: 600; /* 소제목, 선택된 항목 */
+  --fw-bold: 700; /* 제목, 숫자 */
+  --fw-heavy: 800; /* 디스플레이 */
 }
 
 * {
@@ -20,6 +111,7 @@ body {
   color: var(--color-text);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic',
     system-ui, sans-serif;
+  font-size: var(--fs-md);
 }
 
 a {
