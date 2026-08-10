@@ -3,14 +3,12 @@ import { STOCK_LIST } from '../api/stockList'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 import type { PersonalityType } from '../types/personality'
-import { PERSONALITY_INFO } from '../utils/personality'
 import {
   AXES,
   AXIS_LABEL,
   INVEST_TYPES,
   PERIODS,
   calculateAxisScores,
-  findByPersonality,
   findInvestType,
   periodLabel,
   scoreVerdict,
@@ -63,16 +61,15 @@ export default function BacktestPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   /*
-   * 성향은 더 이상 고르는 값이 아니다. 성향테스트 결과에 맞는 전략을 미리 골라 두고,
-   * 사용자는 전략만 바꾼다. 서버로 나가는 값은 어차피 investType 하나뿐이라
-   * 전략을 고르는 것이 곧 성향을 고르는 것과 같다.
+   * 전략을 미리 골라 두지 않는다.
+   *
+   * 서버가 성향 번호 하나로 전략까지 정하는 탓에 둘이 한 몸이지만, 그렇다고
+   * "안정형이니까 이 전략"이라고 말할 근거는 없다 — 배정 이유가 백엔드 저장소
+   * 어디에도 적혀 있지 않고, 전략과 채점 저울이 같은 번호에 묶여 있어 서로를
+   * 검증할 수도 없다. 화면이 없는 인과를 지어내지 않도록 전략은 사용자가 직접
+   * 고르게 두고, 성향과 종목을 견주는 일은 결과에서만 한다.
    */
-  const recommended =
-    SAVED_PERSONALITY === null ? null : findByPersonality(SAVED_PERSONALITY)
-
-  const [investType, setInvestType] = useState<number | null>(
-    recommended?.investType ?? null,
-  )
+  const [investType, setInvestType] = useState<number | null>(null)
   const [period, setPeriod] = useState<BacktestPeriod | null>(null)
   const [preset, setPreset] = useState<BacktestPreset | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
@@ -173,15 +170,15 @@ export default function BacktestPage() {
         <h1 className={styles.title}>주식 백테스트 이용하기</h1>
 
         {/*
-          성향은 고르는 칸이 아니라 '이미 정해진 나의 정보'다.
-          입력 칸에서 빼고 맨 위에 사실로 적어 둔다.
+          성향은 고르는 칸이 아니라 '이미 정해진 나의 정보'다. 사실만 적고
+          전략과 이어 붙이지 않는다. 둘을 견주는 일은 결과에서만 한다.
         */}
         <div className={styles.myBanner}>
           {SAVED_PERSONALITY === null ? (
             <>
               <p className={styles.myText}>
-                투자성향테스트를 아직 안 하셨어요. 먼저 하면 나에게 맞는 전략을
-                자동으로 골라드려요.
+                투자성향테스트를 아직 안 하셨어요. 먼저 하면 결과에서 종목과
+                견줘볼 수 있어요.
               </p>
               <a className={styles.myAction} href={PERSONALITY_TEST_URL}>
                 테스트하러 가기
@@ -191,12 +188,6 @@ export default function BacktestPage() {
             <>
               <p className={styles.myText}>
                 내 투자성향은 <b>{SAVED_PERSONALITY}</b>이에요.
-                {recommended !== null && (
-                  <>
-                    {' '}
-                    여기에 맞는 <b>{recommended.strategyName}</b>을 골라 뒀어요.
-                  </>
-                )}
               </p>
               <a className={styles.myAction} href={PERSONALITY_TEST_URL}>
                 다시 테스트
@@ -284,16 +275,6 @@ export default function BacktestPage() {
                   </option>
                 ))}
               </select>
-
-              {investType !== null && recommended?.investType !== investType && (
-                <button
-                  type="button"
-                  className={styles.reset}
-                  onClick={() => changeStrategy(recommended?.investType ?? null)}
-                >
-                  재설정
-                </button>
-              )}
             </div>
 
             {/*
@@ -427,8 +408,6 @@ function BacktestResult({
   const verdict = scoreVerdict(result.finalScore)
   /** 종목이 나와 같은 성향으로 판정됐는가 */
   const isSame = SAVED_PERSONALITY === bestInfo.personality
-  /** 내 성향에 딸린 전략을 그대로 돌렸는가 (다른 전략으로 바꿔 볼 수 있다) */
-  const usedOwnStrategy = SAVED_PERSONALITY === info.personality
 
   /*
    * 지표를 표로 늘어놓으면 숫자는 보이는데 뜻이 안 보인다. JUBY는 초보자용이라
@@ -486,36 +465,24 @@ function BacktestResult({
       </div>
 
       {/*
-        읽는 사람이 가장 먼저 알아야 할 한 줄.
-        "나는 이런 사람 → 이 전략으로 봤더니 → 이 종목은 이런 사람에게 맞더라"
-        세 마디를 순서대로 잇는다.
+        읽는 사람이 가장 먼저 알아야 할 한 줄. 나와 종목, 둘만 견준다.
+
+        여기에 고른 전략을 끼워 넣으면 안 된다. 종목의 성향은 다섯 전략을 모두
+        돌려 가장 높게 나온 것으로 정하므로 **지금 고른 전략과 아무 상관이 없다.**
+        예전 문구가 "○○ 전략으로 분석한 결과, 이 종목은 △△형"이라고 이어 붙였는데
+        둘 사이에 인과가 없다.
       */}
       <div className={styles.compare}>
         <p className={styles.story}>
           {SAVED_PERSONALITY === null ? (
             <>
-              <b>{info.strategyName}</b>으로 분석한 결과,{' '}
               {withTopicParticle(stockName)} <b>{bestInfo.personality}</b>에게
               가장 잘 맞는 종목이에요.
             </>
           ) : (
             <>
-              {/*
-                내 성향에 딸린 전략을 그대로 썼는지, 다른 전략을 골랐는지에 따라
-                문장이 달라야 한다. 다른 걸 골랐는데 "나에게 맞는 전략"이라고 하면 거짓말이다.
-              */}
-              나는 <b>{SAVED_PERSONALITY}</b>,{' '}
-              {usedOwnStrategy ? (
-                <>
-                  여기에 맞는 <b>{info.strategyName}</b>으로 분석했어요.
-                </>
-              ) : (
-                <>
-                  하지만 <b>{info.personality}</b>용인{' '}
-                  <b>{info.strategyName}</b>으로 분석했어요.
-                </>
-              )}
-              <br />그 결과 {withTopicParticle(stockName)}{' '}
+              나는 <b>{SAVED_PERSONALITY}</b>인데,{' '}
+              {withTopicParticle(stockName)}{' '}
               <b className={isSame ? styles.good : styles.bad}>
                 {bestInfo.personality}
               </b>
@@ -602,16 +569,15 @@ function BacktestResult({
           </ul>
         </div>
 
-        {/* 위 4축에 붙은 '비중 %'가 왜 그 값인지를 바로 아래에서 설명한다 */}
+        {/*
+          위 4축에 붙은 '비중 %'가 왜 그 값인지를 바로 아래에서 설명한다.
+          비중은 전략마다 서버에 정해져 있는 값이다. 여기에 성향 이름을 끌어오면
+          "이 전략을 골랐으니 당신은 ○○형"으로 읽히므로 전략만 말한다.
+        */}
         <ul className={styles.notes}>
           <li>
-            <b>{info.personality}</b>은 이런 스타일이에요.
-            <span className={styles.noteBody}>
-              {PERSONALITY_INFO[info.personality].description}
-            </span>
-          </li>
-          <li>
-            그래서 <b>{info.focusMetrics}</b>를 특히 눈여겨봐요.
+            <b>{info.strategyName}</b>은 <b>{info.focusMetrics}</b>를 특히
+            눈여겨봐요.
             <span className={styles.noteBody}>
               적합도를 매길 때 {AXIS_LABEL.stable}에{' '}
               {Math.round(info.weights.stable * 100)}%, {AXIS_LABEL.profit}에{' '}
@@ -746,9 +712,6 @@ function BacktestGuide({ investType, onSelect }: GuideProps) {
           <ul className={styles.strategyList}>
             {INVEST_TYPES.map((item) => {
               const isActive = item.investType === investType
-              const isRecommended =
-                SAVED_PERSONALITY !== null &&
-                item.personality === SAVED_PERSONALITY
 
               return (
                 <li key={item.investType}>
@@ -760,13 +723,12 @@ function BacktestGuide({ investType, onSelect }: GuideProps) {
                     aria-pressed={isActive}
                     onClick={() => onSelect(item.investType)}
                   >
-                    <span className={styles.strategyTop}>
-                      <RiskDots level={item.investType} />
-                      {isRecommended && (
-                        <span className={styles.badge}>나에게 맞음</span>
-                      )}
-                    </span>
-
+                    {/*
+                      성향 이름도 번호도 붙이지 않는다. 순서를 보이는 순간
+                      "앞이 안전하고 뒤가 위험하다"로 읽히는데, 그 순서는
+                      백엔드가 성향 번호에 전략을 배정해 둔 결과일 뿐
+                      전략의 위험도를 잰 값이 아니다.
+                    */}
                     <span className={styles.strategyName}>
                       {item.strategyName}
                     </span>
@@ -820,17 +782,3 @@ function BacktestGuide({ investType, onSelect }: GuideProps) {
   )
 }
 
-/** 위험도를 점 다섯 개로. 전략 번호가 곧 위험도 순서다(1 안정 → 5 공격) */
-function RiskDots({ level }: { level: number }) {
-  return (
-    <span className={styles.dots} aria-label={`위험도 ${level}단계 (5단계 중)`}>
-      {[1, 2, 3, 4, 5].map((step) => (
-        <i
-          key={step}
-          className={step <= level ? styles.dotOn : styles.dotOff}
-          aria-hidden="true"
-        />
-      ))}
-    </span>
-  )
-}
