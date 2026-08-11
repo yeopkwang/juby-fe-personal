@@ -15,7 +15,8 @@ import {
   supportedPeriods,
   toPercent,
 } from '../utils/backtest'
-import { buildSamplePreset } from '../utils/backtestSample'
+import { getPreset, getPresetOptions } from '../api/backtest'
+import type { PresetOption } from '../api/backtest'
 import styles from './BacktestPage.module.css'
 
 /**
@@ -72,10 +73,31 @@ export default function BacktestPage() {
   const [investType, setInvestType] = useState<number | null>(null)
   const [period, setPeriod] = useState<BacktestPeriod | null>(null)
   const [preset, setPreset] = useState<BacktestPreset | null>(null)
+  const [isRunning, setIsRunning] = useState(false)
+  const [runError, setRunError] = useState<string | null>(null)
+  const [ranking, setRanking] = useState<Ranked[]>([])
+
+  /*
+   * 성향별 기간 목록은 서버가 진짜다. 다만 화면이 열리자마자 선택지를 그려야 해서
+   * utils/backtest.ts의 사본으로 먼저 그리고, 응답이 오면 그때 갈아끼운다.
+   * 못 받아도 사본으로 계속 쓸 수 있으니 실패를 화면에 알리지 않는다.
+   */
+  const [serverOptions, setServerOptions] = useState<PresetOption[] | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
 
   const selected = investType === null ? null : findInvestType(investType)
-  const periodChoices = investType === null ? [] : supportedPeriods(investType)
+  /* 서버 목록이 도착했으면 그걸 쓰고, 아직이면(또는 실패했으면) 사본을 쓴다 */
+  const periodChoices = useMemo(() => {
+    if (investType === null) return []
+
+    const fromServer = serverOptions?.find(
+      (item) => item.investType === investType,
+    )
+    if (fromServer !== undefined) {
+      return fromServer.periods.map((item) => item.period)
+    }
+    return supportedPeriods(investType)
+  }, [investType, serverOptions])
   const canRun = stock !== null && investType !== null && period !== null
 
   const matches = useMemo(() => {
@@ -90,21 +112,25 @@ export default function BacktestPage() {
     ).slice(0, MAX_MATCHES)
   }, [query, stock])
 
-  /**
-   * 종목의 투자성향 = 다섯 전략으로 각각 돌려 적합도가 가장 높게 나온 전략의 성향.
-   *
-   * 서버에는 "이 종목은 무슨 성향" 같은 API가 없다. 전략별 점수를 모아 프론트가 고른다.
-   * 붙일 때는 GET /api/backtest/preset 을 investType만 바꿔 다섯 번 부른다(전부 DB 조회다).
+  /*
+   * 성향별 기간 목록을 한 번만 받아 둔다. 종목과 무관해서 화면당 한 번이면 된다.
+   * 실패해도 사본이 있으므로 조용히 넘어간다.
    */
-  const ranking = useMemo(() => {
-    if (stock === null) return []
+  useEffect(() => {
+    let cancelled = false
 
-    return INVEST_TYPES.map((item) => ({
-      investType: item.investType,
-      score: buildSamplePreset(stock.stockCode, item.investType, COMPARE_PERIOD)
-        .result.finalScore,
-    })).sort((left, right) => right.score - left.score)
-  }, [stock])
+    getPresetOptions()
+      .then((options) => {
+        if (!cancelled) setServerOptions(options)
+      })
+      .catch(() => {
+        // 사본으로 계속 쓴다. 사용자에게 알릴 내용이 아니다
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   /*
    * 조건을 건드리면 이전 결과는 더 이상 그 조건의 결과가 아니다.
@@ -112,6 +138,8 @@ export default function BacktestPage() {
    */
   function clearResult() {
     setPreset(null)
+    setRanking([])
+    setRunError(null)
   }
 
   function handleQueryChange(value: string) {
@@ -142,9 +170,49 @@ export default function BacktestPage() {
     clearResult()
   }
 
-  function handleSubmit() {
+  /**
+   * 고른 조건의 결과 하나와, 종목 성향을 가리기 위한 다섯 전략의 점수를 함께 받는다.
+   *
+   * 둘을 따로 받지 않는 이유는 결과 화면이 두 값을 모두 있어야 그릴 수 있어서다.
+   * 한쪽만 오면 화면이 반쯤 비거나 아무 설명 없이 사라진다.
+   *
+   * 여섯 번을 한꺼번에 보내도 되는 건 전부 DB 조회이기 때문이다(새벽 배치가 미리 계산해 둔다).
+   * KIS를 거치는 홈·상세와 달리 호출 제한이 걸리지 않아 나눠 보낼 이유가 없다.
+   */
+  async function handleSubmit() {
     if (stock === null || investType === null || period === null) return
-    setPreset(buildSamplePreset(stock.stockCode, investType, period))
+
+    setIsRunning(true)
+    setRunError(null)
+    setPreset(null)
+    setRanking([])
+
+    try {
+      const [chosen, ...others] = await Promise.all([
+        getPreset(stock.stockCode, investType, period),
+        ...INVEST_TYPES.map((item) =>
+          getPreset(stock.stockCode, item.investType, COMPARE_PERIOD),
+        ),
+      ])
+
+      setPreset(chosen)
+      setRanking(
+        others
+          .map((item) => ({
+            investType: item.investType,
+            score: item.result.finalScore,
+          }))
+          .sort((left, right) => right.score - left.score),
+      )
+    } catch (error: unknown) {
+      setRunError(
+        error instanceof Error
+          ? error.message
+          : '백테스트 결과를 불러오지 못했습니다.',
+      )
+    } finally {
+      setIsRunning(false)
+    }
   }
 
   /*
@@ -339,11 +407,17 @@ export default function BacktestPage() {
             <button
               type="button"
               className={styles.submit}
-              disabled={!canRun}
+              disabled={!canRun || isRunning}
               onClick={handleSubmit}
             >
-              백테스트 시작하기
+              {isRunning ? '불러오는 중…' : '백테스트 시작하기'}
             </button>
+
+            {runError !== null && (
+              <p className={styles.submitError} role="alert">
+                백테스트 결과를 불러오지 못했어요. 잠시 후 다시 눌러주세요.
+              </p>
+            )}
 
             {/* 버튼이 꺼져 있는 이유를 말해 준다. 안 그러면 왜 안 눌리는지 알 길이 없다 */}
             {!canRun && (

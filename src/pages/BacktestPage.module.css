@@ -207,6 +207,13 @@
   color: var(--color-text-sub);
 }
 
+/* 안내가 아니라 실패다. 회색으로 두면 '고를 게 남았다'는 힌트와 구분이 안 된다 */
+.submitError {
+  margin: 10px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--color-down);
+}
+
 .submit:disabled {
   background: var(--color-border);
   color: var(--color-text-sub);

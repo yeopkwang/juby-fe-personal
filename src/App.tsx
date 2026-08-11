@@ -64,12 +64,6 @@ function Layout() {
             </Route>
 
             <Route path="/guide" element={<GuidePage />} />
-            {/*
-              화면만 있고 아직 백엔드에 붙이지 않았다.
-              연결할 자리는 GET /api/backtest/preset 과 /preset/options 두 개다.
-              (예전 /api/backtest/run은 없어졌다 — 지금은 새벽 배치가 미리 계산해 둔
-               결과를 읽어오는 방식이다)
-            */}
             <Route path="/backtest" element={<BacktestPage />} />
 
             <Route path="/login" element={<LoginPage />} />
