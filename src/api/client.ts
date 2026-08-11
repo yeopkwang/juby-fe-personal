@@ -200,6 +200,28 @@ export async function remove<T>(
 }
 
 /**
+ * 이미 있는 자원의 일부만 고친다. 보내는 방식은 post와 같고 메서드만 다르다.
+ * 서버가 PUT이 아니라 PATCH를 쓰므로(보낸 항목만 바꾼다) 이름을 맞춘다.
+ */
+export async function patch<T>(
+  path: string,
+  body: unknown,
+  options?: RequestOptions,
+): Promise<T> {
+  return unwrap(
+    await requestJson<ApiResponse<T>>(
+      path,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      options,
+    ),
+  )
+}
+
+/**
  * 서버에 값을 보낼 때 쓴다. GET과 다른 점은 두 가지뿐이다.
  * 보낼 내용을 JSON 문자열로 바꾸고, 그게 JSON이라고 Content-Type으로 알려준다.
  */

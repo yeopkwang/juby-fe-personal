@@ -67,12 +67,6 @@
   background: var(--color-page-bg);
 }
 
-.notice {
-  margin: 14px 0 0;
-  font-size: var(--fs-sm);
-  color: var(--color-text-sub);
-}
-
 /* 조회 실패 화면 */
 .message {
   display: flex;
@@ -158,6 +152,7 @@
 }
 
 .danger,
+.save,
 .cancel {
   height: 48px;
   border: none;
@@ -165,6 +160,67 @@
   font: inherit;
   font-size: var(--fs-md);
   font-weight: var(--fw-semibold);
+}
+
+/* 저장은 되돌릴 수 있는 평범한 동작이다. 탈퇴와 같은 경고색을 쓰면 안 된다 */
+.save {
+  background: var(--color-brand-deep);
+  color: var(--color-surface);
+}
+
+.save:hover:not(:disabled) {
+  background: var(--color-brand-deep-hover);
+}
+
+.save:disabled {
+  background: var(--color-brand);
+  cursor: default;
+}
+
+.form {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: 8px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+
+/* 두 번째 라벨은 앞 칸과 붙지 않게 띄운다 */
+.formLabel:not(:first-child) {
+  margin-top: 18px;
+}
+
+.input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--color-text);
+}
+
+.input:focus {
+  border-color: var(--color-brand-deep);
+  outline: 2px solid var(--color-brand-weak);
+  outline-offset: 0;
+}
+
+.input:disabled {
+  background: var(--color-bg-sub);
+  color: var(--color-text-sub);
+}
+
+.formHint {
+  margin: 8px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--color-text-sub);
 }
 
 /* 되돌릴 수 없는 동작이라 등락 빨강과 같은 경고색을 쓴다 */

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import Modal from '../components/Modal'
-import { deleteMember, getMemberInfo } from '../api/member'
+import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
 import { clearTokens } from '../utils/auth'
 import { formatBirth } from '../utils/format'
+import { toDashedYmd, toYmd } from '../utils/date'
 import type { MemberInfo, ProfileImageUrl } from '../types/member'
 import styles from './MypageProfilePage.module.css'
 
@@ -50,7 +51,12 @@ export default function MypageProfilePage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const [editNotice, setEditNotice] = useState('')
+
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editBirth, setEditBirth] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [editError, setEditError] = useState('')
 
   const load = useCallback(() => {
     setState({ kind: 'loading' })
@@ -91,6 +97,60 @@ export default function MypageProfilePage() {
     setDeleteError('')
   }
 
+  /**
+   * 지금 값을 채워 넣고 연다.
+   * 빈 칸에서 시작하면 "지우고 새로 쓰는" 화면이 되는데, 사용자가 원하는 건 보통
+   * 한 글자 고치는 것이다. 생년월일이 없는 계정은 빈 칸으로 시작한다.
+   */
+  function openEdit(current: MemberInfo) {
+    setEditName(current.name)
+    setEditBirth(current.birth ?? '')
+    setEditError('')
+    setIsEditOpen(true)
+  }
+
+  function closeEdit() {
+    if (isSaving) return
+    setIsEditOpen(false)
+    setEditError('')
+  }
+
+  async function handleSave() {
+    const name = editName.trim()
+
+    /*
+     * 서버와 같은 기준으로 먼저 거른다. 서버도 막아 주지만 그때는 400 한 줄이라
+     * 무엇이 잘못됐는지 알기 어렵고, 다녀오는 시간도 그냥 버려진다.
+     */
+    if (name.length < 2 || name.length > 4) {
+      setEditError('이름은 2~4자로 입력해 주세요.')
+      return
+    }
+    if (editBirth !== '' && editBirth > toDashedYmd(toYmd(new Date()))) {
+      setEditError('생년월일은 오늘 이전으로 입력해 주세요.')
+      return
+    }
+
+    setIsSaving(true)
+    setEditError('')
+
+    try {
+      /*
+       * 생년월일을 비워 두면 아예 보내지 않는다. 서버가 null인 항목은 건드리지 않으므로
+       * (Member.updateInfo) 지금 값이 그대로 남는다. 빈 문자열을 보내면 400이다.
+       */
+      await updateMemberInfo(name, editBirth)
+      setIsEditOpen(false)
+      // 응답이 수정 시각뿐이라 화면에 채울 값이 없다. 저장된 값을 다시 받아 온다
+      load()
+    } catch (error: unknown) {
+      console.warn('회원 정보 수정 실패', error)
+      setEditError('수정하지 못했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   if (state.kind === 'loading') {
     return <div className={styles.skeleton} aria-label="불러오는 중" />
   }
@@ -128,14 +188,10 @@ export default function MypageProfilePage() {
         <p className={styles.field}>{member.email}</p>
 
         <div className={styles.buttons}>
-          {/*
-            PATCH /api/members/me는 서버에 있지만 이번 범위에서 뺐다.
-            수정 폼 UI가 Figma에 없어 화면 설계가 먼저 정해져야 한다.
-          */}
           <button
             type="button"
             className={styles.muted}
-            onClick={() => setEditNotice('준비 중입니다')}
+            onClick={() => openEdit(member)}
           >
             정보 수정하기
           </button>
@@ -148,12 +204,73 @@ export default function MypageProfilePage() {
           </button>
         </div>
 
-        {editNotice !== '' && (
-          <p className={styles.notice} role="status">
-            {editNotice}
-          </p>
-        )}
       </div>
+
+      {/* 이름과 생년월일만 고칠 수 있다. 이메일·가입경로는 소셜 계정에서 온 값이다 */}
+      <Modal isOpen={isEditOpen} onClose={closeEdit}>
+        <p className={styles.modalTitle}>내 정보 수정</p>
+
+        <form
+          className={styles.form}
+          onSubmit={(event) => {
+            event.preventDefault()
+            void handleSave()
+          }}
+        >
+          <label className={styles.formLabel} htmlFor="mypage-name">
+            이름
+          </label>
+          <input
+            id="mypage-name"
+            className={styles.input}
+            value={editName}
+            onChange={(event) => setEditName(event.target.value)}
+            maxLength={4}
+            disabled={isSaving}
+            autoComplete="name"
+          />
+          <p className={styles.formHint}>2~4자로 입력해 주세요.</p>
+
+          <label className={styles.formLabel} htmlFor="mypage-birth">
+            생년월일
+          </label>
+          <input
+            id="mypage-birth"
+            className={styles.input}
+            type="date"
+            value={editBirth}
+            /* 달력에서 미래 날짜를 아예 못 고르게 막는다. 서버도 오늘 이전만 받는다 */
+            max={toDashedYmd(toYmd(new Date()))}
+            onChange={(event) => setEditBirth(event.target.value)}
+            disabled={isSaving}
+          />
+          {member.birth === null && (
+            <p className={styles.formHint}>
+              소셜 계정에서 생년월일을 받지 못했어요. 직접 입력하면 저장됩니다.
+            </p>
+          )}
+
+          {editError !== '' && (
+            <p className={styles.modalError} role="alert">
+              {editError}
+            </p>
+          )}
+
+          <div className={styles.modalButtons}>
+            <button type="submit" className={styles.save} disabled={isSaving}>
+              {isSaving ? '저장 중…' : '저장하기'}
+            </button>
+            <button
+              type="button"
+              className={styles.cancel}
+              onClick={closeEdit}
+              disabled={isSaving}
+            >
+              취소
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* 탈퇴는 되돌릴 수 없다. 버튼 하나로 바로 지우지 않는다 */}
       <Modal isOpen={isModalOpen} onClose={closeModal}>

@@ -1,19 +1,19 @@
+import { get } from './client'
 import { delay } from '../utils/async'
 import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../types/ai'
 
 /**
  * AI 주가분석 창구.
  *
- * **지금은 전부 mock이다.** 백엔드에 `/v1/ai/sessions` 4종이 아직 없고,
- * 있는 `/api/open-ai/ask`는 생성한 답변을 `log.info()`로 흘려버려 프론트로 오지 않는다
- * (`OpenAiService.askQuestion()`이 void). 그쪽이 String을 반환하도록 바뀌면
- * 이 파일의 **함수 안쪽만** 실제 호출로 갈아끼우면 된다. 화면 코드는 손대지 않는다.
+ * 질문 보내기는 **실제로 `/api/open-ai/ask`를 부른다.** 대화 목록·상세는 아직 mock이다
+ * (`/v1/ai/sessions` 4종이 백엔드에 없다).
  *
- * 응답 형태는 요구사항서에 적어둔 가정을 따른다. 명세가 확정되면 문서와 이 파일을 함께 고친다.
+ * ⚠️ **답변은 돌아오지 않는다.** 백엔드 `OpenAiService.askQuestion()`이 void라
+ * 생성한 답변을 `log.info()`로 서버 로그에 찍고 버리고, 컨트롤러도 `ApiResponse<Void>`다.
+ * 그래도 연결해 두는 편이 낫다 — 질문이 서버까지 닿는지, 벡터DB 검색이 도는지가
+ * 서버 로그로 확인되고, 백엔드가 String을 반환하도록 바꾸는 순간
+ * 이 파일에서 **답변을 꺼내는 한 줄만** 고치면 끝난다.
  */
-
-/** 서버 왕복이 있는 척한다. 로딩 상태가 실제로 보이는지 확인하려면 지연이 필요하다 */
-const MOCK_LATENCY = 1500
 
 const MOCK_SESSIONS: ChatSession[] = [
   { sessionId: 1, title: '한화디펜스 전쟁 영향' },
@@ -47,24 +47,36 @@ export async function getSessionDetail(
 }
 
 /**
- * POST /v1/ai/sessions (새 대화) 또는 POST /v1/ai/sessions/{sessionId} (이어하기) 로 교체.
- * 그때 stockName은 요청 본문에 함께 실어 보낸다.
+ * 질문을 서버로 보낸다.
+ *
+ * 서버가 답변을 돌려주기 시작하면 `get<null>`을 `get<string>`으로 바꾸고
+ * 아래 answer 자리에 그 값을 넣으면 된다. 화면 코드는 손대지 않는다.
+ *
+ * 세션 번호와 제목은 아직 프론트가 만든다. 서버에 대화를 저장하는 곳이 없어서,
+ * 새로고침하면 방금 나눈 대화가 사라진다.
  */
 export async function ask(
   question: string,
   stockName: string,
   sessionId?: number,
 ): Promise<AskResult> {
-  await delay(MOCK_LATENCY)
+  await get<null>(
+    `/api/open-ai/ask?question=${encodeURIComponent(question)}` +
+      `&stock_name=${encodeURIComponent(stockName)}`,
+  )
 
   return {
     sessionId: sessionId ?? nextSessionId++,
     /* 서버는 첫 질문을 요약해 제목을 만든다. 여기서는 앞부분을 잘라 흉내만 낸다 */
     title: toTitle(question),
+    /*
+     * 답변 자리를 비워 두지 않는다. 빈 말풍선은 '실패'로 읽히는데 실제로는 성공했고,
+     * 지어낸 답을 넣으면 AI가 답한 것처럼 보여 더 나쁘다. 무슨 일이 있었는지 그대로 적는다.
+     */
     answer:
-      `(준비 중) 백엔드 AI 응답 연동 전입니다.\n\n` +
-      `질문: ${question}\n` +
-      `종목: ${stockName === '' ? '(못 찾음)' : stockName}`,
+      '질문은 서버까지 전달됐어요. 다만 서버가 만든 답변을 아직 돌려주지 않아서 ' +
+      '여기에 옮길 내용이 없습니다.\n\n' +
+      '백엔드가 답변을 반환하도록 바뀌면 이 자리에 그대로 나옵니다.',
   }
 }
 
