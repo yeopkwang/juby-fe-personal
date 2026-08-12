@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import PersonalityCard from '../components/PersonalityCard'
 import Skeleton from '../components/Skeleton'
 import { getMyPersonality } from '../api/member'
@@ -7,10 +8,9 @@ import type { PersonalityInfo } from '../types/member'
 import styles from './MypagePersonalityPage.module.css'
 
 /**
- * 성향검사는 personality.html에 따로 떨어져 있어 절대경로로 나간다.
  * 검사를 마치면 PersonalityResultPage의 doneRoute가 from=mypage를 보고 여기로 돌려보낸다.
  */
-const TEST_URL = '/personality.html?from=mypage'
+const TEST_URL = '/personality-test?from=mypage'
 
 type State =
   | { kind: 'loading' }
@@ -83,10 +83,9 @@ export default function MypagePersonalityPage() {
       description={info.description || fallback.description}
       imageUrl={info.personalityImg || fallback.imageUrl}
     >
-      {/* Link가 아니라 a인 이유: 검사가 personality.html에 따로 있어 이 앱을 떠나야 한다 */}
-      <a href={TEST_URL} className={styles.retest}>
+      <Link to={TEST_URL} className={styles.retest}>
         검사 다시하기
-      </a>
+      </Link>
     </PersonalityCard>
   )
 }

@@ -29,6 +29,10 @@ const MypagePersonalityPage = lazy(
 const MypageProfilePage = lazy(() => import('./pages/MypageProfilePage'))
 const GuidePage = lazy(() => import('./pages/GuidePage'))
 const BacktestPage = lazy(() => import('./pages/BacktestPage'))
+const PersonalityTestPage = lazy(() => import('./pages/PersonalityTestPage'))
+const PersonalityResultPage = lazy(
+  () => import('./pages/PersonalityResultPage'),
+)
 const NotReadyPage = lazy(() => import('./pages/NotReadyPage'))
 
 /**
@@ -66,9 +70,22 @@ function Layout() {
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/backtest" element={<BacktestPage />} />
 
+            {/*
+              투자성향테스트. 예전에는 personality.html이라는 별도 페이지였다.
+              경로 이름을 그때부터 똑같이 맞춰 뒀기 때문에 라우트만 옮겨 붙였고
+              화면 코드는 한 줄도 고치지 않았다.
+            */}
+            <Route
+              path="/personality-test"
+              element={<PersonalityTestPage />}
+            />
+            <Route
+              path="/personality-test/result"
+              element={<PersonalityResultPage />}
+            />
+
             <Route path="/login" element={<LoginPage />} />
             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
-            {/* 투자성향테스트는 personality.html에 따로 있다. 로그인이 붙을 때 여기로 들인다 */}
             <Route path="*" element={<NotReadyPage />} />
           </Routes>
         </Suspense>

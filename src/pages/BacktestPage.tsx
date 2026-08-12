@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { STOCK_LIST } from '../api/stockList'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
@@ -54,7 +55,7 @@ function withTopicParticle(word: string): string {
 }
 
 /** 성향테스트를 하러 가는 곳. 아직 본 앱 라우트가 아니라 별도 엔트리다 */
-const PERSONALITY_TEST_URL = '/personality.html'
+const PERSONALITY_TEST_URL = '/personality-test'
 
 export default function BacktestPage() {
   const [query, setQuery] = useState('')
@@ -248,18 +249,18 @@ export default function BacktestPage() {
                 투자성향테스트를 아직 안 하셨어요. 먼저 하면 결과에서 종목과
                 견줘볼 수 있어요.
               </p>
-              <a className={styles.myAction} href={PERSONALITY_TEST_URL}>
+              <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
                 테스트하러 가기
-              </a>
+              </Link>
             </>
           ) : (
             <>
               <p className={styles.myText}>
                 내 투자성향은 <b>{SAVED_PERSONALITY}</b>이에요.
               </p>
-              <a className={styles.myAction} href={PERSONALITY_TEST_URL}>
+              <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
                 다시 테스트
-              </a>
+              </Link>
             </>
           )}
         </div>

@@ -3,10 +3,7 @@ import PersonalityCard from '../components/PersonalityCard'
 import type { PersonalityResult } from '../types/personality'
 import styles from './PersonalityResultPage.module.css'
 
-/**
- * 검사를 마친 뒤 돌아갈 곳. 들어온 문에 따라 달라진다.
- * 마이페이지는 아직 없어 NotReadyPage로 떨어지고, 마이페이지를 만들 때 이어진다.
- */
+/** 검사를 마친 뒤 돌아갈 곳. 들어온 문에 따라 달라진다 */
 function doneRoute(from: string | null): string {
   if (from === 'mypage') return '/mypage/personality'
   // AI 주가분석의 '투자성향 변경하기'로 들어온 경우. 하던 자리로 돌려보낸다
@@ -52,13 +49,13 @@ export default function PersonalityResultPage() {
         imageUrl={result.imageUrl}
       >
         {/*
-          Link가 아니라 a인 이유: 검사는 personality.html에 따로 떨어져 있어서
-          완료를 누르면 이 페이지를 아예 떠나 본 화면으로 넘어가야 한다.
-          Link를 쓰면 이 페이지 안에서만 움직여 첫 문항으로 되돌아간다.
+          예전에는 a였다. 검사가 personality.html이라는 별도 페이지에 떨어져 있어서
+          완료를 누르면 그 페이지를 아예 떠나야 했기 때문이다.
+          이제 같은 앱 안이라 Link로 옮기면 되고, 화면이 하얗게 번쩍이지 않는다.
         */}
-        <a href={doneRoute(from)} className={styles.done}>
+        <Link to={doneRoute(from)} className={styles.done}>
           완료
-        </a>
+        </Link>
         {/* 다시 풀 때도 들어온 문을 유지해야 끝나고 같은 자리로 돌아간다 */}
         <Link
           to={{ pathname: '/personality-test', search: location.search }}

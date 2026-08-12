@@ -5,15 +5,12 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   /*
-   * 화면이 두 벌이라 시작 파일도 두 개다.
-   * index.html은 홈·상세 화면, personality.html은 투자성향테스트 전용이다.
-   * 여기 적어두지 않으면 빌드할 때 index.html만 챙기고 나머지는 버린다.
+   * 시작 파일은 index.html 하나다(vite의 기본값이라 따로 적지 않는다).
+   *
+   * 예전에는 personality.html이 하나 더 있었다. 투자성향테스트만 띄우는 별도 페이지로,
+   * 로그인이 붙기 전까지 본 앱과 섞이지 않게 떼어 둔 것이었다. 이제 본 앱 라우트
+   * (/personality-test)로 합쳤다.
    */
-  build: {
-    rollupOptions: {
-      input: { main: 'index.html', personality: 'personality.html' },
-    },
-  },
   /*
    * 개발 중 /api를 백엔드로 넘겨주는 통로다(브라우저 CORS 우회).
    *
