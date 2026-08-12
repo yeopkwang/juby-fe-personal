@@ -8,8 +8,13 @@ import { clearTokens, getRefreshToken } from '../utils/auth'
  * 서버가 응답을 못 한다고 로그인 상태로 남겨두는 편이 더 위험하다.
  * refresh token이 없어 요청이 거절되는 경우도 결과는 같다.
  *
- * 화면 이동은 여기서 하지 않는다. 헤더는 그려질 때 isLoggedIn()을 한 번 읽을 뿐이라
- * 부르는 쪽에서 window.location.href = '/'로 통째로 새로 고쳐야 우측이 '로그인'으로 돌아온다.
+ * 화면 이동은 여기서 하지 않는다. 부르는 쪽에서 navigate로 옮기면 된다 —
+ * 헤더는 clearTokens()가 내는 알림을 듣고 알아서 '로그인'으로 돌아간다.
+ *
+ * ⛔ `/v1/auth/logout`은 지금 허용 목록에 없다(client.ts). 노션 완료 목록에 없고
+ * 인증 API라 프론트에서 건드리지 않기로 한 쪽이다. 그래서 요청은 던져지자마자 실패하는데,
+ * **동작에는 문제가 없다.** 아래 구조가 원래 서버 실패를 삼키고 finally에서 토큰을 지운다.
+ * 결과적으로 지금은 '브라우저에서만 로그아웃'이 된다.
  */
 export async function logout(): Promise<void> {
   try {
