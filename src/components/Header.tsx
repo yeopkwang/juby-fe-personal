@@ -1,3 +1,4 @@
+import { LogoMark, LogoWord } from './Logo'
 import type { ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { isLoggedIn } from '../utils/auth'
@@ -79,8 +80,10 @@ export default function Header({ standalone = false }: HeaderProps) {
         </NavItem>
       </nav>
 
+      {/* 심볼은 aria-hidden, 글자 쪽이 'JUBY'라는 이름을 낸다 */}
       <NavItem to="/" standalone={standalone} className={styles.logo}>
-        JUBY
+        <LogoMark className={styles.logoMark} />
+        <LogoWord className={styles.logoWord} />
       </NavItem>
 
       <nav className={`${styles.menu} ${styles.right}`}>

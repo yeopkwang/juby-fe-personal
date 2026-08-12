@@ -10,13 +10,11 @@
       crossorigin
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"
     />
-    <!-- JUBY 로고 전용. 400 하나만 제공되는 폰트다 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Michroma&display=swap"
-    />
+    <!--
+      로고 전용으로 구글 폰트(Michroma)를 받던 자리다. 'JUBY' 네 글자 때문에
+      외부 서버에 세 번 다녀왔고, 폰트가 늦게 오면 로고가 잠깐 다른 글씨로 보였다가
+      바뀌었다. 지금은 글자를 도형으로 그린다 — src/components/Logo.tsx
+    -->
     <title>JUBY</title>
   </head>
   <body>

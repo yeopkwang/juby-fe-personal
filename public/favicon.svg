@@ -2,27 +2,53 @@
   <!--
     브라우저 탭 아이콘. 실제로 보이는 크기는 16px다.
 
-    예전에는 캔들 세 개를 그렸는데, 16px로 줄이면 꼬리가 사라지고 몸통만 남아
-    점 몇 개로 뭉개졌다. 떠 있는 도형 여럿은 그 크기에서 형태가 안 남는다.
-    그래서 꽉 찬 타일 하나를 바닥에 깔고, 그 위에 굵은 획 하나만 올렸다.
-    타일이 있으면 흰 탭이든 어두운 탭이든 아이콘의 윤곽이 항상 같게 보인다.
+    싹 튼 캔들. 상승 캔들의 위쪽 심지가 올라가면서 색이 빨강에서 초록으로 넘어가
+    그대로 줄기가 되고, 그 끝에서 잎이 벌어진다.
+
+    캔들을 여러 개 늘어놓지 않은 이유는 16px에서 꼬리가 사라지고 몸통만 남아
+    점 몇 개로 뭉개지기 때문이다. 하나만 두고 꽉 찬 타일을 바닥에 깔면
+    흰 탭이든 어두운 탭이든 윤곽이 항상 같게 보인다.
+
+    아래 심지는 몸통보다 훨씬 가늘다. 굵으면 캔들이 아니라 막대사탕으로 읽힌다.
+
+    같은 도형이 src/components/Logo.tsx의 LogoMark에도 있다. 파비콘은 문서 밖이라
+    그 파일을 못 쓰므로 복사해 둔 것이다. 한쪽을 고치면 다른 쪽도 함께 고친다.
 
     색은 값을 직접 적었다. 파비콘은 문서 밖이라 CSS 변수를 못 쓴다.
-    바꿀 땐 src/index.css의 짝도 같이 고친다.
-      #2e7d5b = color-brand-deep (주요 버튼과 같은 초록)
-      #f04452 = color-up (상승 빨강)
-    (XML 주석에 이중 하이픈을 못 넣어서 변수명 앞 접두사는 생략했다.)
-
-    끝점만 상승 빨강으로 찍었다. 선만 있으면 어느 서비스에나 있는 그래프인데,
-    한국식 상승 색이 붙으면 이 앱의 색 규칙(상승 빨강, 하락 파랑)과 이어진다.
+      #0d5c3d = 로고 전용 짙은 초록 (타일)
+      #f04452 = color-up (상승 빨강) — src/index.css의 짝과 같아야 한다
   -->
-  <rect width="48" height="48" rx="12" fill="#2e7d5b" />
+  <defs>
+    <linearGradient id="leafYoung" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#63c88e" />
+      <stop offset="1" stop-color="#c6f0d3" />
+    </linearGradient>
+    <linearGradient id="leafGrown" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2f9c6a" />
+      <stop offset="1" stop-color="#8adfae" />
+    </linearGradient>
+    <linearGradient id="wick" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#f04452" />
+      <stop offset="1" stop-color="#8adfae" />
+    </linearGradient>
+  </defs>
+
+  <rect width="48" height="48" rx="13" fill="#0d5c3d" />
+
   <path
-    d="M11 32 L20 23 L27 29 L36 16"
-    stroke="#ffffff"
-    stroke-width="5"
+    d="M24 42 L24 44.5"
+    stroke="#f04452"
+    stroke-width="2.5"
     stroke-linecap="round"
-    stroke-linejoin="round"
   />
-  <circle cx="36" cy="16" r="5.5" fill="#f04452" />
+  <rect x="18" y="26" width="12" height="16" rx="2.5" fill="#f04452" />
+  <path
+    d="M24 27 L24 20"
+    stroke="url(#wick)"
+    stroke-width="2.5"
+    stroke-linecap="round"
+  />
+
+  <path d="M24 23 A9.5 9.5 0 0 1 14 11 A9.5 9.5 0 0 1 24 23 Z" fill="url(#leafYoung)" />
+  <path d="M24 20 A10.5 10.5 0 0 1 35 8.5 A10.5 10.5 0 0 1 24 20 Z" fill="url(#leafGrown)" />
 </svg>

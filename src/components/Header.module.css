@@ -52,12 +52,27 @@
   color: var(--color-brand-deep);
 }
 
-/* Michroma는 굵기가 400 하나뿐이고 글자폭이 넓어서 크기와 자간을 따로 잡는다 */
+/*
+ * 로고는 심볼과 글자 두 조각이다(components/Logo.tsx).
+ * 둘 다 도형이라 폰트를 안 쓴다 — 크기는 높이로 잡는다.
+ */
 .logo {
-  font-family: 'Michroma', sans-serif;
-  font-size: var(--fs-2xl);
-  font-weight: var(--fw-normal);
-  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logoMark {
+  width: 30px;
+  height: 30px;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* 심볼보다 낮게 잡아야 글자가 심볼을 이기지 않는다 */
+.logoWord {
+  height: 19px;
+  display: block;
 }
 
 @media (max-width: 900px) {
@@ -88,8 +103,16 @@
   .logo {
     order: -1;
     flex-basis: 100%;
-    text-align: center;
-    font-size: var(--fs-xl);
+    justify-content: center;
+  }
+
+  .logoMark {
+    width: 26px;
+    height: 26px;
+  }
+
+  .logoWord {
+    height: 17px;
   }
 
   .menu {

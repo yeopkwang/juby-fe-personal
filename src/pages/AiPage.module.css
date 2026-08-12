@@ -40,15 +40,15 @@
   text-align: center;
 }
 
+/*
+ * 글자는 도형이다(components/Logo.tsx). 크기를 font-size가 아니라 높이로 잡는다.
+ * 채움이 currentColor라 color만 정하면 그대로 따라온다.
+ */
 .watermark {
-  margin: 0;
-  font-family: 'Michroma', sans-serif;
-  font-size: 62px;
-  font-weight: var(--fw-normal);
-  letter-spacing: 0.02em;
+  display: block;
+  height: 56px;
   /* 배경 장식이라 본문보다 훨씬 연하게 둔다 */
   color: var(--grey-200);
-  line-height: 1.1;
 }
 
 .watermarkSub {
@@ -202,7 +202,7 @@
   }
 
   .watermark {
-    font-size: 44px;
+    height: 40px;
   }
 
   .chat {

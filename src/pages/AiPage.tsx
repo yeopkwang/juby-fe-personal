@@ -1,3 +1,4 @@
+import { LogoWord } from '../components/Logo'
 import { useEffect, useRef, useState } from 'react'
 import { ask, getSessionDetail, getSessions } from '../api/ai'
 import { getMyPersonality } from '../api/member'
@@ -198,7 +199,7 @@ export default function AiPage() {
             </div>
           ) : isEmpty ? (
             <div className={styles.centerArea}>
-              <p className={styles.watermark}>JUBY</p>
+              <LogoWord className={styles.watermark} />
               <p className={styles.watermarkSub}>AI 도우미</p>
 
               {/* 성향을 모르면 이 영역 자체를 숨긴다. 지어낸 값을 보여줄 수는 없다 */}
