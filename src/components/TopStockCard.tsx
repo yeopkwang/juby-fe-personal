@@ -6,9 +6,11 @@ import type { TopStock, TopTheme } from '../types/stock'
 import styles from './TopStockCard.module.css'
 
 /*
- * recharts(gzip 100KB 남짓)를 홈 첫 묶음에서 뺀다.
- * 어차피 일봉이 오기 전까지는 CardPlaceholder가 떠 있어서,
+ * 그래프를 홈 첫 묶음에서 뺀다. 어차피 일봉이 오기 전까지는 CardPlaceholder가 떠 있어서,
  * 그 사이에 받아오면 사용자 입장에서 기다림이 늘지 않는다.
+ *
+ * recharts를 쓰던 때는 이게 gzip 100KB를 미루는 일이라 효과가 컸다. 이제 SVG를 직접
+ * 그려서 훨씬 가볍지만, 표를 먼저 그리고 그래프를 뒤에 붙이는 순서 자체는 그대로 둔다.
  */
 const CardChart = lazy(() => import('./CardChart'))
 
