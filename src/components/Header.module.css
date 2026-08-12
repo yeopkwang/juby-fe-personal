@@ -24,6 +24,34 @@
   color: var(--color-text-sub);
 }
 
+/*
+ * 지금 보고 있는 화면.
+ *
+ * 색만 바꾸면 색을 구분하기 어려운 사람에게는 아무 표시도 없는 것과 같고,
+ * 바로 위 hover도 색을 바꾸기 때문에 '가리키는 중'과도 헷갈린다. 밑줄을 함께 둔다.
+ */
+.active {
+  position: relative;
+  color: var(--color-brand-deep);
+}
+
+.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* 글자 바로 밑이 아니라 조금 떨어뜨려야 받침에 붙지 않는다 */
+  bottom: -8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-brand-deep);
+}
+
+/* 지금 있는 화면 위에 마우스를 올렸다고 표시가 흐려지면 안 된다 */
+.menu a.active:hover {
+  color: var(--color-brand-deep);
+}
+
 /* Michroma는 굵기가 400 하나뿐이고 글자폭이 넓어서 크기와 자간을 따로 잡는다 */
 .logo {
   font-family: 'Michroma', sans-serif;
