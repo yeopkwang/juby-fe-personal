@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Skeleton from '../components/Skeleton'
 import { getGuideSections } from '../api/guide'
 import type { GuideSection } from '../types/guide'
 import styles from './GuidePage.module.css'
@@ -21,7 +22,7 @@ export default function GuidePage() {
       <h1 className={styles.title}>JUBY 사용설명서</h1>
 
       {sections === null ? (
-        <div className={styles.skeleton} aria-label="불러오는 중" />
+        <Skeleton className={styles.skeleton} label="불러오는 중" />
       ) : (
         <ol className={styles.list}>
           {sections.map((section, index) => (

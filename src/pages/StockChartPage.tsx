@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
 import NewsList from '../components/NewsList'
+import Skeleton from '../components/Skeleton'
 import { loadCandles, readCachedCandles } from '../api/candles'
 import { getPrice, toChangeRate, toVolume } from '../api/market'
 import { getNews } from '../api/news'
@@ -178,7 +179,7 @@ export default function StockChartPage() {
           )}
 
           {!hasCandleError && isCandleLoading && candles.length === 0 && (
-            <div className={styles.chartSkeleton} />
+            <Skeleton className={styles.chartSkeleton} label="차트를 불러오는 중" />
           )}
 
           {!hasCandleError && candles.length > 0 && (

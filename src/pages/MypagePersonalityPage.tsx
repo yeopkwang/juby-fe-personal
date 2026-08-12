@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import PersonalityCard from '../components/PersonalityCard'
+import Skeleton from '../components/Skeleton'
 import { getMyPersonality } from '../api/member'
 import { PERSONALITY_INFO } from '../utils/personality'
 import type { PersonalityInfo } from '../types/member'
@@ -37,7 +38,7 @@ export default function MypagePersonalityPage() {
   useEffect(load, [load])
 
   if (state.kind === 'loading') {
-    return <div className={styles.skeleton} aria-label="불러오는 중" />
+    return <Skeleton className={styles.skeleton} label="불러오는 중" />
   }
 
   if (state.kind === 'error') {

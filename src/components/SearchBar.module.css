@@ -28,11 +28,18 @@
   flex: 1;
   min-width: 0;
   border: none;
-  outline: none;
   background: transparent;
   font: inherit;
   font-size: var(--fs-md);
   color: var(--color-text);
+}
+
+/*
+ * 마우스로 눌렀을 때만 지운다. 위 .box:focus-within이 감싼 칸에 테두리를 그려 준다.
+ * 키보드로 들어온 경우는 걸러내서 index.css의 :focus-visible이 그리게 둔다.
+ */
+.input:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .input::placeholder {

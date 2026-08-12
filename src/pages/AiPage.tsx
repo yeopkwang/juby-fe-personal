@@ -3,6 +3,7 @@ import { ask, getSessionDetail, getSessions } from '../api/ai'
 import { getMyPersonality } from '../api/member'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import SessionSidebar from '../components/SessionSidebar'
+import Skeleton from '../components/Skeleton'
 import { isLoggedIn } from '../utils/auth'
 import { findStockName } from '../utils/stockName'
 import type { ChatMessage, ChatSession } from '../types/ai'
@@ -175,11 +176,12 @@ export default function AiPage() {
 
         <section className={styles.chat}>
           {detailState === 'loading' ? (
+            /* 낱장에 문구를 붙이지 않는다. "불러오는 중"을 네 번 읽어 봐야 소용없다 */
             <div className={styles.skeletonArea} aria-label="대화를 불러오는 중">
-              <span className={`${styles.skeleton} ${styles.skeletonUser}`} />
-              <span className={styles.skeleton} />
-              <span className={`${styles.skeleton} ${styles.skeletonUser}`} />
-              <span className={styles.skeleton} />
+              <Skeleton className={`${styles.skeleton} ${styles.skeletonUser}`} />
+              <Skeleton className={styles.skeleton} />
+              <Skeleton className={`${styles.skeleton} ${styles.skeletonUser}`} />
+              <Skeleton className={styles.skeleton} />
             </div>
           ) : detailState === 'error' ? (
             <div className={styles.centerArea}>

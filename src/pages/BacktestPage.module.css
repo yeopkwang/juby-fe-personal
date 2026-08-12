@@ -115,8 +115,13 @@
   font-size: var(--fs-md);
 }
 
-.input:focus,
-.select:focus {
+/*
+ * 마우스로 눌렀을 때만 지운다. 위 .control:focus-within이 감싼 칸에 테두리를 그려 준다.
+ * 다만 그건 마우스로 눌러도 걸리고 회색이 조금 짙어지는 정도라 키보드 표시로는 약하다.
+ * 키보드로 들어온 경우는 걸러내서 index.css의 :focus-visible이 그리게 둔다.
+ */
+.input:focus:not(:focus-visible),
+.select:focus:not(:focus-visible) {
   outline: none;
 }
 

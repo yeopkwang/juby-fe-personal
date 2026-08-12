@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import Modal from '../components/Modal'
+import Skeleton from '../components/Skeleton'
 import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
 import { clearTokens } from '../utils/auth'
 import { formatBirth } from '../utils/format'
@@ -152,7 +153,7 @@ export default function MypageProfilePage() {
   }
 
   if (state.kind === 'loading') {
-    return <div className={styles.skeleton} aria-label="불러오는 중" />
+    return <Skeleton className={styles.skeleton} label="불러오는 중" />
   }
 
   if (state.kind === 'error') {

@@ -135,24 +135,6 @@
 .chartSkeleton {
   height: 100%;
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--grey-50) 25%, var(--grey-100) 50%, var(--grey-50) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
-}
-
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chartSkeleton {
-    animation: none;
-  }
 }
 
 @media (max-width: 900px) {

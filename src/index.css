@@ -123,3 +123,21 @@ button {
   font: inherit;
   cursor: pointer;
 }
+
+/*
+ * 키보드로 옮겨 다닐 때 지금 어디에 있는지.
+ *
+ * 브라우저 기본 표시에 맡겨 두면 브라우저마다 생김새가 다르고, 입력칸 세 곳은
+ * outline: none으로 아예 지워져 있어서 탭 키로는 위치를 알 수 없었다.
+ * 한 곳에서 정해 화면 전체가 같은 모양이 되게 한다.
+ *
+ * :focus가 아니라 :focus-visible을 쓴다. :focus는 마우스로 눌러도 걸려서 누른
+ * 버튼마다 테두리가 남는데, 그게 보기 싫어 지우다 보면 키보드 사용자까지 잃는다
+ * (위의 outline: none들이 그렇게 생겼다). :focus-visible은 키보드로 왔을 때만 걸린다.
+ *
+ * 색은 브랜드 초록을 쓴다. 등락 빨강·파랑은 시세를 뜻하는 색이라 쓸 수 없다.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-brand-deep);
+  outline-offset: 2px;
+}

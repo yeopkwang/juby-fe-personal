@@ -124,7 +124,13 @@
   max-height: 96px;
 }
 
-.input:focus {
+/*
+ * 마우스로 눌렀을 때만 지운다. 감싼 .composerBox가 이미 한 덩어리로 보이는데
+ * 안쪽 입력칸에까지 테두리가 겹치면 지저분하다.
+ * 키보드로 들어온 경우는 걸러내서 index.css의 :focus-visible이 그리게 둔다 —
+ * 여기서 통째로 지우는 바람에 이 화면은 탭 키를 눌러도 아무 표시가 없었다.
+ */
+.input:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -160,34 +166,22 @@
   padding: 28px;
 }
 
+/*
+ * 생김새는 Skeleton 컴포넌트가 맡는다. 여기서는 말풍선 크기만 잡는다.
+ *
+ * 전에는 이 화면만 혼자 opacity를 깜빡이는 pulse를 썼다. 같은 앱에서 기다리는
+ * 모습이 화면마다 다를 이유가 없어 다른 넷과 같은 shimmer로 맞췄다.
+ */
 .skeleton {
   height: 46px;
   width: 55%;
   border-radius: 14px;
-  background: var(--color-page-bg);
-  animation: pulse 1.4s infinite ease-in-out;
 }
 
+/* 내가 보낸 말은 오른쪽에 붙고 조금 짧다. 위치와 길이로 상대 말과 구분된다 */
 .skeletonUser {
   align-self: flex-end;
   width: 35%;
-  background: var(--color-border);
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-  }
 }
 
 /* 사이드바를 옆에 두면 대화 폭이 남지 않는다. 위아래로 쌓는다 */

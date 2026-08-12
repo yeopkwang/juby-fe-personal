@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react'
 import { Link } from 'react-router-dom'
 import { prefetchCandles } from '../api/candles'
+import Skeleton from './Skeleton'
 import type { TopStock, TopTheme } from '../types/stock'
 import styles from './TopStockCard.module.css'
 
@@ -51,7 +52,7 @@ function CardPlaceholder() {
         <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
         <span className={styles.caption}>6주 전 대비</span>
       </p>
-      <div className={`${styles.chart} ${styles.chartEmpty}`} />
+      <Skeleton className={`${styles.chart} ${styles.chartEmpty}`} />
     </>
   )
 }
