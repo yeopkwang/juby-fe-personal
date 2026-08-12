@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Outlet } from 'react-router-dom'
-import { isLoggedIn } from '../utils/auth'
+import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import styles from './MypageLayout.module.css'
 
 const MENU = [
@@ -18,8 +18,13 @@ export default function MypageLayout() {
   /*
    * 세 경로 모두 로그인이 필요하다. 렌더 전에 막아야 아래 화면들이
    * 토큰 없이 API를 부르고 실패 화면을 잠깐 보여주는 일이 없다.
+   *
+   * 지켜보는 값이라, 로그아웃하는 순간 이 자리에서 로그인 화면으로 밀려난다.
+   * 마이페이지 안에서 탈퇴·로그아웃을 하고도 그 화면에 남아 있는 일이 없다.
    */
-  if (!isLoggedIn()) {
+  const loggedIn = useIsLoggedIn()
+
+  if (!loggedIn) {
     return <Navigate to="/login" replace />
   }
 

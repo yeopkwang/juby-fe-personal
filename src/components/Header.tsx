@@ -1,7 +1,7 @@
 import { LogoMark, LogoWord } from './Logo'
 import type { ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { isLoggedIn } from '../utils/auth'
+import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import styles from './Header.module.css'
 
 interface HeaderProps {
@@ -69,6 +69,9 @@ function NavItem({ to, standalone, className, children }: NavItemProps) {
 }
 
 export default function Header({ standalone = false }: HeaderProps) {
+  /* 그리는 순간 한 번 읽는 게 아니라 계속 지켜본다. 로그인하면 이 줄이 다시 돈다 */
+  const loggedIn = useIsLoggedIn()
+
   return (
     <header className={styles.header}>
       <nav className={styles.menu}>
@@ -90,7 +93,7 @@ export default function Header({ standalone = false }: HeaderProps) {
         <NavItem to="/guide" standalone={standalone}>
           사용설명서
         </NavItem>
-        {isLoggedIn() ? (
+        {loggedIn ? (
           <NavItem to="/mypage" standalone={standalone}>
             마이페이지
           </NavItem>

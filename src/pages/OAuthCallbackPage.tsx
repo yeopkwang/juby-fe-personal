@@ -21,15 +21,21 @@ export default function OAuthCallbackPage() {
       return
     }
 
+    /* 저장하는 순간 헤더도 알게 된다(utils/auth.ts가 알려준다) */
     saveTokens(accessToken, refreshToken)
 
     /*
-     * navigate가 아니라 주소창을 통째로 바꾼다.
-     * 헤더는 그려질 때 isLoggedIn()을 한 번 읽을 뿐이라 navigate로는 다시 읽지 않아
-     * 로그인 직후에도 우측이 '로그인'으로 남는다. 전체 새로고침이면 헤더도 새로 읽는다.
-     * 전역 상태를 만들면 없앨 수 있는 임시 방편이다.
+     * 예전에는 여기서 주소창을 통째로 바꿔 페이지를 새로 받았다. 헤더가 그려질 때
+     * 로그인 여부를 한 번 읽고 마는 구조라, 그렇게 하지 않으면 로그인한 뒤에도
+     * 우측이 '로그인'으로 남았기 때문이다.
+     *
+     * 이제 헤더가 상태를 지켜보므로 그럴 필요가 없다. navigate로 넘기면 화면이
+     * 하얗게 번쩍이지 않고, 받아둔 시세·캔들 캐시도 그대로 남는다.
+     *
+     * replace라서 뒤로 가기를 눌러도 이 콜백 주소로 돌아오지 않는다.
+     * 토큰이 붙은 주소라 방문 기록에 남겨 둘 이유도 없다.
      */
-    window.location.href = '/'
+    navigate('/', { replace: true })
   }, [searchParams, navigate])
 
   return <p className={styles.message}>로그인 중</p>

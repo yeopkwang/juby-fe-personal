@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Modal from '../components/Modal'
 import Skeleton from '../components/Skeleton'
 import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
@@ -48,6 +49,8 @@ function DefaultAvatar() {
 }
 
 export default function MypageProfilePage() {
+  const navigate = useNavigate()
+
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -78,12 +81,15 @@ export default function MypageProfilePage() {
 
     try {
       await deleteMember()
-      clearTokens()
       /*
-       * 헤더는 그려질 때 isLoggedIn()을 한 번 읽을 뿐이라
-       * 주소창을 통째로 바꿔야 우측이 '로그인'으로 돌아온다(api/auth.ts의 logout과 같은 이유).
+       * 토큰을 지우면 헤더와 마이페이지 껍데기가 함께 알아차린다(utils/auth.ts가 알려준다).
+       * 예전에는 헤더가 로그인 여부를 한 번만 읽어서 주소창을 통째로 바꿔야 했다.
+       *
+       * 순서가 중요하다. 지우기 전에 화면을 옮기면 그 찰나에 마이페이지가
+       * 아직 로그인 상태로 보여 API를 한 번 더 부른다.
        */
-      window.location.href = '/'
+      clearTokens()
+      navigate('/', { replace: true })
     } catch (error: unknown) {
       console.warn('회원 탈퇴 실패', error)
       // 실패했으면 토큰은 그대로 둔다. 지웠는데 계정이 남으면 로그인만 풀린 꼴이 된다

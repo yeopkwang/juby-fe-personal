@@ -5,7 +5,7 @@ import { getMyPersonality } from '../api/member'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import SessionSidebar from '../components/SessionSidebar'
 import Skeleton from '../components/Skeleton'
-import { isLoggedIn } from '../utils/auth'
+import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { findStockName } from '../utils/stockName'
 import type { ChatMessage, ChatSession } from '../types/ai'
 import type { PersonalityType } from '../types/personality'
@@ -19,7 +19,7 @@ const STOCK_HINT = '종목명을 함께 입력하면 더 정확한 분석을 받
 type DetailState = 'idle' | 'loading' | 'error'
 
 export default function AiPage() {
-  const loggedIn = isLoggedIn()
+  const loggedIn = useIsLoggedIn()
 
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [sessionId, setSessionId] = useState<number | null>(null)
