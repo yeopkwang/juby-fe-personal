@@ -5,10 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 프로젝트 소개·실행법·환경변수·코딩 규칙은 [README.md](README.md)에 있다. 먼저 읽는다.
 이 문서는 README에 없는 것, 즉 **여러 파일을 읽어야 보이는 구조**만 적는다.
 
-> **⚠️ 이어받는 작업이 있다.** 백테스트 화면(`/backtest`)을 2026-08-09에 새로 만들었는데
-> **브라우저로 확인하지 않았다.** 타입·린트·빌드만 통과한 상태다.
-> 점검 목록과 다음 할 일은 [docs/handoff-2026-08-09.md](docs/handoff-2026-08-09.md)에 있다.
-> 백테스트를 손대기 전에 그 문서를 먼저 읽는다.
+> **⚠️ `docs/handoff-2026-08-09.md`는 오래됐다.** 그 문서의 API 표는 스웨거를 보고 적은
+> 것인데, 지금은 **팀 노션만 근거로 삼는다.** 백테스트 화면은 그 뒤 브라우저로 확인했다.
+> 아래 '허용 목록' 절이 지금 상태다. 충돌하면 이 문서가 맞다.
 
 ## 명령어
 
@@ -23,19 +22,18 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 `npm run lint` + `npm run build`(타입 검사 포함) + 브라우저 확인으로 한다.
 테스트를 새로 도입하려면 먼저 사용자에게 묻는다.
 
-## 엔트리가 두 개다
+## 엔트리는 하나다 (2026-08-12에 합침)
 
-| 엔트리 | 뿌리 | 라우터 |
-| --- | --- | --- |
-| `index.html` → `src/main.tsx` | `App.tsx` | `BrowserRouter` |
-| `personality.html` → `src/personality.tsx` | `PersonalityApp.tsx` | `MemoryRouter` |
+`index.html` → `src/main.tsx` → `App.tsx` / `BrowserRouter`. 이게 전부다.
 
-`vite.config.ts`의 `rollupOptions.input`에 둘 다 적혀 있다. **엔트리를 추가하면 여기도 고쳐야
-빌드에 포함된다.** 투자성향테스트가 `MemoryRouter`인 이유는 주소가 항상 `/personality.html`로
-고정이라 하위 경로를 붙이면 새로고침 시 404가 나기 때문이다.
+**예전에는 두 개였다.** 투자성향테스트가 `personality.html`이라는 별도 페이지에 떨어져 있었고
+`MemoryRouter`를 썼다. 주소가 항상 `/personality.html`로 고정이라 하위 경로를 붙이면
+새로고침 때 404가 났기 때문이다. 로그인이 붙으면 합치기로 하고 그때부터 경로 이름
+(`/personality-test`)을 일부러 맞춰 뒀는데, 그 덕에 합칠 때 **라우트 두 줄만 옮기고 화면
+코드는 한 줄도 고치지 않았다.**
 
-로그인·마이페이지가 생기면 `PersonalityApp.tsx`와 `personality.html`을 지우고 본 앱 라우트로
-합치는 게 원래 계획이다. 그래서 두 앱의 경로 이름(`/personality-test`)을 일부러 맞춰 뒀다.
+이 흔적이 남아 있으면 지워도 된다: `PersonalityApp.tsx`, `src/personality.tsx`,
+`personality.html`, `Header`의 `standalone` 프로퍼티, `a href="/personality.html"` 링크.
 
 `App.tsx`의 `path="*"`는 `NotReadyPage`로 간다. 미구현 화면은 전부 여기로 떨어진다.
 
@@ -93,26 +91,71 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 - `src/utils/cache.ts` — TTL 있는 임시 캐시(`readCache`/`writeCache`). 읽기·쓰기 실패는
   전부 삼키고 "없는 셈" 친다. 키: `candles:<종목코드>`(12h), `topStocks`(12h), `quoteSnapshot`(7d)
 
-## ⛔ 지금 백엔드 호출이 전부 막혀 있다
+## ⛔ 허용 목록에 적힌 경로만 나갈 수 있다
 
-**화면이 아무것도 못 불러오는 게 정상이다. 고장난 게 아니다.**
-백엔드가 한국투자증권 API를 중계하는데 홈 한 번이 108건이라 증권사 계정이 정지될 수 있다는
-경고를 받아 나가는 길을 전부 끊었다. 세 곳이 함께 잠겨 있고 **되돌릴 때도 함께 풀어야 한다.**
+**명세의 근거는 팀 노션 한 곳이다. 스웨거를 보고 붙이지 않는다.**
+스웨거에는 아직 개발 중인 것까지 다 올라와 있어서, 그걸 보고 붙였다가 백엔드가 만들지도
+않은 API를 부른 적이 있다. 노션에 '완료'로 찍힌 것만 부른다.
+
+`src/api/client.ts`의 `ALLOWED_PREFIXES`가 그 목록이고, **여기 없으면 요청이 fetch에 닿기
+전에 끊긴다.** 지금 셋뿐이다.
+
+| 나갈 수 있는 것 | 화면 |
+| --- | --- |
+| `/api/backtest**` | 백테스트 (실행·프리셋·기간 옵션) |
+| `/api/personality-tests` | 투자성향테스트 (문항 조회·결과 제출) |
+| `/api/members/me**` | 마이페이지 (정보·성향 조회/수정/탈퇴) |
+
+**막는 목록이 아니라 허용 목록인 것이 핵심이다.** 막는 목록은 빠뜨리면 그 경로가 조용히
+뚫리지만, 허용 목록은 빠뜨려도 안 나갈 뿐이다. 새 API를 붙이면서 여기 적는 걸 잊으면
+화면이 바로 실패하니 눈에 띈다. 잘못될 방향이 안전한 쪽인 구조를 고른 것이다.
+
+나가지 못하는 것들과 그 이유:
+
+| 경로 | 왜 |
+| --- | --- |
+| `/api/market/**` | **증권사(KIS) 중계.** 홈 한 번이 108건이라 계정 정지 경고를 받았다 |
+| `/api/token`, `/api/initiate` | 마찬가지로 KIS를 부른다. 프론트는 원래 안 쓴다 |
+| `/api/news` | 노션 어느 표에도 없다 |
+| `/api/open-ai/ask`, `/v1/ai/**` | AI 표에 행이 하나도 없다 |
+| `/api/guides` | 노션에서 확인하지 못했다 |
+| `/v1/auth/logout` | 인증 API. 프론트가 건드리지 않기로 했다 |
+
+**KIS 경로는 노션에 완료로 있어도 적으면 안 된다.** 증권사 계정 문제는 명세와 별개의
+사정이라, 백엔드가 다 만들었어도 부르지 않는 것이 맞다.
+(백엔드에서 `domain/kis` 패키지를 쓰는 곳을 전수 확인했다 — market·token뿐이고
+backtest·openai·news·personality_test·member는 참조가 0건이다.)
+
+함께 잠긴 곳이 둘 더 있다. **되돌릴 때 같이 봐야 한다.**
 
 | 위치 | 무엇 |
 | --- | --- |
-| `src/api/client.ts`의 `API_DISABLED` | 모든 fetch를 요청 전에 끊는다 |
-| `src/pages/LoginPage.tsx` | 소셜 로그인 이동. fetch가 아니라 주소창을 옮기는 것이라 위 스위치가 못 잡는다 |
-| `vite.config.ts`의 `server.proxy` | 개발 프록시. 두 번째 자물쇠 |
+| `vite.config.ts`의 `server.proxy` | 같은 목록을 한 번 더 적어 둔 두 번째 자물쇠. `/v1`은 통로 자체가 없다 |
+| `src/pages/LoginPage.tsx` | 소셜 로그인 이동. fetch가 아니라 주소창을 옮기는 것이라 `client.ts`가 못 잡는다 |
 
 호출부를 하나씩 주석 처리하지 않은 이유는 `client.ts`의 fetch가 **앱 전체에서 유일한 통신
-창구**이기 때문이다(전수 확인함). 창구를 잠그면 빠뜨릴 곳이 없고 새로 추가되는 코드까지 막힌다.
+창구**이기 때문이다(전수 확인함). 창구에서 가르면 빠뜨릴 곳이 없고 새로 추가되는 코드까지
+자동으로 걸린다.
+
+### 지금 화면이 어떻게 보이는지 (2026-08-12 브라우저 확인)
+
+| 화면 | 상태 |
+| --- | --- |
+| 투자성향테스트 | **10문항이 실제로 뜬다.** 백엔드 DB에 문항이 들어왔다 |
+| 백테스트 | 전략 목록이 실제로 뜬다 |
+| 홈 | 종목명·코드는 뜨고 시세는 `-`. **고장이 아니라 KIS 차단 때문이다** |
+| 상세·AI·뉴스·사용설명서 | 각자의 에러/빈 화면. 허용 목록에 없다 |
+| 마이페이지 | 토큰이 있으면 요청은 나간다 |
 
 ## 백엔드 미완성 구간 토글
 
-`src/api/personality.ts` 상단의 `USE_BACKEND_QUESTIONS` / `USE_BACKEND_SUBMIT`가 **둘 다 false**다.
-`MOCK_QUESTIONS`(7문항)를 쓰고 채점도 프론트에서 한다.
-mock은 실제 API 응답과 같은 모양이라 플래그만 바꾸면 화면 코드는 그대로다.
+`src/api/personality.ts` 상단의 `USE_BACKEND_QUESTIONS`는 **true**(문항을 서버에서 받는다),
+`USE_BACKEND_SUBMIT`는 **false**(채점은 아직 프론트에서 한다)다.
+`MOCK_QUESTIONS`는 실제 API 응답과 같은 모양이라 플래그만 바꾸면 화면 코드는 그대로다.
+
+**문항 10개가 DB에 들어왔다**(2026-08-12 확인. 아래 '남은 것'이 해결된 것이다).
+그래서 `normalizeScore()`의 전제가 달라졌을 수 있다 — 7문항이라 낱개 점수를 못 보내던
+사정이 사라졌으니, 제출을 켤 때 이 부분을 다시 본다.
 
 **백엔드 소스(`JUBYInvest/JUBY-BE`)를 읽어 확인한 것.** 다시 파지 않아도 되게 적어 둔다.
 
@@ -132,8 +175,8 @@ mock은 실제 API 응답과 같은 모양이라 플래그만 바꾸면 화면 �
   대신 POST는 `@AuthenticationPrincipal`로 받은 user에서 id를 꺼내므로 **토큰 없이 부르면
   401이 아니라 NPE로 500**이 난다. 마이페이지·성향 화면이 401 대신 500을 다루는 이유가 이것이다.
 
-남은 것은 **DB에 문항 10개를 넣는 일 하나**다. 들어오면 조회 플래그부터 켜고, 제출은 로그인이
-필요하니 나중에 켠다.
+~~남은 것은 **DB에 문항 10개를 넣는 일 하나**다.~~ **들어왔다.** 조회는 켰고, 제출은
+로그인이 필요하니 나중에 켠다.
 
 프론트에 하드코딩된 다른 데이터: `src/api/stockList.ts`의 102종목, `home.ts`의 `TOP_THEMES` 3개.
 
@@ -143,6 +186,15 @@ mock은 실제 API 응답과 같은 모양이라 플래그만 바꾸면 화면 �
   변환은 `src/utils/date.ts`만 쓴다(차트는 `toDashedYmd`로 하이픈 형식이 필요).
 - 스타일은 CSS Modules(`*.module.css`). 색상은 `src/index.css`의 CSS 변수를 쓴다.
   등락 색은 한국식이다 — 상승 빨강, 하락 파랑(README 참고).
-- 차트 라이브러리가 둘이다. 상세 캔들은 `lightweight-charts`, 홈 카드 스파크라인은 `recharts`.
-- `logout()`은 화면 이동을 하지 않는다. `Header`가 `isLoggedIn()`을 한 번만 읽으므로
-  부르는 쪽에서 `window.location.href = '/'`로 통째로 새로고침해야 상태가 갱신된다.
+- 차트 라이브러리는 `lightweight-charts` 하나다(종목 상세 캔들). 홈 카드 스파크라인은
+  `CardChart.tsx`가 **SVG를 직접 그린다.** 예전엔 여기에 `recharts`를 썼는데 카드 세 장
+  때문에 gzip 100KB가 더 들어와서 걷어냈다(지금 0.9KB). 상세 쪽으로 합치지 않은 이유는
+  그건 축·눈금·마우스 조작이 딸린 본격 차트라 눈금도 없는 작은 그림에는 더 번거롭기 때문이다.
+- **로그인 상태는 전역이다.** `useIsLoggedIn()`(`src/hooks/`)을 쓰면 토큰이 생기거나
+  사라질 때 화면이 알아서 다시 그려진다. `utils/auth.ts`가 `saveTokens`/`clearTokens`에서
+  직접 알림을 낸다(localStorage는 스스로 알려주지 않는다). 다른 탭의 변화도 `storage`
+  이벤트로 따라온다.
+  → 예전엔 헤더가 `isLoggedIn()`을 한 번만 읽어서, 로그인·로그아웃 뒤에 화면을 통째로
+  새로고침(`window.location.href = '/'`)해야 우측 메뉴가 바뀌었다. **그 코드가 보이면
+  남은 흔적이다.** 이벤트 핸들러 안에서 그 순간의 값을 읽는 경우(홈의 하트 클릭)는
+  `isLoggedIn()`을 그대로 부르는 게 맞다.
