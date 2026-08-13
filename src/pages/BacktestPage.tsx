@@ -806,26 +806,45 @@ function BacktestResult({
  * 섞어 놓으면 "78.4점인데 수익률이 2%"가 모순처럼 보인다.
  */
 function RunFigures({ run }: { run: BacktestRun }) {
-  /*
-   * 단위가 확인되지 않았다(types/backtest.ts 참고). 받은 숫자를 그대로 %로 읽는다.
-   * 프리셋 쪽 toPercent()는 100을 곱하는데 그걸 여기 쓰면 값이 100배로 부풀 수 있다.
+  /**
+   * 수익률은 **배수로 온다.** 1.0이 본전이고 2.04가 +104%다.
    *
-   * ⚠️ 실제 응답을 처음 보면 **최대낙폭부터 확인한다.** 명세 예시값 0.313을 이 규칙으로
-   * 읽으면 0.31%가 되는데, 백테스트에서 최대낙폭 0.31%는 현실적인 값이 아니다.
-   * 프리셋처럼 소수(0.313 = 31.3%)일 가능성이 높다. 그렇다면 여기서 100을 곱해야 하고,
-   * 같은 응답의 수익률도 함께 다시 봐야 한다(2.04가 2.04%인지 204%인지).
+   * 백엔드가 ta4j의 `new NetReturnCriterion()`을 인자 없이 쓰는데, 그 기본 표현이
+   * `ReturnRepresentationPolicy`에서 MULTIPLICATIVE다(ta4j 0.22.3 소스 확인).
+   *   MULTIPLICATIVE 1.12 = 기준 포함 성장배수 / DECIMAL 0.12 / PERCENTAGE 12.0
+   * 그래서 1을 빼고 100을 곱해야 사람이 읽는 수익률이 된다.
+   * 그냥 100을 곱하면 본전(1.0)이 100% 번 것으로 보인다.
    */
-  const percent = (value: number | null) =>
-    value === null ? '-' : `${value.toFixed(2)}%`
+  const growthToPercent = (value: number) => `${((value - 1) * 100).toFixed(2)}%`
 
   const figures: { label: string; value: string }[] = [
     { label: '체결 횟수', value: `${run.positionCount}회` },
-    { label: '누적 수익률', value: percent(run.totalReturn) },
-    { label: '연평균 수익률', value: percent(run.annualizedReturn) },
+    { label: '누적 수익률', value: growthToPercent(run.totalReturn) },
     { label: '샤프 비율', value: run.sharpeRatio.toFixed(3) },
     { label: '표준편차', value: run.stdDeviation.toFixed(3) },
-    { label: '최대 낙폭', value: percent(run.maxDrawdown) },
+    /* 최대낙폭은 배수가 아니라 원래부터 비율이다(고점 대비 얼마나 빠졌나). 0.313 = 31.3% */
+    { label: '최대 낙폭', value: toPercent(run.maxDrawdown) },
   ]
+
+  /*
+   * 연평균 수익률은 **아직 계산되지 않는다.**
+   *
+   * 백엔드 AnalysisCriterionConverter가 `List.of(totalReturn, totalReturn, ...)`으로
+   * 누적 수익률을 두 번 담는다(`// 연평균 수익률 추후 추가` 주석이 그대로 있다).
+   * 그대로 그리면 같은 숫자가 다른 이름표를 달고 두 번 나와 사용자를 속인다.
+   *
+   * 그래서 누적과 다를 때만 넣는다. 백엔드가 실제로 계산하기 시작하면 값이 갈리면서
+   * 저절로 나타난다 — 나중에 이 줄을 되살리는 걸 누가 기억할 필요가 없다.
+   */
+  if (
+    run.annualizedReturn !== null &&
+    run.annualizedReturn !== run.totalReturn
+  ) {
+    figures.splice(2, 0, {
+      label: '연평균 수익률',
+      value: growthToPercent(run.annualizedReturn),
+    })
+  }
 
   return (
     <div className={styles.runBox}>

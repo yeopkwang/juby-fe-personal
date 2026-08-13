@@ -93,10 +93,15 @@ export interface BacktestRunRequest {
 /**
  * 응답 result.
  *
- * ⚠️ **단위가 확인되지 않았다.** 프리셋 쪽은 소수(0.1856 = 18.56%)인데, 이쪽 명세의
- * 예시는 `totalReturn: 2.04`에 '수익률'이라고만 적혀 있어 2.04%인지 204%인지 알 수 없다.
- * 지금은 **받은 숫자를 그대로 %로 읽는다**(2.04 → 2.04%). 실제 응답을 처음 보는 사람이
- * 값이 100배 어긋나 보이면 여기부터 본다.
+ * **단위는 ta4j가 정한다.** 백엔드가 계산을 직접 하지 않고 ta4j 0.22.3의 Criterion을
+ * 그대로 부르기 때문에(`AnalysisCriterionConverter`), 숫자의 뜻도 그쪽 규약을 따른다.
+ * 프리셋 쪽 소수 표기(0.1856 = 18.56%)와 **다르므로 섞어 쓰면 안 된다.**
+ *
+ * | 필드 | 무엇으로 오나 |
+ * | --- | --- |
+ * | `totalReturn` | **배수.** 1.0이 본전, 2.04면 +104% (NetReturnCriterion 기본값이 MULTIPLICATIVE) |
+ * | `maxDrawdown` | 비율. 0.313 = 31.3% (고점 대비 낙폭이라 원래 비율이다) |
+ * | `sharpeRatio` `stdDeviation` | 단위 없는 수. 그대로 쓴다 |
  */
 export interface BacktestRun {
   /** 내 투자성향. 로그인 사용자의 저장된 값 */
@@ -109,7 +114,12 @@ export interface BacktestRun {
   /** 체결된 매수~매도 한 쌍의 개수 */
   positionCount: number
   totalReturn: number
-  /** 연평균 수익률. 서버 철자가 흔들려 읽는 쪽에서 맞춘다(api/backtest.ts) */
+  /**
+   * 연평균 수익률. **아직 계산되지 않아 누적 수익률과 같은 값이 온다.**
+   * 백엔드 `AnalysisCriterionConverter`가 `List.of(totalReturn, totalReturn, ...)`으로
+   * 같은 값을 두 번 담는다(`// 연평균 수익률 추후 추가` 주석이 그대로 있다).
+   * 그래서 화면은 누적과 다를 때만 이 값을 보여준다.
+   */
   annualizedReturn: number | null
   sharpeRatio: number
   /** 수익률 표준편차 */

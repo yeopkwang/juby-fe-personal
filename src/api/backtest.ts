@@ -53,15 +53,15 @@ export function getPresetOptions(): Promise<PresetOption[]> {
 /**
  * 서버가 받은 그대로의 모양.
  *
- * 연평균 수익률의 철자가 두 곳에서 다르다. 명세에는 `annulizedReturn`(a가 빠졌다),
- * 백엔드 `BacktestResDto.GetInfo`에는 `annualizedReturn`으로 적혀 있다.
- * 어느 쪽이 배포될지 모르므로 **둘 다 받아 두고 읽는 쪽에서 합친다.**
- * 한쪽만 믿었다가 틀리면 화면에 조용히 undefined가 박히는데, 숫자가 안 보이는 게 아니라
- * 엉뚱한 값이 보이는 쪽이 훨씬 나쁘다.
+ * `annualizedReturn`이 없을 수 있어 선택 항목으로 둔다. 백엔드가 아직 이 값을
+ * 계산하지 않아서다 — AnalysisCriterionConverter가 누적 수익률을 두 번 담고 있고
+ * `// 연평균 수익률 추후 추가` 주석이 그대로 있다. 없으면 null로 받는다.
+ *
+ * (노션 명세에는 `annulizedReturn`으로 a가 빠져 있는데, **백엔드 코드 쪽이 맞다.**
+ * 노션을 고치기로 했으므로 정상 철자 하나만 읽는다.)
  */
 type BacktestRunRaw = Omit<BacktestRun, 'annualizedReturn'> & {
   annualizedReturn?: number
-  annulizedReturn?: number
 }
 
 /**
@@ -83,7 +83,7 @@ export async function runBacktest(
 
   return {
     ...raw,
-    /* 둘 다 없으면 0이 아니라 null이다. 0%는 '못 받았다'와 전혀 다른 뜻이다 */
-    annualizedReturn: raw.annualizedReturn ?? raw.annulizedReturn ?? null,
+    /* 없으면 0이 아니라 null이다. 0%는 '못 받았다'와 전혀 다른 뜻이다 */
+    annualizedReturn: raw.annualizedReturn ?? null,
   }
 }
