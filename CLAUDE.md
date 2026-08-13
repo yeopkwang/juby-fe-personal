@@ -126,12 +126,11 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 (백엔드에서 `domain/kis` 패키지를 쓰는 곳을 전수 확인했다 — market·token뿐이고
 backtest·openai·news·personality_test·member는 참조가 0건이다.)
 
-함께 잠긴 곳이 둘 더 있다. **되돌릴 때 같이 봐야 한다.**
+같은 목록이 `vite.config.ts`의 `server.proxy`에 한 번 더 적혀 있다. 두 번째 자물쇠라
+일부러 나눠 뒀으니 **바꿀 때 같이 바꾼다.** `/v1`은 통로 자체를 뚫지 않았다.
 
-| 위치 | 무엇 |
-| --- | --- |
-| `vite.config.ts`의 `server.proxy` | 같은 목록을 한 번 더 적어 둔 두 번째 자물쇠. `/v1`은 통로 자체가 없다 |
-| `src/pages/LoginPage.tsx` | 소셜 로그인 이동. fetch가 아니라 주소창을 옮기는 것이라 `client.ts`가 못 잡는다 |
+`src/pages/LoginPage.tsx`의 소셜 로그인 이동은 이 판단을 지나지 않는다. fetch가 아니라
+주소창을 통째로 옮기는 것이라 창구가 다르다. **이건 막혀 있지 않다** — 아래 참고.
 
 호출부를 하나씩 주석 처리하지 않은 이유는 `client.ts`의 fetch가 **앱 전체에서 유일한 통신
 창구**이기 때문이다(전수 확인함). 창구에서 가르면 빠뜨릴 곳이 없고 새로 추가되는 코드까지
@@ -146,6 +145,30 @@ backtest·openai·news·personality_test·member는 참조가 0건이다.)
 | 홈 | 종목명·코드는 뜨고 시세는 `-`. **고장이 아니라 KIS 차단 때문이다** |
 | 상세·AI·뉴스·사용설명서 | 각자의 에러/빈 화면. 허용 목록에 없다 |
 | 마이페이지 | 토큰이 있으면 요청은 나간다 |
+
+## 로그인: 나가는 길만 이어져 있다 (2026-08-14)
+
+세 provider 모두 백엔드가 302로 제대로 넘긴다(확인함). 문제는 **돌아오는 길**이다.
+
+백엔드 `OAuth2SuccessHandler`가 주소를 옮기지 않고 **JSON을 그려 버린다.**
+`objectMapper.writeValue(response.getOutputStream(), ...)`가 전부라, 로그인을 마친
+사용자는 앱으로 못 돌아오고 백엔드 주소에서 이런 화면을 본다.
+
+```
+{"isSuccess":true,...,"result":{"accessToken":"ey...","refreshToken":"ey..."}}
+```
+
+백엔드가 `sendRedirect`로 `/oauth/callback?accessToken=..&refreshToken=..`에
+되돌려보내 주면 그때부터 저절로 이어진다. **프론트는 이미 다 돼 있다** —
+가짜 토큰으로 콜백을 찔러 토큰 저장·헤더 갱신·마이페이지 진입·로그아웃 축출까지 확인했다.
+
+손으로 확인하려면 위 JSON에서 토큰을 복사해
+`/oauth/callback?accessToken=붙여넣기&refreshToken=붙여넣기`로 직접 들어간다.
+
+⚠️ **신규 가입은 구글·카카오가 500이 난다.** `GoogleResponse`/`KakaoResponse`의
+`getBirthyear()`·`getBirthday()`가 `null`이 아니라 **문자열 `"null"`**을 돌려준다.
+`parseBirth()`는 진짜 `null`만 걸러내므로 `LocalDate.parse("null-null")`까지 가서
+터진다. 기존 회원은 무사하다(조회에서 끝나 이 줄에 안 닿는다).
 
 ## 백엔드 미완성 구간 토글
 
