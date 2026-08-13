@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { STOCK_LIST } from '../api/stockList'
 import type { StockInfo } from '../types/stock'
-import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
+import type {
+  BacktestPeriod,
+  BacktestPreset,
+  BacktestRun,
+} from '../types/backtest'
 import type { PersonalityType } from '../types/personality'
 import {
   AXES,
@@ -16,7 +20,7 @@ import {
   supportedPeriods,
   toPercent,
 } from '../utils/backtest'
-import { getPreset, getPresetOptions } from '../api/backtest'
+import { getPreset, getPresetOptions, runBacktest } from '../api/backtest'
 import type { PresetOption } from '../api/backtest'
 import styles from './BacktestPage.module.css'
 
@@ -74,6 +78,14 @@ export default function BacktestPage() {
   const [investType, setInvestType] = useState<number | null>(null)
   const [period, setPeriod] = useState<BacktestPeriod | null>(null)
   const [preset, setPreset] = useState<BacktestPreset | null>(null)
+  /**
+   * 서버가 그 자리에서 돌린 결과(POST /api/backtest).
+   *
+   * 위 preset과 따로 두는 이유: 이건 **없어도 화면이 성립한다.** 로그인이 필요하고
+   * 전략에 따라 아예 부르지 못하며, 지금은 서버에 엔드포인트가 없어 늘 실패한다.
+   * 같은 상태에 섞으면 이 하나 때문에 결과 전체가 사라진다.
+   */
+  const [run, setRun] = useState<BacktestRun | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
   const [ranking, setRanking] = useState<Ranked[]>([])
@@ -140,6 +152,7 @@ export default function BacktestPage() {
   function clearResult() {
     setPreset(null)
     setRanking([])
+    setRun(null)
     setRunError(null)
   }
 
@@ -187,6 +200,7 @@ export default function BacktestPage() {
     setRunError(null)
     setPreset(null)
     setRanking([])
+    setRun(null)
 
     try {
       const [chosen, ...others] = await Promise.all([
@@ -197,6 +211,12 @@ export default function BacktestPage() {
       ])
 
       setPreset(chosen)
+      /*
+       * 실행은 프리셋이 온 다음에 부른다. 보낼 날짜를 프리셋이 들고 오기 때문이다 —
+       * 사용자가 고른 '3개월'이 실제로 어느 날부터 어느 날까지였는지는 서버만 안다.
+       * 지어낸 날짜를 보내면 프리셋 결과와 다른 구간을 돌려 두 숫자가 어긋난다.
+       */
+      void loadRun(stock.stockCode, investType, chosen)
       setRanking(
         others
           .map((item) => ({
@@ -213,6 +233,36 @@ export default function BacktestPage() {
       )
     } finally {
       setIsRunning(false)
+    }
+  }
+
+  /**
+   * 실패해도 조용히 넘어간다. **이건 곁들이는 값이다.**
+   *
+   * 로그인하지 않았으면 500이 나고(백엔드가 401 대신 NPE를 낸다), 전략에 짝이 없으면
+   * 아예 부르지 않으며, 지금은 서버에 이 경로가 없어 404다. 그 하나 때문에 이미 받아둔
+   * 적합도 결과까지 지워 버리면 사용자가 볼 수 있던 것마저 못 보게 된다.
+   */
+  async function loadRun(
+    stockCode: string,
+    chosenType: number,
+    chosen: BacktestPreset,
+  ) {
+    const key = findInvestType(chosenType)?.strategyKey ?? null
+    // 짝이 없는 전략이다. 없는 이름을 지어 보내지 않는다
+    if (key === null) return
+
+    try {
+      setRun(
+        await runBacktest({
+          stockCode,
+          strategyName: key,
+          startDate: chosen.startDate,
+          endDate: chosen.endDate,
+        }),
+      )
+    } catch (error: unknown) {
+      console.warn('백테스트 실행 실패', error)
     }
   }
 
@@ -439,6 +489,7 @@ export default function BacktestPage() {
               preset={preset}
               stockName={stock.stockName}
               ranking={ranking}
+              run={run}
               onRetry={clearResult}
             />
           )}
@@ -464,6 +515,8 @@ interface ResultProps {
   stockName: string
   /** 다섯 전략의 적합도를 높은 순으로. 첫 번째가 이 종목의 성향이다 */
   ranking: Ranked[]
+  /** 서버가 그 자리에서 돌린 결과. 못 받았으면 null이고 그 자리만 빠진다 */
+  run: BacktestRun | null
   onRetry: () => void
 }
 
@@ -471,6 +524,7 @@ function BacktestResult({
   preset,
   stockName,
   ranking,
+  run,
   onRetry,
 }: ResultProps) {
   const info = findInvestType(preset.investType)
@@ -736,11 +790,67 @@ function BacktestResult({
           계산돼요
         </p>
 
-        <p className={styles.sample}>
-          아직 백엔드에 연결하지 않아 <b>화면 확인용 예시 값</b>이에요.
-        </p>
+        {run !== null && <RunFigures run={run} />}
       </div>
     </section>
+  )
+}
+
+/* -------------------------------------------------------------------- *
+ * 그 자리에서 돌린 결과 (POST /api/backtest)
+ * -------------------------------------------------------------------- */
+
+/**
+ * 위쪽 적합도 점수와 **다른 계산이다.** 저건 새벽 배치가 미리 매긴 0~100점이고,
+ * 이건 서버가 방금 돌려 나온 원시 지표다. 그래서 자리를 나누고 출처를 밝힌다.
+ * 섞어 놓으면 "78.4점인데 수익률이 2%"가 모순처럼 보인다.
+ */
+function RunFigures({ run }: { run: BacktestRun }) {
+  /*
+   * 단위가 확인되지 않았다(types/backtest.ts 참고). 받은 숫자를 그대로 %로 읽는다.
+   * 프리셋 쪽 toPercent()는 100을 곱하는데 그걸 여기 쓰면 값이 100배로 부풀 수 있다.
+   *
+   * ⚠️ 실제 응답을 처음 보면 **최대낙폭부터 확인한다.** 명세 예시값 0.313을 이 규칙으로
+   * 읽으면 0.31%가 되는데, 백테스트에서 최대낙폭 0.31%는 현실적인 값이 아니다.
+   * 프리셋처럼 소수(0.313 = 31.3%)일 가능성이 높다. 그렇다면 여기서 100을 곱해야 하고,
+   * 같은 응답의 수익률도 함께 다시 봐야 한다(2.04가 2.04%인지 204%인지).
+   */
+  const percent = (value: number | null) =>
+    value === null ? '-' : `${value.toFixed(2)}%`
+
+  const figures: { label: string; value: string }[] = [
+    { label: '체결 횟수', value: `${run.positionCount}회` },
+    { label: '누적 수익률', value: percent(run.totalReturn) },
+    { label: '연평균 수익률', value: percent(run.annualizedReturn) },
+    { label: '샤프 비율', value: run.sharpeRatio.toFixed(3) },
+    { label: '표준편차', value: run.stdDeviation.toFixed(3) },
+    { label: '최대 낙폭', value: percent(run.maxDrawdown) },
+  ]
+
+  return (
+    <div className={styles.runBox}>
+      <p className={styles.runHead}>
+        {run.strategyName}으로 실제로 돌려본 결과예요
+      </p>
+
+      <dl className={styles.runGrid}>
+        {figures.map((item) => (
+          <div key={item.label} className={styles.runItem}>
+            <dt className={styles.runLabel}>{item.label}</dt>
+            <dd className={styles.runValue}>{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {/* 서버가 성향을 함께 주면 그때만 보여준다. 없으면 이 줄이 통째로 빠진다 */}
+      {run.recommendPersonality !== null && (
+        <p className={styles.runNote}>
+          이 종목은 <b>{run.recommendPersonality}</b>에게 어울린다고 나왔어요
+          {run.investPersonality !== null && ` (내 성향은 ${run.investPersonality})`}
+          .
+        </p>
+      )}
+    </div>
   )
 }
 
