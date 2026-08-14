@@ -73,6 +73,9 @@ export default function BacktestPage() {
    * 목록을 닫으면 없던 일이 된다.
    */
   const [activeIndex, setActiveIndex] = useState(-1)
+  /* 기간 목록도 1단계와 같은 방식으로 연다. 열림 여부와 짚은 자리 */
+  const [isPeriodOpen, setIsPeriodOpen] = useState(false)
+  const [periodIndex, setPeriodIndex] = useState(-1)
 
   /*
    * 전략을 미리 골라 두지 않는다.
@@ -127,6 +130,11 @@ export default function BacktestPage() {
     }
     return supportedPeriods(investType)
   }, [investType, serverOptions])
+  /* 화면에 그릴 기간 목록. 전략이 지원하는 것만 남는다 */
+  const periodOptions = useMemo(
+    () => PERIODS.filter((item) => periodChoices.includes(item.period)),
+    [periodChoices],
+  )
   const canRun = stock !== null && investType !== null && period !== null
 
   const matches = useMemo(() => {
@@ -261,12 +269,62 @@ export default function BacktestPage() {
     selectStock(target)
   }
 
+  function selectPeriod(next: BacktestPeriod) {
+    setPeriod(next)
+    setIsPeriodOpen(false)
+    setPeriodIndex(-1)
+    clearResult()
+  }
+
+  /**
+   * 기간 목록의 키보드 조작. 1단계 종목 검색과 같은 규칙이다.
+   *
+   * 다른 점은 **글자를 칠 수 없다**는 것뿐이다. 그래서 한글 조합을 볼 일이 없고
+   * (`isComposing` 검사가 없다), 닫혀 있을 때 ↓를 누르면 열면서 첫 칸을 짚는다.
+   */
+  function handlePeriodKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === 'Escape') {
+      setIsPeriodOpen(false)
+      setPeriodIndex(-1)
+      return
+    }
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (periodOptions.length === 0) return
+      event.preventDefault()
+      setIsPeriodOpen(true)
+
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      setPeriodIndex((current) => {
+        const next = current + step
+        if (next < 0) return periodOptions.length - 1
+        if (next >= periodOptions.length) return 0
+        return next
+      })
+      return
+    }
+
+    if (event.key !== 'Enter' && event.key !== ' ') return
+
+    /*
+     * 닫힌 상태의 엔터·스페이스는 여는 것이지 고르는 게 아니다.
+     * 버튼의 기본 동작(onClick)이 그 일을 하므로 여기서는 아무것도 하지 않는다.
+     */
+    if (!isPeriodOpen || periodIndex < 0) return
+
+    event.preventDefault()
+    selectPeriod(periodOptions[periodIndex].period)
+  }
+
   /**
    * 전략마다 고를 수 있는 기간이 달라서, 전략을 바꾸면 못 쓰게 된 기간을 놓아 준다.
    * 안 놓아 주면 화면에는 3개월이 적혀 있는데 서버는 400을 주는 상태가 된다.
    */
   function changeStrategy(next: number | null) {
     setInvestType(next)
+    // 전략이 바뀌면 고를 수 있는 기간이 달라진다. 열린 목록은 옛 목록이다
+    setIsPeriodOpen(false)
+    setPeriodIndex(-1)
     if (next !== null && period !== null) {
       if (!supportedPeriods(next).includes(period)) {
         setPeriod(null)
@@ -620,39 +678,104 @@ export default function BacktestPage() {
               투자기간 선택
             </label>
 
-            <div className={styles.control}>
-              <select
+            {/*
+              1단계 종목 검색과 **같은 클래스를 쓴다**(.matches / .match / .matchActive).
+              브라우저가 그리는 <select> 목록은 운영체제 것이라 앱 안에서 이 칸만
+              모서리도 그림자도 없이 파란 띠로 뜬다. 같은 화면에 두 벌의 목록이
+              다르게 생기는 셈이라 직접 그린다.
+
+              고르는 값이 늘어나면 여기와 1단계가 함께 어긋나지 않도록 모양은
+              한 벌만 두고 나눠 쓴다. 동작(방향키·엔터·Escape)도 같은 규칙이다.
+            */}
+            <div className={styles.searchWrap}>
+              <button
+                type="button"
                 id="backtest-period"
-                className={styles.select}
-                value={period ?? ''}
+                className={`${styles.control} ${styles.picker}`}
                 disabled={investType === null}
-                onChange={(event) => {
-                  setPeriod(
-                    event.target.value === ''
-                      ? null
-                      : (event.target.value as BacktestPeriod),
-                  )
-                  clearResult()
+                onClick={() => {
+                  setIsPeriodOpen((open) => !open)
+                  setPeriodIndex(-1)
                 }}
+                onKeyDown={handlePeriodKeyDown}
+                /* 목록을 눌러 고르는 중에는 닫히면 안 된다 — 아래 ul이 mousedown을 막는다 */
+                onBlur={() => {
+                  setIsPeriodOpen(false)
+                  setPeriodIndex(-1)
+                }}
+                role="combobox"
+                aria-expanded={isPeriodOpen}
+                aria-controls="backtest-period-list"
+                aria-activedescendant={
+                  periodIndex >= 0
+                    ? `backtest-period-option-${periodIndex}`
+                    : undefined
+                }
               >
-                <option value="">
-                  {investType === null
-                    ? '투자전략을 먼저 선택해주세요.'
-                    : '투자기간을 선택해주세요.'}
-                </option>
-                {/*
-                  이름을 여기서 조립하지 않고 periodLabel에 맡긴다.
-                  직접 `{label} ({months}개월)`로 붙이던 탓에 이 칸만 '3개월 (3개월)'로
-                  나왔다. 같은 표기를 두 곳에서 만들면 한쪽만 고쳐지고 끝난다.
-                */}
-                {PERIODS.filter((item) =>
-                  periodChoices.includes(item.period),
-                ).map((item) => (
-                  <option key={item.period} value={item.period}>
-                    {periodLabel(item.period)}
-                  </option>
-                ))}
-              </select>
+                <span
+                  className={
+                    period === null ? styles.pickerEmpty : styles.pickerValue
+                  }
+                >
+                  {period === null
+                    ? investType === null
+                      ? '투자전략을 먼저 선택해주세요.'
+                      : '투자기간을 선택해주세요.'
+                    : periodLabel(period)}
+                </span>
+                {/* 열고 닫히는 방향을 화살표로 알린다. 장식이라 읽어 줄 필요가 없다 */}
+                <svg
+                  className={
+                    isPeriodOpen
+                      ? `${styles.chevron} ${styles.chevronUp}`
+                      : styles.chevron
+                  }
+                  viewBox="0 0 20 20"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M5 8l5 5 5-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+
+              {isPeriodOpen && periodOptions.length > 0 && (
+                <ul
+                  id="backtest-period-list"
+                  role="listbox"
+                  className={styles.matches}
+                  onMouseDown={(event) => event.preventDefault()}
+                >
+                  {periodOptions.map((item, index) => (
+                    <li key={item.period} role="presentation">
+                      <button
+                        type="button"
+                        id={`backtest-period-option-${index}`}
+                        role="option"
+                        aria-selected={item.period === period}
+                        className={
+                          index === periodIndex
+                            ? `${styles.match} ${styles.matchActive}`
+                            : styles.match
+                        }
+                        onClick={() => selectPeriod(item.period)}
+                        onMouseEnter={() => setPeriodIndex(index)}
+                      >
+                        <span>{periodLabel(item.period)}</span>
+                        {/* 지금 고른 것에 표시를 남긴다. 다시 열었을 때 어디였는지 보인다 */}
+                        {item.period === period && (
+                          <span className={styles.pickedMark}>선택됨</span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {selected !== null && periodChoices.length < PERIODS.length && (

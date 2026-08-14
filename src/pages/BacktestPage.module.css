@@ -103,8 +103,7 @@
   border-color: var(--color-text-sub);
 }
 
-.input,
-.select {
+.input {
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -115,23 +114,83 @@
   font-size: var(--fs-md);
 }
 
+/* ── 직접 그린 선택칸 (기간) ───────────────────────────────────────── */
+
+/*
+ * <select>를 걷어내고 버튼으로 바꿨다. 브라우저가 그리는 목록은 운영체제 것이라
+ * 앱 안에서 이 칸만 모서리도 그림자도 없이 파란 띠로 떴다.
+ * 겉은 .control을 그대로 물려받고, 여기서는 버튼다움만 지운다.
+ */
+.picker {
+  width: 100%;
+  justify-content: space-between;
+  padding-right: 14px;
+  text-align: left;
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--color-text);
+}
+
+/* 아직 안 고른 상태. input의 placeholder와 같은 톤으로 맞춘다 */
+.pickerEmpty {
+  color: var(--color-text-sub);
+}
+
+.pickerValue {
+  color: var(--color-text);
+}
+
+.picker:disabled {
+  cursor: not-allowed;
+}
+
+.picker:disabled .pickerEmpty {
+  color: var(--color-text-mute);
+}
+
+/* 여닫는 방향을 알리는 화살표 */
+.chevron {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-sub);
+  transition: transform 160ms ease-out;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+/*
+ * 목록을 다시 열었을 때 지금 값이 어디였는지 알려 준다.
+ * 종목 코드(.code)와 생김새는 같지만 뜻이 달라 클래스를 나눈다 —
+ * 코드 쪽은 숫자 정렬(tabular-nums)이 필요하고 이쪽은 아니다.
+ */
+.pickedMark {
+  flex: 0 0 auto;
+  padding-right: 8px;
+  font-size: var(--fs-sm);
+  color: var(--color-text-sub);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}
+
 /*
  * 마우스로 눌렀을 때만 지운다. 위 .control:focus-within이 감싼 칸에 테두리를 그려 준다.
  * 다만 그건 마우스로 눌러도 걸리고 회색이 조금 짙어지는 정도라 키보드 표시로는 약하다.
  * 키보드로 들어온 경우는 걸러내서 index.css의 :focus-visible이 그리게 둔다.
  */
 .input:focus:not(:focus-visible),
-.select:focus:not(:focus-visible) {
+.picker:focus:not(:focus-visible) {
   outline: none;
 }
 
 .input::placeholder {
   color: var(--color-text-sub);
-}
-
-.select:disabled {
-  color: var(--color-text-sub);
-  cursor: not-allowed;
 }
 
 .code {
