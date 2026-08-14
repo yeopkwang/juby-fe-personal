@@ -51,7 +51,17 @@ interface InvestTypeInfo {
   strategyKey: string | null
   /** 가이드에 적는 한 줄 설명 */
   strategySummary: string
-  /** 매수·매도 조건. 백엔드 전략 클래스의 Rule을 사람 말로 옮긴 것 */
+  /**
+   * 매수·매도 조건. 백엔드 전략 클래스의 Rule을 사람 말로 옮긴 것.
+   *
+   * **처음 나오는 전문용어는 괄호로 풀어 쓴다.** JUBY는 초보자용이라 'MACD선이
+   * 시그널선을 뚫을 때'만 적으면 조건을 읽고도 무슨 뜻인지 알 수 없다.
+   * 같은 말이 매도에 또 나오면 거기서는 풀지 않는다 — 화면에서 매수가 늘 위에
+   * 붙어 있어 바로 위에서 읽고 내려오기 때문이다.
+   *
+   * 공식이 아니라 **무엇을 재는 값인지**를 적는다. '지수이동평균의 차'라고 쓰면
+   * 용어를 용어로 설명하는 꼴이 된다.
+   */
   entryRule: string
   exitRule: string
   /**
@@ -84,7 +94,8 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     strategyKey: 'rsiReversionStrategy',
     strategySummary:
       '너무 많이 팔려 눌린 종목이 제자리로 돌아오는 힘을 노리는 전략이에요.',
-    entryRule: 'RSI가 40을 위로 뚫을 때 (과매도에서 회복하기 시작할 때)',
+    entryRule:
+      'RSI(과열·침체 정도를 0~100으로 나타낸 값)가 40을 위로 뚫을 때 (침체에서 회복하기 시작할 때)',
     exitRule: 'RSI가 70을 아래로 뚫을 때 (과열이 식기 시작할 때)',
     minPeriod: 'ONE_MONTH',
     weights: { stable: 0.4, profit: 0.15, effect: 0.3, growth: 0.15 },
@@ -97,7 +108,7 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     strategyKey: 'bollingerBandStrategy',
     strategySummary:
       '주가가 평소 움직이던 띠를 벗어나는 순간을 신호로 삼는 전략이에요.',
-    entryRule: '종가가 밴드 상단을 위로 뚫을 때',
+    entryRule: '종가가 밴드(평소 오르내리던 폭) 상단을 위로 뚫을 때',
     exitRule: '종가가 밴드 하단을 아래로 뚫을 때',
     minPeriod: 'THREE_MONTHS',
     weights: { stable: 0.35, profit: 0.2, effect: 0.3, growth: 0.15 },
@@ -110,7 +121,8 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     strategyKey: 'smaStrategy',
     strategySummary:
       '단기 이동평균선이 장기선을 뚫고 올라갈 때 사고, 내려갈 때 파는 전략이에요.',
-    entryRule: '20일선이 60일선을 위로 뚫을 때',
+    entryRule:
+      '20일선(최근 20일 평균가)이 60일선(최근 60일 평균가)을 위로 뚫을 때',
     exitRule: '20일선이 60일선을 아래로 뚫을 때',
     minPeriod: 'SIX_MONTHS',
     weights: { stable: 0.25, profit: 0.25, effect: 0.25, growth: 0.25 },
@@ -124,7 +136,8 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     strategyKey: null,
     strategySummary:
       '단기·장기 이동평균의 차이로 추세의 강도와 방향을 함께 읽는 전략이에요.',
-    entryRule: 'MACD선이 시그널선을 위로 뚫을 때',
+    entryRule:
+      'MACD선(단기 평균가와 장기 평균가의 차이)이 시그널선(그 차이의 최근 평균)을 위로 뚫을 때',
     exitRule: 'MACD선이 시그널선을 아래로 뚫을 때',
     minPeriod: 'THREE_MONTHS',
     weights: { stable: 0.15, profit: 0.3, effect: 0.25, growth: 0.3 },
@@ -139,7 +152,8 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     strategySummary:
       '거래량이 함께 터지며 신고가를 뚫는 순간에 올라타는 전략이에요.',
     entryRule: '최근 20일 최고가를 뚫고, 거래량이 20일 평균의 1.5배 이상일 때',
-    exitRule: '돌파 기준선이 무너지고, 매수가에서 ATR의 2배만큼 밀렸을 때',
+    exitRule:
+      '돌파 기준선이 무너지고, 매수가에서 ATR(하루에 보통 오르내리는 폭)의 2배만큼 밀렸을 때',
     minPeriod: 'THREE_MONTHS',
     weights: { stable: 0.1, profit: 0.3, effect: 0.2, growth: 0.4 },
     focusMetrics: '누적수익률과 샤프비율',
