@@ -261,13 +261,21 @@ export default function BacktestPage() {
         throw new Error('종목의 성향을 비교할 자료를 받지 못했습니다.')
       }
 
+      /*
+       * **점수 순이 아니라 성향 번호 순(안정형 → 공격투자형)으로 세운다.**
+       *
+       * 점수로 줄 세우면 종목마다 순서가 바뀐다. 그러면 볼 때마다 "안정형이 어디 있지"를
+       * 다시 찾아야 하고, 다섯 성향이 원래 순한 것에서 센 것으로 이어지는 한 줄이라는
+       * 것도 안 보인다. 자리를 고정하면 막대 모양만으로 "이 종목은 순한 쪽에 맞는구나"가
+       * 한눈에 읽힌다. 1위는 순서가 아니라 왕관과 색으로 표시한다.
+       */
       setRanking(
         others
           .map((item) => ({
             investType: item.investType,
             score: item.result.finalScore,
           }))
-          .sort((left, right) => right.score - left.score),
+          .sort((left, right) => left.investType - right.investType),
       )
     } catch (error: unknown) {
       setRunError(
@@ -588,7 +596,14 @@ function BacktestResult({
   const grown = useGrown()
 
   const info = findInvestType(preset.investType)
-  const best = ranking[0]
+  /*
+   * 목록은 성향 번호 순으로 고정돼 있으므로 첫 줄이 1위가 아니다.
+   * '이 종목의 성향'은 점수가 가장 높은 것을 따로 골라야 한다.
+   */
+  const best = ranking.reduce<Ranked | undefined>(
+    (top, item) => (top === undefined || item.score > top.score ? item : top),
+    undefined,
+  )
   const bestInfo = best === undefined ? null : findInvestType(best.investType)
   if (info === null || bestInfo === null || best === undefined) return null
 
@@ -827,27 +842,36 @@ function BacktestResult({
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>
           {withTopicParticle(stockName)} 어떤 성향에 맞나요?
-          <span className={styles.cardNote}>1년 기준으로 다섯 전략을 비교</span>
+          {/*
+            순서가 고정이라는 걸 말해 준다. 점수 순으로 줄 세우던 때는 필요 없던 말인데,
+            자리를 고정하고 나면 "왜 이 순서지"가 먼저 걸린다. 위아래가 무엇을 뜻하는지
+            알려주면 막대 모양만으로 종목의 성격이 읽힌다.
+          */}
+          <span className={styles.cardNote}>
+            1년 기준 · 위쪽이 순한 성향, 아래로 갈수록 센 성향
+          </span>
         </h3>
 
         <ul className={styles.rankList}>
           {ranking.map((item, index) => {
             const rankInfo = findInvestType(item.investType)
             if (rankInfo === null) return null
+            /* 자리가 아니라 점수로 1위를 가린다. 목록 순서는 늘 안정형부터다 */
+            const isTop = item.investType === best.investType
 
             return (
               <li key={item.investType} className={styles.rank}>
                 <span className={styles.rankName}>
-                  {index === 0 && <b className={styles.crown}>최고</b>}
+                  {isTop && <b className={styles.crown}>최고</b>}
                   {rankInfo.personality}
                 </span>
                 <div className={styles.bar}>
                   <div
-                    className={index === 0 ? styles.barFillTop : styles.barFill}
+                    className={isTop ? styles.barFillTop : styles.barFill}
                     style={{
                       /* 위와 같은 이유로 '0%'다 (0px → % 는 전환되지 않는다) */
                       width: grown ? `${item.score}%` : '0%',
-                      /* 위 4축이 다 자란 뒤에 이어서 시작한다 */
+                      /* 위에서부터 차례로. 4축이 다 자란 뒤에 이어서 시작한다 */
                       transitionDelay: `${360 + index * 70}ms`,
                     }}
                   />
