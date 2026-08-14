@@ -194,6 +194,27 @@ export default function BacktestPage() {
   }
 
   /**
+   * 검색칸에서 엔터를 치면 **후보가 하나뿐일 때만** 그것을 고른다.
+   *
+   * 목록까지 마우스를 옮겨 누르는 게 번거로워서다. 이름을 끝까지 치면 대개 하나만
+   * 남는데, 그 상태에서 손이 이미 키보드에 있으니 엔터가 가장 짧은 길이다.
+   *
+   * **여럿 남았을 때는 아무것도 하지 않는다.** 맨 위를 집어 주는 앱도 많지만,
+   * 여기서는 고른 종목이 곧 백테스트 대상이라 엉뚱한 게 잡히면 사용자가 모른 채
+   * 다른 종목의 결과를 본다. '삼성'만 쳐도 여섯 개가 남는 목록이다.
+   *
+   * 한글 조합 중의 엔터는 글자를 확정하는 것이지 고르겠다는 뜻이 아니다.
+   * isComposing으로 걸러내지 않으면 '두산에너빌'을 치다가 바로 골라져 버린다.
+   */
+  function handleStockKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+    if (matches.length !== 1) return
+
+    event.preventDefault()
+    selectStock(matches[0])
+  }
+
+  /**
    * 전략마다 고를 수 있는 기간이 달라서, 전략을 바꾸면 못 쓰게 된 기간을 놓아 준다.
    * 안 놓아 주면 화면에는 3개월이 적혀 있는데 서버는 400을 주는 상태가 된다.
    */
@@ -390,6 +411,7 @@ export default function BacktestPage() {
                   onChange={(event) => handleQueryChange(event.target.value)}
                   onFocus={() => setIsSearchOpen(true)}
                   onBlur={() => setIsSearchOpen(false)}
+                  onKeyDown={handleStockKeyDown}
                 />
                 {stock !== null && (
                   <span className={styles.code}>{stock.stockCode}</span>
