@@ -142,6 +142,72 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── 2단계: 전략 고르기 ────────────────────────────────────────────── */
+
+/*
+ * 폭에 맞춰 칸 수가 저절로 정해진다(넓으면 3칸, 좁으면 2칸, 더 좁으면 1칸).
+ *
+ * 한 줄에 하나씩 쌓으면 다섯 줄이 되어 3단계와 시작 버튼이 첫 화면 밖으로 밀려난다.
+ * 그렇다고 칸 수를 화면 크기마다 정해 두면 폭이 조금 바뀔 때마다 어긋나므로,
+ * 최소 폭만 주고 나머지는 브라우저가 나누게 둔다. 210px은 전략 이름이 한 줄에
+ * 들어가는 최소값이다 — 더 좁히면 'MACD 추세추종 전략'이 두 줄로 접힌다.
+ */
+.strategyPick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * 이름과 설명을 한 몸으로 만든다. 카드 전체가 버튼이다.
+ * 드롭다운이던 시절에는 이름만 보였는데, '돌파 전략'이라는 말만으로는 처음 온 사람이
+ * 고를 근거가 없었다. 근거를 고르는 자리로 가져오는 게 이 카드의 존재 이유다.
+ */
+.pick {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.pick:hover {
+  border-color: var(--color-text-sub);
+  background: var(--color-bg-sub);
+}
+
+/*
+ * 고른 것은 테두리를 굵게 한다. inset 그림자로 두 겹을 겹치는 이유는,
+ * border-width를 2px로 바꾸면 그 카드만 안쪽 폭이 1px씩 줄어 글자가 밀리기 때문이다.
+ */
+.pickOn {
+  border-color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-text);
+}
+
+.pickOn:hover {
+  background: var(--color-surface);
+}
+
+.pickName {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+}
+
+.pickDesc {
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+  color: var(--color-text-sub);
+}
+
 .hint {
   margin: 8px 2px 0;
   font-size: var(--fs-sm);
@@ -721,16 +787,6 @@
   font-weight: var(--fw-bold);
 }
 
-/* 누를 수 있다는 걸 제목 옆에서 먼저 알린다 */
-.guideTip {
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--color-bg-sub);
-  font-size: var(--fs-2xs);
-  font-weight: var(--fw-medium);
-  color: var(--color-text-sub);
-}
-
 .guideBody {
   margin: 0;
   font-size: var(--fs-sm);
@@ -738,55 +794,7 @@
   color: var(--color-text-sub);
 }
 
-/* ── 전략 고르기 ───────────────────────────────────────────────────── */
-
-.strategyList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.strategyList li + li {
-  margin-top: 8px;
-}
-
-/* 설명과 선택을 한 몸으로 만든다. 카드 전체가 버튼이다 */
-.strategyOff,
-.strategyOn {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  text-align: left;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-}
-
-.strategyOff:hover {
-  border-color: var(--color-text-sub);
-  background: var(--color-bg-sub);
-}
-
-/* 고른 것은 테두리를 굵게 해서 목록에서 바로 튀어나오게 한다 */
-.strategyOn {
-  border-color: var(--color-text);
-  box-shadow: inset 0 0 0 1px var(--color-text);
-}
-
-.strategyName {
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-bold);
-}
-
-.strategyDesc {
-  font-size: var(--fs-xs);
-  line-height: 1.55;
-  color: var(--color-text-sub);
-}
-
-/* 고른 전략만 펼쳐 매수·매도 조건을 보인다 */
+/* 고른 전략의 매수·매도 조건. 오른쪽 가이드에만 있다 */
 .detail {
   display: flex;
   flex-direction: column;

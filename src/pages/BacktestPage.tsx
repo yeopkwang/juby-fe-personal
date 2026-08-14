@@ -23,6 +23,7 @@ import {
 import { getPreset, getPresetOptions, runBacktest } from '../api/backtest'
 import { useCountUp, useGrown } from '../hooks/useReveal'
 import type { PresetOption } from '../api/backtest'
+import type { InvestTypeInfo } from '../utils/backtest'
 import styles from './BacktestPage.module.css'
 
 /**
@@ -523,45 +524,69 @@ export default function BacktestPage() {
           </div>
 
           {/* 투자전략 선택 ------------------------------------------------ */}
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="backtest-strategy">
+          {/*
+            전략을 고르는 곳은 **여기 하나뿐이다.**
+
+            예전에는 여기에 이름만 나열한 드롭다운을 두고, 오른쪽 가이드에도 누를 수 있는
+            같은 목록을 뒀다. 고르는 곳이 둘이라 "이 둘이 다른 건가" 하고 멈칫하게 됐고,
+            무엇보다 드롭다운은 '돌파 전략' 같은 이름만 보여줘서 처음 온 사람이 고를 근거가
+            없었다 — 근거는 전부 오른쪽에 있어서 눈을 옮겼다 돌아와야 했다.
+
+            이름과 한 줄 설명을 함께 담은 카드로 바꿔 근거를 고르는 자리로 가져왔다.
+            오른쪽 가이드는 '고른 전략의 자세한 조건'과 개념 설명만 맡는다.
+          */}
+          <div
+            className={styles.field}
+            /*
+             * fieldset/legend가 아니라 role="group"이다. fieldset은 브라우저마다
+             * 기본 여백·테두리가 붙고 legend가 flex 안에서 제멋대로 놓여서,
+             * 1·3단계와 줄이 안 맞는다. 묶음이라는 뜻만 필요하므로 이쪽이 안전하다.
+             */
+            role="group"
+            aria-labelledby="backtest-strategy-label"
+          >
+            <p className={styles.label} id="backtest-strategy-label">
               <span className={styles.step}>2</span>
               투자전략 선택
-            </label>
-
-            <div className={styles.control}>
-              <select
-                id="backtest-strategy"
-                className={styles.select}
-                value={investType ?? ''}
-                onChange={(event) =>
-                  changeStrategy(
-                    event.target.value === ''
-                      ? null
-                      : Number(event.target.value),
-                  )
-                }
-              >
-                <option value="">투자전략을 선택해주세요.</option>
-                {INVEST_TYPES.map((item) => (
-                  <option key={item.investType} value={item.investType}>
-                    {item.strategyName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/*
-              좁은 화면에서는 가이드가 오른쪽이 아니라 아래로 내려간다.
-              방향을 말하면 절반은 틀린 말이 되므로 위치를 가리키지 않는다.
-              고른 전략이 무엇인지도 여기서 한 줄로 되짚어 준다 —
-              가이드까지 눈을 옮기지 않아도 무엇을 골랐는지 알 수 있어야 한다.
-            */}
-            <p className={styles.hint}>
-              {selected === null
-                ? '백테스트 가이드에서 전략을 눌러 골라도 돼요.'
-                : selected.strategySummary}
             </p>
+
+            <ul className={styles.strategyPick}>
+              {INVEST_TYPES.map((item) => {
+                const isActive = item.investType === investType
+
+                return (
+                  <li key={item.investType}>
+                    <button
+                      type="button"
+                      className={
+                        isActive
+                          ? `${styles.pick} ${styles.pickOn}`
+                          : styles.pick
+                      }
+                      /*
+                       * 라디오 버튼 묶음처럼 읽히게 한다. 눌린 것 하나만 true라
+                       * 화면을 읽어 주는 도구가 '5개 중 3번째, 선택됨'으로 전한다.
+                       */
+                      aria-pressed={isActive}
+                      onClick={() => changeStrategy(item.investType)}
+                    >
+                      {/*
+                        성향 이름도 번호도 붙이지 않는다. 순서를 보이는 순간
+                        "앞이 안전하고 뒤가 위험하다"로 읽히는데, 그 순서는
+                        백엔드가 성향 번호에 전략을 배정해 둔 결과일 뿐
+                        전략의 위험도를 잰 값이 아니다.
+                      */}
+                      <span className={styles.pickName}>
+                        {item.strategyName}
+                      </span>
+                      <span className={styles.pickDesc}>
+                        {item.strategySummary}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
 
           {/* 투자기간 선택 ------------------------------------------------ */}
@@ -651,7 +676,7 @@ export default function BacktestPage() {
         </div>
       </div>
 
-      <BacktestGuide investType={investType} onSelect={changeStrategy} />
+      <BacktestGuide selected={selected} />
     </div>
   )
 }
@@ -1089,18 +1114,21 @@ function RunFigures({ run }: { run: BacktestRun }) {
  * -------------------------------------------------------------------- */
 
 interface GuideProps {
-  investType: number | null
-  onSelect: (investType: number) => void
+  /** 왼쪽에서 고른 전략. 아직 안 골랐으면 null */
+  selected: InvestTypeInfo | null
 }
 
 /**
- * 전략 설명을 왼쪽 선택칸과 따로 두면 아무도 안 읽는다. 목록을 그대로 **버튼**으로 만들어,
- * 설명을 읽다가 마음에 들면 그 자리에서 고르게 한다.
+ * 읽는 곳이다. **여기서는 아무것도 고를 수 없다.**
  *
- * 다섯 개를 모두 펼치면 글이 너무 길어 훑기 어렵다. 고른 것만 펼쳐서 매수·매도 조건까지
- * 보이고 나머지는 한 줄 요약으로 접어 둔다.
+ * 예전에는 이 안에 누를 수 있는 전략 목록이 있었다. 왼쪽 드롭다운이 이름만 보여주던
+ * 시절, 고를 근거를 읽을 수 있는 곳이 여기뿐이라 목록을 그대로 버튼으로 만든 것이었다.
+ * 이제 왼쪽 카드가 이름과 설명을 함께 보여주므로 고르는 일은 그쪽 하나로 모았다.
+ *
+ * 여기 남은 것은 셋이다 — 백테스트가 뭔지, **고른 전략이 언제 사고 파는지**,
+ * 점수가 어떻게 나오는지. 셋 다 왼쪽과 겹치지 않는다.
  */
-function BacktestGuide({ investType, onSelect }: GuideProps) {
+function BacktestGuide({ selected }: GuideProps) {
   return (
     <aside className={styles.guide}>
       <h2 className={styles.guideTitle}>
@@ -1118,61 +1146,39 @@ function BacktestGuide({ investType, onSelect }: GuideProps) {
           </p>
         </section>
 
+        {/*
+          고른 전략이 **언제 사고 언제 파는지**를 적는다. 고르는 일은 왼쪽이 맡으므로
+          여기서는 누를 수 있는 것을 두지 않는다.
+
+          아직 안 골랐으면 자리를 비우지 않고 무엇이 들어올지 알린다. 빈칸으로 두면
+          고장인지 원래 그런지 알 수 없다.
+        */}
         <section className={styles.guideSection}>
           <h3 className={styles.guideHeading}>
-            전략 고르기
-            <span className={styles.guideTip}>눌러서 선택</span>
+            {selected === null ? '전략을 고르면' : selected.strategyName}
           </h3>
 
-          <ul className={styles.strategyList}>
-            {INVEST_TYPES.map((item) => {
-              const isActive = item.investType === investType
-
-              return (
-                <li key={item.investType}>
-                  <button
-                    type="button"
-                    className={
-                      isActive ? styles.strategyOn : styles.strategyOff
-                    }
-                    aria-pressed={isActive}
-                    onClick={() => onSelect(item.investType)}
-                  >
-                    {/*
-                      성향 이름도 번호도 붙이지 않는다. 순서를 보이는 순간
-                      "앞이 안전하고 뒤가 위험하다"로 읽히는데, 그 순서는
-                      백엔드가 성향 번호에 전략을 배정해 둔 결과일 뿐
-                      전략의 위험도를 잰 값이 아니다.
-                    */}
-                    <span className={styles.strategyName}>
-                      {item.strategyName}
-                    </span>
-                    <span className={styles.strategyDesc}>
-                      {item.strategySummary}
-                    </span>
-
-                    {/* 고른 전략만 자세히 편다 */}
-                    {isActive && (
-                      <span className={styles.detail}>
-                        <span className={styles.detailRow}>
-                          <b className={styles.buy}>매수</b>
-                          {item.entryRule}
-                        </span>
-                        <span className={styles.detailRow}>
-                          <b className={styles.sell}>매도</b>
-                          {item.exitRule}
-                        </span>
-                        <span className={styles.detailRow}>
-                          <b className={styles.term}>기간</b>
-                          {periodLabel(item.minPeriod)} 이상
-                        </span>
-                      </span>
-                    )}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+          {selected === null ? (
+            <p className={styles.guideBody}>
+              언제 사고 언제 파는지, 얼마나 긴 기간이 필요한지 여기에 적어 드려요.
+            </p>
+          ) : (
+            <div className={styles.detail}>
+              <p className={styles.guideBody}>{selected.strategySummary}</p>
+              <span className={styles.detailRow}>
+                <b className={styles.buy}>매수</b>
+                {selected.entryRule}
+              </span>
+              <span className={styles.detailRow}>
+                <b className={styles.sell}>매도</b>
+                {selected.exitRule}
+              </span>
+              <span className={styles.detailRow}>
+                <b className={styles.term}>기간</b>
+                {periodLabel(selected.minPeriod)} 이상
+              </span>
+            </div>
+          )}
         </section>
 
         <section className={styles.guideSection}>
