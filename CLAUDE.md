@@ -102,7 +102,7 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 
 | 나갈 수 있는 것 | 화면 |
 | --- | --- |
-| `/api/backtest**` | 백테스트 (실행·프리셋·기간 옵션) |
+| `/api/backtest**` | 백테스트 (프리셋·기간 옵션. **둘 다 GET이다**) |
 | `/api/personality-tests` | 투자성향테스트 (문항 조회·결과 제출) |
 | `/api/members/me**` | 마이페이지 (정보·성향 조회/수정/탈퇴) |
 
@@ -229,31 +229,47 @@ backtest·openai·news·personality_test·member는 참조가 0건이다.)
 
 프론트에 하드코딩된 다른 데이터: `src/api/stockList.ts`의 102종목, `home.ts`의 `TOP_THEMES` 3개.
 
-## 백테스트: 같은 화면에 단위가 두 가지다
+## 백테스트: 창구가 `GET /preset` 하나다 (2026-08-14 정리)
 
-한 화면인데 두 API의 숫자 규약이 다르다. 섞으면 100배씩 어긋난다.
+**`POST /api/backtest`는 없다. 다시 붙이지 않는다.**
 
-| | 어디서 | 수익률이 오는 꼴 |
-| --- | --- | --- |
-| 프리셋 `GET /preset` | 새벽 배치가 미리 계산 | **소수.** 0.1856 = 18.56% → `toPercent()` |
-| 실행 `POST /api/backtest` | 서버가 그 자리에서 계산 | **배수.** 1.0이 본전, 2.04 = +104% |
+| 확인한 것 | 결과 |
+| --- | --- |
+| `POST /api/backtest` | 404 |
+| `POST /api/backtest/run` | 404 |
+| dev의 `BacktestController` 매핑 전수 | `GET /preset`, `GET /preset/options` **둘뿐** |
 
-배수인 이유는 백엔드가 ta4j 0.22.3의 `new NetReturnCriterion()`을 인자 없이 부르기
-때문이다. 그 기본 표현이 `ReturnRepresentationPolicy`에서 MULTIPLICATIVE다(소스 확인).
-그래서 화면은 1을 빼고 100을 곱한다 — 그냥 100을 곱하면 본전이 100% 번 것으로 보인다.
-최대낙폭은 배수가 아니라 원래 비율이라 양쪽 다 `toPercent()`가 맞다.
+배포가 밀린 게 아니라 경로 자체가 없다. 예전엔 `deploy/37` 브랜치에 있었지만 그 브랜치는
+dev보다 59개 뒤처져 있고 앞선 커밋이 0개다 — 합쳐지길 기다리는 게 아니라 걷어내진 것이다.
 
-**연평균 수익률은 아직 없다.** 백엔드 `AnalysisCriterionConverter`가
-`List.of(totalReturn, totalReturn, ...)`으로 누적을 두 번 담는다
-(`// 연평균 수익률 추후 추가` 주석이 그대로 있다). 화면은 누적과 값이 다를 때만
-그 칸을 넣으므로, 백엔드가 진짜로 계산하기 시작하면 저절로 나타난다.
+**화면이 보여주는 숫자는 원래부터 전부 프리셋에서 나왔다.** 한때 실행을 따로 부르고 그
+원시 지표를 결과 아래(`RunFigures`)에 덧붙였는데, 그 여섯 칸(누적수익률·연평균·샤프·
+최대낙폭·변동성·거래횟수)이 **프리셋 응답에 이미 전부 들어 있어** 같은 값을 두 번 그리는
+꼴이었다. 게다가 두 창구는 단위가 달라서(프리셋 **소수** 0.39 = 39%, 실행은 ta4j
+`NetReturnCriterion`의 **배수** 1.39 = 39%) 섞이면 100배씩 어긋났다. 지금은 한 창구뿐이라
+그 위험이 사라졌다 — **수익률·낙폭·변동성은 모두 소수이고 `toPercent()` 하나로 처리한다.**
 
-**실행 엔드포인트는 아직 배포되지 않았다**(2026-08-14 기준 404). 백엔드 소스에서도
-`deploy/37` 브랜치에만 있고 dev·main에는 없으며, 그 브랜치의 경로는 `/api/backtest/run`,
-응답에 성향 두 필드가 없다. 실패해도 프리셋 결과는 그대로 뜨게 해 뒀다.
+프리셋 `result`의 생김새(실측):
 
-전략 이름(`strategyKey`)은 백엔드 전략 빈이 넷뿐이라 **다섯 중 셋만 이어져 있다.**
-MACD와 돌파는 짝이 없어 `null`이고, 그 전략을 고르면 실행을 부르지 않는다.
+```
+stable  { mdd, volatility, dVolatility }
+profit  { totalReturn, annualReturn, avgTradeReturn }
+effect  { sharpeRatio, sortinoRatio, calmarRatio }
+growth  { momentumRatio, volGrowthRatio, positionCount }
+```
+
+**연평균 수익률은 프리셋에는 제대로 온다**(`profit.annualReturn`). 누적과 다른 값이다.
+(예전에 "아직 계산되지 않는다"고 적힌 건 실행 쪽 `annualizedReturn` 이야기였다.
+백엔드 `AnalysisCriterionConverter`가 누적을 두 번 담던 그것 — 이제 무관하다.)
+
+`period` 열거값은 **복수형**이다: `ONE_MONTH`, `THREE_MONTHS`, `SIX_MONTHS`, `ONE_YEAR`.
+단수로 보내면 400이 온다. 성향마다 적재된 기간이 달라(안정형 4개, 위험중립형 2개)
+`getPresetOptions()`나 `supportedPeriods()`로 거른 뒤 부른다.
+
+지웠지만 다시 필요해질 수 있는 값 — 백엔드 전략 빈 이름은 넷뿐이었다:
+`rsiReversionStrategy`(안정형) / `bollingerBandStrategy`(안정추구형) /
+`smaStrategy`(위험중립형). MACD·돌파는 짝이 없었다. 프리셋은 전략 이름이 아니라
+`investType` 하나로 정해지므로 지금은 이 이름들이 어디에도 필요 없다.
 
 ## 잔가지
 

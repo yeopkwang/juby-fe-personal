@@ -773,62 +773,6 @@
   color: var(--color-text-sub);
 }
 
-/* ── 그 자리에서 돌린 결과 ────────────────────────────────────────── */
-
-/*
- * 위쪽 적합도(0~100점)와 다른 계산이라 테두리로 확실히 끊는다.
- * 이어 붙이면 같은 점수의 부연으로 읽혀서 "78점인데 수익률 2%"가 모순처럼 보인다.
- */
-.runBox {
-  margin-top: 18px;
-  padding: 18px 20px;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  background: var(--color-page-bg);
-}
-
-.runHead {
-  margin: 0 0 14px;
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-semibold);
-  color: var(--color-text-sub);
-}
-
-/*
- * 여섯 칸을 폭에 맞춰 흘린다. auto-fit이라 좁아지면 저절로 줄 수가 줄어든다.
- * 칸 수를 고정하면 태블릿에서 숫자가 두 줄로 접힌다.
- */
-.runGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 14px 12px;
-  margin: 0;
-}
-
-.runItem {
-  min-width: 0;
-}
-
-.runLabel {
-  font-size: var(--fs-xs);
-  color: var(--color-text-sub);
-}
-
-.runValue {
-  margin: 4px 0 0;
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-bold);
-  letter-spacing: -0.01em;
-  /* 자릿수가 달라도 세로줄이 맞는다. 숫자를 견주는 표라 어긋나면 눈에 걸린다 */
-  font-variant-numeric: tabular-nums;
-}
-
-.runNote {
-  margin: 14px 0 0;
-  font-size: var(--fs-sm);
-  color: var(--color-text-sub);
-}
-
 /* ── 오른쪽 가이드 ─────────────────────────────────────────────────── */
 
 .guide {

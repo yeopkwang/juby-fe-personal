@@ -1,13 +1,8 @@
-import { get, post } from './client'
-import type {
-  BacktestPeriod,
-  BacktestPreset,
-  BacktestRun,
-  BacktestRunRequest,
-} from '../types/backtest'
+import { get } from './client'
+import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 
 /**
- * 백테스트 창구.
+ * 백테스트 창구. **읽기 둘뿐이다.**
  *
  * **요청 시점에 계산하지 않는다.** 매일 새벽 배치가 종목×성향×기간 조합을 미리 돌려
  * DB에 넣어 두고, 여기서는 그걸 읽기만 한다. 그래서 KIS 호출이 섞이지 않고 응답도 빠르다.
@@ -15,6 +10,16 @@ import type {
  *
  * 로그인도 필요 없다. SecurityConfig가 /api/**를 permitAll로 열어 둬서
  * 토큰 없이 부른 응답을 실제로 확인했다.
+ *
+ * ⚠️ **`POST /api/backtest`는 없다. 다시 붙이지 않는다** (2026-08-14 확인).
+ * 한때 '그 자리에서 돌리는 실행'을 따로 부르고 그 원시 지표를 결과 아래에 덧붙였는데,
+ *   - 실서버가 `POST /api/backtest`도 `POST /api/backtest/run`도 404를 준다
+ *   - dev 브랜치 `BacktestController`에 매핑이 `GET /preset`과 `GET /preset/options`
+ *     **둘뿐이다**(전수 확인). 배포가 밀린 게 아니라 경로 자체가 없다
+ *   - 무엇보다 그 화면에 쓰던 여섯 수치(누적수익률·연평균·샤프·최대낙폭·변동성·거래횟수)가
+ *     **프리셋 응답에 전부 들어 있다.** 두 창구는 단위가 달라서(프리셋 소수 0.39=39%,
+ *     실행 배수 1.39=39%) 섞이면 100배씩 어긋나는 위험만 남았다
+ * 실행 결과가 필요하면 프리셋을 쓴다. 화면의 숫자는 이미 전부 거기서 나온다.
  */
 
 /** 성향 하나가 고를 수 있는 기간 목록 */
@@ -48,55 +53,4 @@ export function getPreset(
  */
 export function getPresetOptions(): Promise<PresetOption[]> {
   return get<PresetOption[]>('/api/backtest/preset/options')
-}
-
-/**
- * 서버가 받은 그대로의 모양.
- *
- * `annualizedReturn`이 없을 수 있어 선택 항목으로 둔다. 백엔드가 아직 이 값을
- * 계산하지 않아서다 — AnalysisCriterionConverter가 누적 수익률을 두 번 담고 있고
- * `// 연평균 수익률 추후 추가` 주석이 그대로 있다. 없으면 null로 받는다.
- *
- * (노션 명세에는 `annulizedReturn`으로 a가 빠져 있는데, **백엔드 코드 쪽이 맞다.**
- * 노션을 고치기로 했으므로 정상 철자 하나만 읽는다.)
- */
-type BacktestRunRaw = Omit<
-  BacktestRun,
-  'annualizedReturn' | 'investPersonality' | 'recommendPersonality'
-> & {
-  annualizedReturn?: number
-  /*
-   * 성향 두 가지도 없을 수 있다. 백엔드 `BacktestResDto.GetInfo`에는 아직 이 필드가
-   * 없고 노션 명세에만 있다. 없으면 undefined로 오는데, 화면이 `!== null`로 거르면
-   * undefined는 그냥 통과해 "이 종목은 undefined에게 어울린다"가 그려진다.
-   * 그런 일이 없도록 창구에서 null로 맞춰 둔다.
-   */
-  investPersonality?: string | null
-  recommendPersonality?: string | null
-}
-
-/**
- * 고른 조건으로 **지금 이 자리에서** 백테스트를 돌린다.
- *
- * 프리셋 조회(getPreset)와 달리 미리 계산된 값을 읽는 게 아니라 서버가 계산한다.
- * 그래서 응답이 느릴 수 있고 **로그인이 필요하다** — 컨트롤러가
- * `@AuthenticationPrincipal`로 사용자를 꺼내므로 토큰 없이 부르면
- * 401이 아니라 NPE로 500이 난다(백엔드 전반이 그렇다. CLAUDE.md 참고).
- *
- * ⚠️ 2026-08-14 기준 **실서버에 아직 없다.** `POST /api/backtest`도
- * `POST /api/backtest/run`도 404다. 백엔드 소스에서도 `deploy/37` 브랜치에만 있고
- * dev·main에는 없다. 화면이 이 호출만 조용히 실패해도 나머지는 계속 보이게 해 둔 이유다.
- */
-export async function runBacktest(
-  request: BacktestRunRequest,
-): Promise<BacktestRun> {
-  const raw = await post<BacktestRunRaw>('/api/backtest', request)
-
-  return {
-    ...raw,
-    /* 없으면 0이 아니라 null이다. 0%는 '못 받았다'와 전혀 다른 뜻이다 */
-    annualizedReturn: raw.annualizedReturn ?? null,
-    investPersonality: raw.investPersonality ?? null,
-    recommendPersonality: raw.recommendPersonality ?? null,
-  }
 }

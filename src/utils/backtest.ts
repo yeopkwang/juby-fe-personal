@@ -37,18 +37,6 @@ interface InvestTypeInfo {
   investType: number
   personality: PersonalityType
   strategyName: string
-  /**
-   * 백테스트 실행(POST /api/backtest)에 보낼 전략 식별자.
-   *
-   * 위 strategyName은 사람에게 보여주는 이름이고, 이건 백엔드의 스프링 빈 이름이다
-   * (`@Component` 클래스명 첫 글자를 내린 것 — SmaStrategy → smaStrategy).
-   * 서버가 `Map<String, BacktestStrategy>`에서 이 키로 전략을 찾는다.
-   *
-   * **null이면 실행을 부르지 않는다.** 백엔드 전략 클래스가 넷뿐인데 화면 성향은
-   * 다섯이라 두 개는 짝이 없다. 없는 이름을 지어 보내면 서버가 무엇을 돌릴지 모른다.
-   * (프리셋 조회는 영향이 없다 — 그쪽은 새벽 배치가 미리 계산해 둔 값을 읽는다.)
-   */
-  strategyKey: string | null
   /** 가이드에 적는 한 줄 설명 */
   strategySummary: string
   /**
@@ -82,16 +70,12 @@ interface InvestTypeInfo {
  * **프리셋 조회에서는 전략이 사용자가 고르는 값이 아니다.** 성향 번호 하나로 전략까지
  * 정해지므로 둘은 1:1이고, 화면에서 따로 고르는 것처럼 보여도 서버에 나가는 값은
  * investType 하나뿐이다.
- *
- * 백테스트 실행(POST)은 다르다. 그쪽은 성향 번호가 아니라 전략 이름을 직접 받으므로
- * 아래 strategyKey가 필요하다.
- */
+ * */
 export const INVEST_TYPES: InvestTypeInfo[] = [
   {
     investType: 1,
     personality: '안정형',
     strategyName: 'RSI 역추세 전략',
-    strategyKey: 'rsiReversionStrategy',
     strategySummary:
       '너무 많이 팔려 눌린 종목이 제자리로 돌아오는 힘을 노리는 전략이에요.',
     entryRule:
@@ -105,7 +89,6 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     investType: 2,
     personality: '안정추구형',
     strategyName: '볼린저 밴드 돌파 전략',
-    strategyKey: 'bollingerBandStrategy',
     strategySummary:
       '주가가 평소 움직이던 띠를 벗어나는 순간을 신호로 삼는 전략이에요.',
     entryRule: '종가가 밴드(평소 오르내리던 폭) 상단을 위로 뚫을 때',
@@ -118,7 +101,6 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     investType: 3,
     personality: '위험중립형',
     strategyName: '이동평균 교차 전략',
-    strategyKey: 'smaStrategy',
     strategySummary:
       '단기 이동평균선이 장기선을 뚫고 올라갈 때 사고, 내려갈 때 파는 전략이에요.',
     entryRule:
@@ -133,7 +115,6 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     personality: '적극투자형',
     strategyName: 'MACD 추세추종 전략',
     /* 백엔드에 MACD 전략 클래스가 없다. emaStrategy가 남아 있지만 같은 것이라는 근거가 없다 */
-    strategyKey: null,
     strategySummary:
       '단기·장기 이동평균의 차이로 추세의 강도와 방향을 함께 읽는 전략이에요.',
     entryRule:
@@ -148,7 +129,6 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     personality: '공격투자형',
     strategyName: '돌파 전략',
     /* 백엔드에 돌파 전략 클래스가 없다 */
-    strategyKey: null,
     strategySummary:
       '거래량이 함께 터지며 신고가를 뚫는 순간에 올라타는 전략이에요.',
     entryRule: '최근 20일 최고가를 뚫고, 거래량이 20일 평균의 1.5배 이상일 때',

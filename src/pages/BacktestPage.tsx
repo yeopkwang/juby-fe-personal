@@ -2,11 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { STOCK_LIST } from '../api/stockList'
 import type { StockInfo } from '../types/stock'
-import type {
-  BacktestPeriod,
-  BacktestPreset,
-  BacktestRun,
-} from '../types/backtest'
+import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 import type { PersonalityType } from '../types/personality'
 import {
   AXES,
@@ -20,7 +16,7 @@ import {
   supportedPeriods,
   toPercent,
 } from '../utils/backtest'
-import { getPreset, getPresetOptions, runBacktest } from '../api/backtest'
+import { getPreset, getPresetOptions } from '../api/backtest'
 import { useCountUp, useGrown } from '../hooks/useReveal'
 import type { PresetOption } from '../api/backtest'
 import styles from './BacktestPage.module.css'
@@ -96,7 +92,6 @@ export default function BacktestPage() {
    * 전략에 따라 아예 부르지 못하며, 지금은 서버에 엔드포인트가 없어 늘 실패한다.
    * 같은 상태에 섞으면 이 하나 때문에 결과 전체가 사라진다.
    */
-  const [run, setRun] = useState<BacktestRun | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
   const [ranking, setRanking] = useState<Ranked[]>([])
@@ -108,15 +103,6 @@ export default function BacktestPage() {
    */
   const [serverOptions, setServerOptions] = useState<PresetOption[] | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
-  /**
-   * 실행 요청의 세대 번호.
-   *
-   * 실행은 서버가 그 자리에서 계산하는 것이라 느릴 수 있다. 기다리는 동안 사용자가
-   * 다른 종목으로 바꿔 다시 누르면, 먼저 보낸 응답이 나중에 도착해 **엉뚱한 종목의
-   * 결과 밑에 수치가 꽂힌다.** 보낼 때의 번호를 기억했다가 돌아왔을 때 달라졌으면 버린다.
-   */
-  const runSeqRef = useRef(0)
-
   const selected = investType === null ? null : findInvestType(investType)
   /* 서버 목록이 도착했으면 그걸 쓰고, 아직이면(또는 실패했으면) 사본을 쓴다 */
   const periodChoices = useMemo(() => {
@@ -186,11 +172,8 @@ export default function BacktestPage() {
    * 남겨 두면 화면의 입력과 결과가 어긋난 채로 보인다.
    */
   function clearResult() {
-    // 돌아오는 중인 실행 응답이 있으면 버린다
-    runSeqRef.current += 1
     setPreset(null)
     setRanking([])
-    setRun(null)
     setRunError(null)
   }
 
@@ -345,13 +328,10 @@ export default function BacktestPage() {
   async function handleSubmit() {
     if (stock === null || investType === null || period === null) return
 
-    const seq = (runSeqRef.current += 1)
-
     setIsRunning(true)
     setRunError(null)
     setPreset(null)
     setRanking([])
-    setRun(null)
 
     try {
       /*
@@ -362,12 +342,6 @@ export default function BacktestPage() {
       const chosen = await getPreset(stock.stockCode, investType, period)
 
       setPreset(chosen)
-      /*
-       * 실행은 프리셋이 온 다음에 부른다. 보낼 날짜를 프리셋이 들고 오기 때문이다 —
-       * 사용자가 고른 '3개월'이 실제로 어느 날부터 어느 날까지였는지는 서버만 안다.
-       * 지어낸 날짜를 보내면 프리셋 결과와 다른 구간을 돌려 두 숫자가 어긋난다.
-       */
-      void loadRun(stock.stockCode, investType, chosen, seq)
 
       /* 받은 것만 줄 세운다. 넷만 와도 순위는 그릴 수 있다 */
       const settled = await Promise.allSettled(
@@ -411,39 +385,6 @@ export default function BacktestPage() {
       )
     } finally {
       setIsRunning(false)
-    }
-  }
-
-  /**
-   * 실패해도 조용히 넘어간다. **이건 곁들이는 값이다.**
-   *
-   * 로그인하지 않았으면 500이 나고(백엔드가 401 대신 NPE를 낸다), 전략에 짝이 없으면
-   * 아예 부르지 않으며, 지금은 서버에 이 경로가 없어 404다. 그 하나 때문에 이미 받아둔
-   * 적합도 결과까지 지워 버리면 사용자가 볼 수 있던 것마저 못 보게 된다.
-   */
-  async function loadRun(
-    stockCode: string,
-    chosenType: number,
-    chosen: BacktestPreset,
-    seq: number,
-  ) {
-    const key = findInvestType(chosenType)?.strategyKey ?? null
-    // 짝이 없는 전략이다. 없는 이름을 지어 보내지 않는다
-    if (key === null) return
-
-    try {
-      const result = await runBacktest({
-        stockCode,
-        strategyName: key,
-        startDate: chosen.startDate,
-        endDate: chosen.endDate,
-      })
-
-      // 기다리는 사이에 조건이 바뀌었다. 이 값은 이미 다른 화면의 것이다
-      if (seq !== runSeqRef.current) return
-      setRun(result)
-    } catch (error: unknown) {
-      console.warn('백테스트 실행 실패', error)
     }
   }
 
@@ -826,7 +767,6 @@ export default function BacktestPage() {
               preset={preset}
               stockName={stock.stockName}
               ranking={ranking}
-              run={run}
               onRetry={clearResult}
             />
           )}
@@ -852,8 +792,6 @@ interface ResultProps {
   stockName: string
   /** 다섯 전략의 적합도를 높은 순으로. 첫 번째가 이 종목의 성향이다 */
   ranking: Ranked[]
-  /** 서버가 그 자리에서 돌린 결과. 못 받았으면 null이고 그 자리만 빠진다 */
-  run: BacktestRun | null
   onRetry: () => void
 }
 
@@ -861,7 +799,6 @@ function BacktestResult({
   preset,
   stockName,
   ranking,
-  run,
   onRetry,
 }: ResultProps) {
   const { result } = preset
@@ -1170,8 +1107,6 @@ function BacktestResult({
           {preset.startDate} ~ {preset.endDate} 일봉 기준 · 매일 새벽 4시에 다시
           계산돼요
         </p>
-
-        {run !== null && <RunFigures run={run} />}
       </div>
     </section>
   )
@@ -1187,83 +1122,6 @@ function BacktestResult({
  */
 function CountUp({ value, digits = 0 }: { value: number; digits?: number }) {
   return <>{useCountUp(value).toFixed(digits)}</>
-}
-
-/* -------------------------------------------------------------------- *
- * 그 자리에서 돌린 결과 (POST /api/backtest)
- * -------------------------------------------------------------------- */
-
-/**
- * 위쪽 적합도 점수와 **다른 계산이다.** 저건 새벽 배치가 미리 매긴 0~100점이고,
- * 이건 서버가 방금 돌려 나온 원시 지표다. 그래서 자리를 나누고 출처를 밝힌다.
- * 섞어 놓으면 "78.4점인데 수익률이 2%"가 모순처럼 보인다.
- */
-function RunFigures({ run }: { run: BacktestRun }) {
-  /**
-   * 수익률은 **배수로 온다.** 1.0이 본전이고 2.04가 +104%다.
-   *
-   * 백엔드가 ta4j의 `new NetReturnCriterion()`을 인자 없이 쓰는데, 그 기본 표현이
-   * `ReturnRepresentationPolicy`에서 MULTIPLICATIVE다(ta4j 0.22.3 소스 확인).
-   *   MULTIPLICATIVE 1.12 = 기준 포함 성장배수 / DECIMAL 0.12 / PERCENTAGE 12.0
-   * 그래서 1을 빼고 100을 곱해야 사람이 읽는 수익률이 된다.
-   * 그냥 100을 곱하면 본전(1.0)이 100% 번 것으로 보인다.
-   */
-  const growthToPercent = (value: number) => `${((value - 1) * 100).toFixed(2)}%`
-
-  const figures: { label: string; value: string }[] = [
-    { label: '체결 횟수', value: `${run.positionCount}회` },
-    { label: '누적 수익률', value: growthToPercent(run.totalReturn) },
-    { label: '샤프 비율', value: run.sharpeRatio.toFixed(3) },
-    { label: '표준편차', value: run.stdDeviation.toFixed(3) },
-    /* 최대낙폭은 배수가 아니라 원래부터 비율이다(고점 대비 얼마나 빠졌나). 0.313 = 31.3% */
-    { label: '최대 낙폭', value: toPercent(run.maxDrawdown) },
-  ]
-
-  /*
-   * 연평균 수익률은 **아직 계산되지 않는다.**
-   *
-   * 백엔드 AnalysisCriterionConverter가 `List.of(totalReturn, totalReturn, ...)`으로
-   * 누적 수익률을 두 번 담는다(`// 연평균 수익률 추후 추가` 주석이 그대로 있다).
-   * 그대로 그리면 같은 숫자가 다른 이름표를 달고 두 번 나와 사용자를 속인다.
-   *
-   * 그래서 누적과 다를 때만 넣는다. 백엔드가 실제로 계산하기 시작하면 값이 갈리면서
-   * 저절로 나타난다 — 나중에 이 줄을 되살리는 걸 누가 기억할 필요가 없다.
-   */
-  if (
-    run.annualizedReturn !== null &&
-    run.annualizedReturn !== run.totalReturn
-  ) {
-    figures.splice(2, 0, {
-      label: '연평균 수익률',
-      value: growthToPercent(run.annualizedReturn),
-    })
-  }
-
-  return (
-    <div className={styles.runBox}>
-      <p className={styles.runHead}>
-        {run.strategyName}으로 실제로 돌려본 결과예요
-      </p>
-
-      <dl className={styles.runGrid}>
-        {figures.map((item) => (
-          <div key={item.label} className={styles.runItem}>
-            <dt className={styles.runLabel}>{item.label}</dt>
-            <dd className={styles.runValue}>{item.value}</dd>
-          </div>
-        ))}
-      </dl>
-
-      {/* 서버가 성향을 함께 주면 그때만 보여준다. 없으면 이 줄이 통째로 빠진다 */}
-      {run.recommendPersonality !== null && (
-        <p className={styles.runNote}>
-          이 종목은 <b>{run.recommendPersonality}</b>에게 어울린다고 나왔어요
-          {run.investPersonality !== null && ` (내 성향은 ${run.investPersonality})`}
-          .
-        </p>
-      )}
-    </div>
-  )
 }
 
 /* -------------------------------------------------------------------- *
