@@ -20,7 +20,16 @@ export default function PersonalityTestPage() {
   const { search } = useLocation()
 
   const [questions, setQuestions] = useState<Question[] | null>(null)
-  const [hasError, setHasError] = useState(false)
+  /** 문항을 못 받았다. 화면에 그릴 게 아무것도 없어 통째로 대체된다 */
+  const [loadFailed, setLoadFailed] = useState(false)
+  /**
+   * 마지막에 결과를 못 받았다. **화면을 갈아치우지 않는다.**
+   *
+   * 예전에는 이것도 위의 loadFailed로 처리해서, 열 문항을 다 푼 사람이
+   * '문항을 불러오지 못했습니다'라는 엉뚱한 말과 함께 답을 통째로 잃었다.
+   * 고른 답은 그대로 두고 버튼 옆에만 알린다 — 한 번 더 누르면 다시 보낸다.
+   */
+  const [submitError, setSubmitError] = useState('')
   /** 문항마다 고른 보기의 choiceId. 아직 안 고른 문항은 null */
   const [answers, setAnswers] = useState<(number | null)[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -34,11 +43,11 @@ export default function PersonalityTestPage() {
       })
       .catch((error: unknown) => {
         console.warn('성향 테스트 문항 조회 실패', error)
-        setHasError(true)
+        setLoadFailed(true)
       })
   }, [])
 
-  if (hasError) {
+  if (loadFailed) {
     return <p className={styles.message}>문항을 불러오지 못했습니다.</p>
   }
   if (questions === null) {
@@ -68,15 +77,16 @@ export default function PersonalityTestPage() {
     }
 
     setIsSubmitting(true)
+    setSubmitError('')
     try {
-      const result = await submitTest(questions, toScores(questions, answers))
+      const result = await submitTest(toScores(questions, answers))
       navigate(
         { pathname: '/personality-test/result', search },
         { state: { result } },
       )
     } catch (error: unknown) {
       console.warn('성향 산출 실패', error)
-      setHasError(true)
+      setSubmitError('결과를 내지 못했어요. 잠시 후 다시 눌러주세요.')
     } finally {
       setIsSubmitting(false)
     }
@@ -130,6 +140,12 @@ export default function PersonalityTestPage() {
             )
           })}
         </div>
+
+        {submitError !== '' && (
+          <p className={styles.submitError} role="alert">
+            {submitError}
+          </p>
+        )}
 
         <div className={styles.buttons}>
           <button

@@ -25,4 +25,19 @@ export interface PersonalityResult {
   type: PersonalityType
   description: string
   imageUrl: string
+  /**
+   * 서버가 매긴 성향 번호. **로그인하고 검사했을 때만 있다.**
+   *
+   * `PATCH /api/members/me/personality`가 이름이 아니라 이 번호를 받는데,
+   * 번호를 알려주는 창구가 검사 결과 하나뿐이라 여기까지 들고 온다.
+   */
+  personalityId: number | null
+  /**
+   * 이 결과가 서버에 저장됐는지.
+   *
+   * 서버 채점은 저장까지 함께 한다(`member.updatePersonality`). 반면 비로그인 검사는
+   * 화면에서만 계산하므로 새로고침하면 사라진다. 결과 화면이 그 차이를 말해 줘야
+   * 사용자가 "검사했는데 마이페이지에 없다"고 헤매지 않는다.
+   */
+  saved: boolean
 }

@@ -45,3 +45,14 @@
 .retry:hover {
   color: var(--color-text);
 }
+
+/*
+ * 비로그인 검사에만 붙는 안내. 카드 밖 아래에 둔다.
+ * 카드 안에 넣으면 결과 설명의 일부로 읽혀서, 성향 자체에 대한 말인 줄 안다.
+ */
+.notice {
+  margin: 20px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--color-text-sub);
+  text-align: center;
+}

@@ -1,8 +1,11 @@
 import type { PersonalityType } from './personality'
 
-/** 가입 경로. 백엔드 Member.socialType과 같은 값이다 */
-export type SocialType = 'NAVER' | 'KAKAO' | 'GOOGLE'
-
+/**
+ * `GET /api/members/me`의 응답. 명세에 적힌 세 가지가 전부다.
+ *
+ * 백엔드 `MemberResDto.MemberInfo`는 `socialType`(NAVER/KAKAO/GOOGLE)도 함께 주지만
+ * 화면 어디에서도 쓰지 않아 받지 않는다. 가입 경로를 보여줄 일이 생기면 그때 넣는다.
+ */
 export interface MemberInfo {
   name: string
   email: string
@@ -12,24 +15,18 @@ export interface MemberInfo {
    * 구글은 기본 스코프에 생일이 없어 실제로 자주 그렇게 된다.
    */
   birth: string | null
-  socialType: SocialType
-}
-
-export interface PersonalityInfo {
-  investPersonality: PersonalityType
-  description: string
-  /** 서버가 가진 이미지 주소. 비어 있으면 화면이 로컬 PNG로 대신한다 */
-  personalityImg: string | null
 }
 
 /**
- * 프로필 사진 주소. 지금은 언제나 null이다.
+ * `GET /api/members/me/personality`의 응답.
  *
- * 백엔드 Member 엔티티에 이미지 필드 자체가 없다. 네이버·구글 응답 DTO에는
- * 꺼내는 코드가 있는데(NaverResponse.getProfileImage, GoogleResponse의 picture)
- * CustomOAuth2MemberService가 저장하지 않고 버린다.
- * 카카오는 profile_image_needs_agreement=true라 동의 항목 설정 없이는 받아올 수도 없다.
- *
- * 필드가 생기면 이 타입을 MemberInfo에 넣고 값만 채우면 화면은 그대로 붙는다.
+ * 노션 명세에는 `investPersonality`와 `discription` 둘뿐인데, **백엔드 코드는
+ * `description`(정상 철자)에 `personalityImg`까지 준다.** 철자는 코드를 따랐고
+ * 그림도 받아 쓴다 — 문서 쪽이 줄여 적힌 것으로 본다.
  */
-export type ProfileImageUrl = string | null
+export interface PersonalityInfo {
+  investPersonality: PersonalityType
+  description: string
+  /** 서버가 가진 이미지 주소. 비어 있으면 화면이 로컬 SVG로 대신한다 */
+  personalityImg: string | null
+}

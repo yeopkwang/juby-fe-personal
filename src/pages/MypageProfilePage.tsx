@@ -6,16 +6,8 @@ import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
 import { clearTokens } from '../utils/auth'
 import { formatBirth } from '../utils/format'
 import { toDashedYmd, toYmd } from '../utils/date'
-import type { MemberInfo, ProfileImageUrl } from '../types/member'
+import type { MemberInfo } from '../types/member'
 import styles from './MypageProfilePage.module.css'
-
-/**
- * 프로필 사진 주소. 지금은 언제나 null이라 기본 아이콘이 나간다.
- *
- * 백엔드 Member 엔티티에 이미지 필드가 없어서 저장된 값 자체가 없다.
- * 필드가 생기면 이 상수를 memberInfo의 값으로 바꾸기만 하면 아래 화면은 그대로 붙는다.
- */
-const PROFILE_IMAGE_URL: ProfileImageUrl = null
 
 type State =
   | { kind: 'loading' }
@@ -183,11 +175,13 @@ export default function MypageProfilePage() {
   return (
     <>
       <div className={styles.profile}>
-        {PROFILE_IMAGE_URL === null ? (
-          <DefaultAvatar />
-        ) : (
-          <img className={styles.avatar} src={PROFILE_IMAGE_URL} alt="" />
-        )}
+        {/*
+          늘 기본 그림이다. 프로필 사진을 주는 곳이 아무 데도 없다 —
+          명세의 내 정보 조회는 name·birth·email 셋뿐이고, 백엔드 Member 엔티티에도
+          이미지 필드가 없다. 소셜 응답에서 꺼내는 코드는 있지만 저장하지 않고 버린다.
+          서버가 주기 시작하면 여기서 갈라 주면 된다.
+        */}
+        <DefaultAvatar />
 
         <p className={styles.name}>{member.name}</p>
         {/* 소셜에서 생년월일을 못 받은 계정이 있다. 그때는 줄을 지우지 않고 없다고 적는다 */}

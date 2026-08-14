@@ -64,6 +64,17 @@ export default function PersonalityResultPage() {
           검사 다시하기
         </Link>
       </PersonalityCard>
+
+      {/*
+        저장됐는지를 말해 준다. 로그인해서 검사하면 서버가 채점하며 함께 저장하지만,
+        비로그인은 화면에서만 매기고 끝난다. 이 줄이 없으면 "검사했는데 마이페이지에
+        없다"고 헤매게 된다. 저장된 경우엔 굳이 말하지 않는다 — 당연한 일이라 군더더기다.
+      */}
+      {!result.saved && (
+        <p className={styles.notice}>
+          로그인하면 이 결과가 저장돼서 마이페이지와 백테스트에서도 쓸 수 있어요.
+        </p>
+      )}
     </>
   )
 }

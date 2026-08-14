@@ -2,12 +2,12 @@ import { get, patch, remove } from './client'
 import type { MemberInfo, PersonalityInfo } from '../types/member'
 
 /**
- * 회원 정보 창구. 전부 백엔드에 구현되어 있어 실제 API를 부른다.
+ * 회원 정보 창구. 다섯 가지 전부 백엔드에 구현되어 있다.
+ *   조회 / 수정 / 탈퇴 / 성향 조회 / 성향 변경
  *
- * 성향 변경(PATCH /api/members/me/personality)만 아직 못 붙였다.
- * 그 API는 성향 이름이 아니라 **personalityId(숫자)** 를 받는데,
- * 프론트가 그 번호를 알 길이 없다 — 성향 목록을 번호와 함께 주는 API가 없고,
- * 조회 응답(PersonalityInfo)에도 번호가 들어 있지 않다.
+ * 전부 로그인이 필요하다. 그런데 **토큰 없이 부르면 401이 아니라 500**이 온다 —
+ * 서버가 `@AuthenticationPrincipal`에서 곧바로 id를 꺼내다 NPE를 내기 때문이다.
+ * 부르는 쪽은 미리 로그인 여부를 보고 들어와야 한다(MypageLayout이 막고 있다).
  */
 
 export function getMemberInfo(): Promise<MemberInfo> {
@@ -52,6 +52,27 @@ export function updateMemberInfo(
 ): Promise<{ modifiedDate: string }> {
   const body = birth === '' ? { name } : { name, birth }
   return patch<{ modifiedDate: string }>('/api/members/me', body)
+}
+
+/**
+ * 저장된 투자성향을 다른 것으로 바꾼다. 검사를 다시 풀지 않고 직접 고르는 길이다.
+ *
+ * ⚠️ **번호를 알아야 부를 수 있다.** 이름('위험중립형')이 아니라 personalityId를 받는데,
+ * 그 번호를 알려주는 창구가 **성향테스트 결과 하나뿐이다**(`submitTest`의 응답).
+ * 즉 지금은 "방금 검사해서 받은 번호"만 알 수 있고, 다섯 성향의 번호 전체는 모른다.
+ * 그래서 화면에 '직접 고르기'를 아직 붙이지 못했다 — 목록을 지어내면 사용자의 성향이
+ * 엉뚱한 값으로 바뀌는데, 틀려도 화면에는 성공으로 보인다.
+ *
+ * 성향 목록을 번호와 함께 주는 API가 생기거나 번호 표를 받으면 그때 화면을 붙인다.
+ *
+ * 응답은 수정 시각 하나뿐이라 화면이 쓸 값이 없다. 바뀐 성향은 다시 조회해서 받는다.
+ */
+export function changeMyPersonality(
+  personalityId: number,
+): Promise<{ modifiedAt: string }> {
+  return patch<{ modifiedAt: string }>('/api/members/me/personality', {
+    personalityId,
+  })
 }
 
 /** 탈퇴. 성공하면 계정과 성향 정보가 서버에서 모두 지워진다 */

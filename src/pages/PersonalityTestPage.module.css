@@ -136,3 +136,17 @@
   color: var(--color-text-sub);
   text-align: center;
 }
+
+/*
+ * 제출이 실패했을 때 버튼 바로 위에 뜬다.
+ * 화면을 갈아치우지 않으므로 고른 답이 그대로 남아 있고, 다시 누르면 재시도된다.
+ */
+/* 에러 문구는 빨강이 이 앱의 관례다(LoginPage와 같은 토큰). 등락 빨강과 겹치지만
+   이 화면에는 시세가 없어 헷갈릴 대상이 없다 */
+.submitError {
+  margin: 20px 0 0;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-up);
+  text-align: center;
+}

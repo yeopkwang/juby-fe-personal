@@ -1,54 +1,18 @@
-import type { PersonalityType, Question } from '../types/personality'
+import type { PersonalityType } from '../types/personality'
 
 /**
- * 서버가 성향을 가르는 점수 구간. 총점이 이 안에 들어와야 결과가 나온다.
- * 벗어나면 서버가 예외를 던진다(PersonalityTestService).
+ * 총점을 성향으로 옮긴다. **서버 `PersonalityTestService`의 구간을 그대로 옮겨 적은 것이다.**
+ *
+ * 원래는 서버만 채점하면 되지만, 로그인하지 않은 사람은 제출 API를 부를 수 없어
+ * (토큰 없이 부르면 500) 화면에서 대신 매긴다. 그래서 두 곳이 같아야 한다.
+ *
+ * 서버 구간: 10~14 안정형 / 15~34 안정추구형 / 35~54 위험중립형 /
+ *            55~74 적극투자형 / 75~90 공격투자형
+ * 문항 10개 × 배점 1·3·5·7·9라 총점은 반드시 10~90 안에 들어온다.
+ *
+ * **백엔드가 구간을 바꾸면 여기도 바꿔야 한다.** 안 그러면 로그인 여부에 따라
+ * 같은 답에서 다른 성향이 나온다.
  */
-const SERVER_MIN = 10
-const SERVER_MAX = 90
-
-/**
- * 문항 배점으로 나올 수 있는 총점의 최소·최대.
- *
- * 숫자를 상수로 박지 않고 받은 문항에서 계산하는 이유가 실제로 증명됐다.
- * 임시 7문항은 보기 수가 5/3/2로 제각각이라 합계가 9~63이었고, 백엔드가 채운
- * 10문항은 10~90이다. 계산해서 쓴 덕에 문항이 바뀔 때 고칠 곳이 없었다.
- */
-export function getScoreRange(questions: Question[]): { min: number; max: number } {
-  let min = 0
-  let max = 0
-
-  for (const question of questions) {
-    const scores = question.choices.map((choice) => choice.score)
-    min += Math.min(...scores)
-    max += Math.max(...scores)
-  }
-
-  return { min, max }
-}
-
-/**
- * 원점수를 서버 구간(10~90)으로 늘려 옮긴다.
- *
- *   환산점수 = 10 + (원점수 - 최소점) / (최대점 - 최소점) × 80
- *
- * 이렇게 해야 모든 보기를 최저로 고르면 안정형, 최고로 고르면 공격투자형이 나온다.
- * 서버가 정수 배열을 받으므로 반올림한다.
- *
- * 백엔드 문항(10~90)에서는 원점수가 이미 서버 구간과 같아 들어온 값이 그대로 나온다.
- * 즉 지금은 아무 일도 하지 않는다. 그래도 남겨 두는 건 mock으로 되돌렸을 때
- * 다시 필요해지기 때문이다.
- */
-export function normalizeScore(raw: number, questions: Question[]): number {
-  const { min, max } = getScoreRange(questions)
-  // 문항이 없거나 배점이 전부 같으면 나눌 수 없다. 하한을 돌려주고 끝낸다
-  if (max === min) return SERVER_MIN
-
-  const ratio = (raw - min) / (max - min)
-  return Math.round(SERVER_MIN + ratio * (SERVER_MAX - SERVER_MIN))
-}
-
-/** 서버 PersonalityTestService의 구간과 동일하게 맞춘다 */
 export function scoreToPersonality(score: number): PersonalityType {
   if (score < 15) return '안정형'
   if (score < 35) return '안정추구형'

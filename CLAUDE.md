@@ -170,36 +170,62 @@ backtest·openai·news·personality_test·member는 참조가 0건이다.)
 `parseBirth()`는 진짜 `null`만 걸러내므로 `LocalDate.parse("null-null")`까지 가서
 터진다. 기존 회원은 무사하다(조회에서 끝나 이 줄에 안 닿는다).
 
-## 백엔드 미완성 구간 토글
+## 투자성향테스트 · 마이페이지
 
-`src/api/personality.ts` 상단의 `USE_BACKEND_QUESTIONS`는 **true**(문항을 서버에서 받는다),
-`USE_BACKEND_SUBMIT`는 **false**(채점은 아직 프론트에서 한다)다.
-`MOCK_QUESTIONS`는 실제 API 응답과 같은 모양이라 플래그만 바꾸면 화면 코드는 그대로다.
+명세는 팀 노션의 7개(회원 조회/수정/탈퇴, 성향 조회/변경, 문항 조회, 결과 제출)뿐이다.
+**전부 붙어 있다. 하나만 빼고** — 아래 '못 붙인 하나' 참고.
 
-**문항 10개가 DB에 들어왔다**(2026-08-12 확인. 아래 '남은 것'이 해결된 것이다).
-그래서 `normalizeScore()`의 전제가 달라졌을 수 있다 — 7문항이라 낱개 점수를 못 보내던
-사정이 사라졌으니, 제출을 켤 때 이 부분을 다시 본다.
+### 채점은 서버가 한다. 단, 비로그인은 화면이 대신 매긴다
+
+제출(`POST /api/personality-tests`)은 **고른 보기의 점수 10개를 낱개 그대로** 보낸다
+(`{ "scores": [3,1,7,...] }`). 서버가 합산해 성향을 정하고 **회원에게 저장까지 한다**
+(`member.updatePersonality`).
+
+문제는 이 API가 로그인을 요구한다는 것이다. 토큰 없이 부르면 401이 아니라 **500**이라,
+그대로 두면 문항 10개를 다 푼 사람이 마지막에 원인 모를 오류를 만난다.
+그래서 **비로그인은 `utils/personality.ts`의 `scoreToPersonality()`로 화면에서 매긴다.**
+구간이 서버와 같은 값이라 결과도 같고, 다른 점은 저장되지 않는다는 것뿐이다.
+그 사실은 결과의 `saved`로 화면이 말해 준다.
+
+> ⚠️ **구간이 두 곳에 있다.** 백엔드 `PersonalityTestService`가 기준을 바꾸면
+> `scoreToPersonality()`도 같이 바꿔야 한다. 안 그러면 로그인 여부에 따라 같은 답에서
+> 다른 성향이 나온다. 지금 값: 10~14 안정형 / 15~34 안정추구형 / 35~54 위험중립형 /
+> 55~74 적극투자형 / 75~90 공격투자형.
+
+예전에는 `USE_BACKEND_QUESTIONS`·`USE_BACKEND_SUBMIT` 토글과 7문항짜리
+`MOCK_QUESTIONS`, 그리고 점수를 하나로 환산하는 `normalizeScore()`가 있었다.
+환산은 문항이 7개뿐이던 시절 합계가 서버 유효 구간(10~90) 아래로 떨어져 500이 나는 걸
+피하려던 것이다. **문항 10개 × 배점 1·3·5·7·9라 합계가 정확히 10~90이 되면서 전부 필요
+없어져 지웠다.** 이 이름들이 보이면 남은 흔적이다.
+
+### 못 붙인 하나: 성향 직접 변경
+
+`PATCH /api/members/me/personality`는 이름이 아니라 **`personalityId`(숫자)** 를 받는데,
+그 번호를 알려주는 창구가 **검사 결과 하나뿐이다.** 다섯 성향의 번호 전체를 주는 API가 없다.
+창구(`changeMyPersonality`)는 만들어 뒀지만 **화면에 '직접 고르기'를 붙이지 않았다** —
+번호를 지어내면 사용자의 성향이 엉뚱하게 바뀌는데 화면에는 성공으로 보인다.
+번호 표를 받으면 그때 붙인다.
+
+### 명세와 백엔드 코드가 다른 곳 (코드가 맞다)
+
+| 노션 | 백엔드 코드 |
+| --- | --- |
+| `POST /api/personality-test` | `/api/personality-tests` (**복수**) |
+| `discription` | `description` (조회·제출 응답 양쪽) |
+| 내 정보에 `socialType` 없음 | 실제로는 준다. 화면이 안 써서 타입에서 뺐다 |
+| 성향 조회에 `personalityImg` 없음 | 실제로는 준다. 그림으로 쓴다 |
 
 **백엔드 소스(`JUBYInvest/JUBY-BE`)를 읽어 확인한 것.** 다시 파지 않아도 되게 적어 둔다.
 
-- 문항을 넣는 코드가 **백엔드 어디에도 없다.** `data.sql`·마이그레이션·`CommandLineRunner`가 없고
-  저장소 전체에 `INSERT`문이 0건이다(`SQL.sql`은 7줄짜리 임시 쿼리, `/api/initiate`는
-  stock·daily_price 적재용이라 무관). 누가 DB에 직접 넣지 않으면 비어 있다.
-- `PersonalityTestService`의 채점 구간이 **10문항을 못 박아 놨다.** 합계 유효 범위가 `10~90`이고
-  (10문항 × 보기 1~9점) **범위를 벗어나면 결과가 아니라 `SCORE_NOT_FOUND` 예외를 던진다.**
-  주석에도 "10개의 질문, 각 5개의 보기"라고 적혀 있다.
-  → **7문항의 낱개 점수를 그대로 보내면 최소 7점이라 500이 난다.** `submitTest()`가 낱개 대신
-  `normalizeScore()`로 환산한 값 하나만 보내는 건 이걸 피하려는 것이다.
-  `src/utils/personality.ts`의 `SERVER_MIN=10`/`SERVER_MAX=90`은 위 유효 범위에서 나온 값이다.
-- 백엔드 `InvestPersonality` enum이 프론트 `PersonalityType`과 **정확히 같다**(안정형·안정추구형·
-  위험중립형·적극투자형·공격투자형). 서버 채점으로 넘어가도 타입은 그대로 맞는다.
+- 문항을 넣는 코드가 **백엔드 어디에도 없다.** 누가 DB에 직접 넣지 않으면 비어 있고,
+  그때 서버는 **200에 빈 배열**을 준다. 성공으로 처리하면 화면이 터지는데 이 앱에는
+  ErrorBoundary가 없어 흰 화면이 된다. `getQuestions()`가 빈 목록을 실패로 던지는 이유다.
+- 백엔드 `InvestPersonality` enum이 프론트 `PersonalityType`과 **정확히 같다**.
 - `getQuestions()`가 `findAll()`을 **정렬 없이** 부른다. `sortByIds()`는 실제로 필요한 방어다.
 - SecurityConfig의 허용 목록에 **`/api/**`가 통째로 `permitAll`**이다. 문항 조회는 비로그인도 된다.
-  대신 POST는 `@AuthenticationPrincipal`로 받은 user에서 id를 꺼내므로 **토큰 없이 부르면
-  401이 아니라 NPE로 500**이 난다. 마이페이지·성향 화면이 401 대신 500을 다루는 이유가 이것이다.
-
-~~남은 것은 **DB에 문항 10개를 넣는 일 하나**다.~~ **들어왔다.** 조회는 켰고, 제출은
-로그인이 필요하니 나중에 켠다.
+  대신 로그인이 필요한 것들은 `@AuthenticationPrincipal`에서 곧바로 id를 꺼내므로
+  **토큰 없이 부르면 401이 아니라 NPE로 500**이 난다. 마이페이지·성향 화면이 401 대신
+  500을 다루는 이유가 이것이다.
 
 프론트에 하드코딩된 다른 데이터: `src/api/stockList.ts`의 102종목, `home.ts`의 `TOP_THEMES` 3개.
 
