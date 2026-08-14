@@ -66,6 +66,13 @@ export default function BacktestPage() {
   const [query, setQuery] = useState('')
   const [stock, setStock] = useState<StockInfo | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  /**
+   * 방향키로 짚고 있는 후보의 자리. -1이면 아무것도 안 짚은 상태다.
+   *
+   * '고른 종목'(stock)과 다르다. 이건 아직 고르지 않고 훑고만 있는 것이라
+   * 목록을 닫으면 없던 일이 된다.
+   */
+  const [activeIndex, setActiveIndex] = useState(-1)
 
   /*
    * 전략을 미리 골라 두지 않는다.
@@ -183,6 +190,8 @@ export default function BacktestPage() {
     setQuery(value)
     setStock(null)
     setIsSearchOpen(true)
+    // 글자가 바뀌면 후보 목록이 통째로 달라진다. 짚고 있던 자리는 뜻을 잃는다
+    setActiveIndex(-1)
     clearResult()
   }
 
@@ -190,28 +199,66 @@ export default function BacktestPage() {
     setStock(item)
     setQuery(item.stockName)
     setIsSearchOpen(false)
+    setActiveIndex(-1)
     clearResult()
   }
 
   /**
-   * 검색칸에서 엔터를 치면 **후보가 하나뿐일 때만** 그것을 고른다.
+   * 검색칸을 키보드만으로 다룬다. ↓↑로 훑고 엔터로 고른다.
    *
-   * 목록까지 마우스를 옮겨 누르는 게 번거로워서다. 이름을 끝까지 치면 대개 하나만
-   * 남는데, 그 상태에서 손이 이미 키보드에 있으니 엔터가 가장 짧은 길이다.
+   * ## 엔터가 고르는 대상
    *
-   * **여럿 남았을 때는 아무것도 하지 않는다.** 맨 위를 집어 주는 앱도 많지만,
-   * 여기서는 고른 종목이 곧 백테스트 대상이라 엉뚱한 게 잡히면 사용자가 모른 채
-   * 다른 종목의 결과를 본다. '삼성'만 쳐도 여섯 개가 남는 목록이다.
+   * ① 방향키로 짚어 둔 것이 있으면 그것. ② 없으면 **후보가 하나뿐일 때만** 그것.
    *
-   * 한글 조합 중의 엔터는 글자를 확정하는 것이지 고르겠다는 뜻이 아니다.
-   * isComposing으로 걸러내지 않으면 '두산에너빌'을 치다가 바로 골라져 버린다.
+   * 여럿 남았는데 아무것도 안 짚었으면 아무 일도 하지 않는다. 맨 위를 집어 주는 앱도
+   * 많지만, 여기서는 고른 종목이 곧 백테스트 대상이라 엉뚱한 게 잡히면 사용자가
+   * 모른 채 다른 종목의 결과를 본다. '삼성'만 쳐도 일곱 개가 남는 목록이다.
+   *
+   * ## 방향키에는 조합 검사를 걸지 않는다
+   *
+   * 엔터에만 `isComposing`을 본다. 한글은 마지막 글자가 조합 중인 채로 남아 있어서
+   * ('삼성'의 '성') 방향키까지 막으면 **다 치고 바로 ↓를 눌러도 안 먹는다.**
+   * 방향키는 조합을 끝내면서 이동까지 하는 게 사용자가 기대하는 동작이다.
+   *
+   * 엔터는 반대다. 조합 중의 엔터는 글자를 확정하겠다는 뜻이지 고르겠다는 게 아니다.
+   * 안 거르면 '두산에너빌'을 치다가 바로 골라져 버린다.
    */
   function handleStockKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (matches.length === 0) return
+      /* 막지 않으면 글자 커서가 맨 앞·맨 뒤로 튄다 */
+      event.preventDefault()
+      setIsSearchOpen(true)
+
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      setActiveIndex((current) => {
+        const next = current + step
+        // 끝에서 반대편으로 돌아온다. 아무것도 안 짚었을 때(-1) ↑는 맨 아래로 간다
+        if (next < 0) return matches.length - 1
+        if (next >= matches.length) return 0
+        return next
+      })
+      return
+    }
+
+    if (event.key === 'Escape') {
+      setIsSearchOpen(false)
+      setActiveIndex(-1)
+      return
+    }
+
     if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
-    if (matches.length !== 1) return
+
+    const target =
+      activeIndex >= 0
+        ? matches[activeIndex]
+        : matches.length === 1
+          ? matches[0]
+          : undefined
+    if (target === undefined) return
 
     event.preventDefault()
-    selectStock(matches[0])
+    selectStock(target)
   }
 
   /**
@@ -412,6 +459,21 @@ export default function BacktestPage() {
                   onFocus={() => setIsSearchOpen(true)}
                   onBlur={() => setIsSearchOpen(false)}
                   onKeyDown={handleStockKeyDown}
+                  /*
+                   * 화면을 읽어 주는 도구에 '아래에 고를 목록이 딸린 입력칸'이라고 알린다.
+                   * 방향키로 짚은 항목은 aria-activedescendant로 전한다 — 실제 focus는
+                   * 입력칸에 그대로 있어야 글자를 계속 칠 수 있기 때문에, 짚은 자리는
+                   * 이 속성으로만 알릴 수 있다.
+                   */
+                  role="combobox"
+                  aria-expanded={isSearchOpen && matches.length > 0}
+                  aria-controls="backtest-stock-list"
+                  aria-autocomplete="list"
+                  aria-activedescendant={
+                    activeIndex >= 0
+                      ? `backtest-stock-option-${activeIndex}`
+                      : undefined
+                  }
                 />
                 {stock !== null && (
                   <span className={styles.code}>{stock.stockCode}</span>
@@ -424,15 +486,31 @@ export default function BacktestPage() {
                  * mousedown을 막아 focus를 붙잡아 둔다.
                  */
                 <ul
+                  id="backtest-stock-list"
+                  role="listbox"
                   className={styles.matches}
                   onMouseDown={(event) => event.preventDefault()}
                 >
-                  {matches.map((item) => (
-                    <li key={item.stockCode}>
+                  {matches.map((item, index) => (
+                    /* 목록의 칸은 아래 button이다. li는 자리만 잡는다 */
+                    <li key={item.stockCode} role="presentation">
                       <button
                         type="button"
-                        className={styles.match}
+                        id={`backtest-stock-option-${index}`}
+                        role="option"
+                        aria-selected={index === activeIndex}
+                        className={
+                          index === activeIndex
+                            ? `${styles.match} ${styles.matchActive}`
+                            : styles.match
+                        }
                         onClick={() => selectStock(item)}
+                        /*
+                         * 마우스가 지나가면 짚은 자리도 그리로 옮긴다.
+                         * 안 옮기면 키보드가 짚은 칸과 마우스가 얹힌 칸이 따로 밝아져,
+                         * 엔터를 눌렀을 때 어느 쪽이 골라질지 알 수 없다.
+                         */
+                        onMouseEnter={() => setActiveIndex(index)}
                       >
                         <span>{item.stockName}</span>
                         <span className={styles.code}>{item.stockCode}</span>
