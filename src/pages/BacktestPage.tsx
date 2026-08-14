@@ -513,6 +513,11 @@ export default function BacktestPage() {
                   value={query}
                   placeholder="종목을 검색해주세요. (예: 삼성전자)"
                   autoComplete="off"
+                  /*
+                   * '삼성전자'·'HD현대일렉트릭' 같은 이름은 사전에 없어서 브라우저가
+                   * 빨간 물결선을 긋는다. 제대로 친 종목명이 오타처럼 보인다.
+                   */
+                  spellCheck={false}
                   onChange={(event) => handleQueryChange(event.target.value)}
                   onFocus={() => setIsSearchOpen(true)}
                   onBlur={() => setIsSearchOpen(false)}

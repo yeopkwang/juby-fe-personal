@@ -117,6 +117,8 @@ export default function SearchBar() {
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder="관심종목을 입력해주세요 (예 : 삼성전자)"
+          /* 종목명은 사전에 없어서 빨간 물결선이 그어진다 (백테스트 종목칸과 같은 이유) */
+          spellCheck={false}
           role="combobox"
           aria-expanded={isListVisible}
           aria-controls="stock-suggestions"

@@ -180,11 +180,34 @@
 }
 
 /*
- * 마우스로 눌렀을 때만 지운다. 위 .control:focus-within이 감싼 칸에 테두리를 그려 준다.
- * 다만 그건 마우스로 눌러도 걸리고 회색이 조금 짙어지는 정도라 키보드 표시로는 약하다.
- * 키보드로 들어온 경우는 걸러내서 index.css의 :focus-visible이 그리게 둔다.
+ * 키보드 표시는 **감싼 칸(.control)에** 그린다. 안쪽 입력칸이 아니다.
+ *
+ * 전에는 index.css의 :focus-visible이 <input> 자신에게 걸렸다. 그런데 그 input은
+ * flex: 1이라 왼쪽 여백 16px과 오른쪽 종목코드를 뺀 만큼만 차지하고, height: 100%라
+ * 칸의 안쪽 높이와 정확히 같다. 그래서 테두리가 **가로로는 안쪽으로 들어가고
+ * 세로로는 칸 밖으로 삐져나가** 회색 네모와 초록 네모가 어느 쪽으로도 안 맞았다
+ * (실측: 칸 x120~808 y287~335, 입력 x137~799 y288~334, 거기에 offset 2px).
+ *
+ * 칸에 걸면 네모가 하나가 되고 둘레가 고르게 2px 떨어진다. 모서리 둥글기도 따라온다.
+ *
+ * `:not(:focus-visible)`으로 마우스 때만 지우려 하지 않는다. **글자를 치는 칸에는
+ * :focus-visible이 마우스로 눌러도 걸린다**(브라우저가 그렇게 정해 뒀다 — 곧 타자를
+ * 칠 곳이니 어디인지 보여야 한다). 예전 코드에 그 조건이 붙어 있었지만 실제로는
+ * 한 번도 걸러진 적이 없다. 아래 .picker는 버튼이라 그 조건이 진짜로 듣는다.
  */
-.input:focus:not(:focus-visible),
+.input:focus {
+  outline: none;
+}
+
+.control:has(.input:focus-visible) {
+  outline: 2px solid var(--color-brand-deep);
+  outline-offset: 2px;
+}
+
+/*
+ * 기간 선택칸은 버튼 자신이 곧 .control이라 처음부터 칸 전체에 걸린다.
+ * 마우스로 눌렀을 때만 지운다 — :focus-within이 테두리를 조금 짙게 해 준다.
+ */
 .picker:focus:not(:focus-visible) {
   outline: none;
 }

@@ -125,13 +125,19 @@
 }
 
 /*
- * 마우스로 눌렀을 때만 지운다. 감싼 .composerBox가 이미 한 덩어리로 보이는데
- * 안쪽 입력칸에까지 테두리가 겹치면 지저분하다.
- * 키보드로 들어온 경우는 걸러내서 index.css의 :focus-visible이 그리게 둔다 —
- * 여기서 통째로 지우는 바람에 이 화면은 탭 키를 눌러도 아무 표시가 없었다.
+ * 키보드 표시는 **감싼 칸(.composerBox)에** 그린다. 안쪽 입력칸이 아니다.
+ *
+ * 예전에 여기서 outline을 통째로 지웠더니 탭 키를 눌러도 아무 표시가 없었고,
+ * 되살렸더니 이번엔 입력칸에만 걸려 한 덩어리로 보이던 칸 안에 네모가 하나 더 생겼다.
+ * 감싼 칸에 걸면 둘 다 해결된다.
  */
-.input:focus:not(:focus-visible) {
+.input:focus {
   outline: none;
+}
+
+.composerBox:has(.input:focus-visible) {
+  outline: 2px solid var(--color-brand-deep);
+  outline-offset: 2px;
 }
 
 .input::placeholder {

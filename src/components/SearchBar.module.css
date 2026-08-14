@@ -35,11 +35,19 @@
 }
 
 /*
- * 마우스로 눌렀을 때만 지운다. 위 .box:focus-within이 감싼 칸에 테두리를 그려 준다.
- * 키보드로 들어온 경우는 걸러내서 index.css의 :focus-visible이 그리게 둔다.
+ * 키보드 표시는 **감싼 칸(.box)에** 그린다. 안쪽 입력칸이 아니다.
+ *
+ * input에 걸면 테두리가 글자 높이(약 24px)만큼만 그려져, 58px짜리 칸 한가운데에
+ * 납작한 초록 네모가 따로 뜬다. 칸에 걸어야 검색줄 하나를 통째로 두른 모양이 된다.
+ * (백테스트 종목칸·AI 질문칸도 같은 이유로 감싼 칸에 건다)
  */
-.input:focus:not(:focus-visible) {
+.input:focus {
   outline: none;
+}
+
+.box:has(.input:focus-visible) {
+  outline: 2px solid var(--color-brand-deep);
+  outline-offset: 2px;
 }
 
 .input::placeholder {
