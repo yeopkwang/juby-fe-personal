@@ -35,19 +35,20 @@
 }
 
 /*
- * 키보드 표시는 **감싼 칸(.box)에** 그린다. 안쪽 입력칸이 아니다.
+ * 지금 여기라는 표시는 **원래 있던 테두리를 검게 굵게** 하는 것으로 한다.
+ * 초록 링(index.css의 :focus-visible)은 칸 바깥에 네모를 하나 더 그리는 방식이라
+ * 여기서 끈다. 백테스트 종목칸·AI 질문칸도 같은 방식으로 맞춰 뒀다.
  *
- * input에 걸면 테두리가 글자 높이(약 24px)만큼만 그려져, 58px짜리 칸 한가운데에
- * 납작한 초록 네모가 따로 뜬다. 칸에 걸어야 검색줄 하나를 통째로 두른 모양이 된다.
- * (백테스트 종목칸·AI 질문칸도 같은 이유로 감싼 칸에 건다)
+ * 표시를 **감싼 칸(.box)에** 건다. 안쪽 input에 걸면 글자 높이(약 24px)만큼만
+ * 그려져 58px짜리 칸 한가운데에 납작한 네모가 따로 뜬다.
  */
 .input:focus {
   outline: none;
 }
 
 .box:has(.input:focus-visible) {
-  outline: 2px solid var(--color-brand-deep);
-  outline-offset: 2px;
+  border-color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-text);
 }
 
 .input::placeholder {

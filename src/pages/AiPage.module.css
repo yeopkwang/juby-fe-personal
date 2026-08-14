@@ -125,19 +125,20 @@
 }
 
 /*
- * 키보드 표시는 **감싼 칸(.composerBox)에** 그린다. 안쪽 입력칸이 아니다.
+ * 지금 여기라는 표시는 **테두리를 검게 굵게** 하는 것으로 한다(홈 검색줄·백테스트
+ * 종목칸과 같은 방식). 이 칸은 평소에 테두리가 없어 배경색만으로 서 있으므로,
+ * 표시가 켜질 때만 선이 생긴다.
  *
- * 예전에 여기서 outline을 통째로 지웠더니 탭 키를 눌러도 아무 표시가 없었고,
- * 되살렸더니 이번엔 입력칸에만 걸려 한 덩어리로 보이던 칸 안에 네모가 하나 더 생겼다.
- * 감싼 칸에 걸면 둘 다 해결된다.
+ * 표시를 **감싼 칸(.composerBox)에** 건다. 예전에 여기서 outline을 통째로 지웠더니
+ * 탭 키를 눌러도 아무 표시가 없었고, 되살렸더니 이번엔 안쪽 입력칸에만 걸려
+ * 한 덩어리로 보이던 칸 안에 네모가 하나 더 생겼다.
  */
 .input:focus {
   outline: none;
 }
 
 .composerBox:has(.input:focus-visible) {
-  outline: 2px solid var(--color-brand-deep);
-  outline-offset: 2px;
+  box-shadow: inset 0 0 0 2px var(--color-text);
 }
 
 .input::placeholder {

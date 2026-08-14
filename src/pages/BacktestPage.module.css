@@ -180,36 +180,35 @@
 }
 
 /*
- * 키보드 표시는 **감싼 칸(.control)에** 그린다. 안쪽 입력칸이 아니다.
+ * 지금 여기라는 표시는 **원래 있던 테두리를 검게 굵게** 하는 것으로 한다.
+ * 2단계에서 고른 전략 카드(.pickOn)와 같은 방식이라, 이 화면에서 '지금 이것'을
+ * 뜻하는 모양이 하나로 통일된다.
  *
- * 전에는 index.css의 :focus-visible이 <input> 자신에게 걸렸다. 그런데 그 input은
- * flex: 1이라 왼쪽 여백 16px과 오른쪽 종목코드를 뺀 만큼만 차지하고, height: 100%라
- * 칸의 안쪽 높이와 정확히 같다. 그래서 테두리가 **가로로는 안쪽으로 들어가고
- * 세로로는 칸 밖으로 삐져나가** 회색 네모와 초록 네모가 어느 쪽으로도 안 맞았다
- * (실측: 칸 x120~808 y287~335, 입력 x137~799 y288~334, 거기에 offset 2px).
+ * index.css의 초록 :focus-visible 링을 여기서 끈다. 링은 칸 바깥에 네모를 하나 더
+ * 그리는 방식이라 이미 테두리가 있는 칸에는 선이 두 겹으로 겹쳐 보였다.
  *
- * 칸에 걸면 네모가 하나가 되고 둘레가 고르게 2px 떨어진다. 모서리 둥글기도 따라온다.
+ * inset 그림자로 두 겹을 겹치는 이유는 .pickOn과 같다 — border-width를 2px로 바꾸면
+ * 안쪽 폭이 1px씩 줄어 글자와 종목코드가 밀린다.
+ *
+ * 표시를 **감싼 칸(.control)에** 건다. 안쪽 <input>에 걸면 그 input은 flex: 1이라
+ * 좌우 여백과 종목코드 자리를 뺀 만큼만 차지하고 height: 100%라 칸의 안쪽 높이와
+ * 같아서, 가로로는 안으로 들어가고 세로로는 밖으로 삐져나간다.
  *
  * `:not(:focus-visible)`으로 마우스 때만 지우려 하지 않는다. **글자를 치는 칸에는
- * :focus-visible이 마우스로 눌러도 걸린다**(브라우저가 그렇게 정해 뒀다 — 곧 타자를
- * 칠 곳이니 어디인지 보여야 한다). 예전 코드에 그 조건이 붙어 있었지만 실제로는
- * 한 번도 걸러진 적이 없다. 아래 .picker는 버튼이라 그 조건이 진짜로 듣는다.
+ * :focus-visible이 마우스로 눌러도 걸린다**(곧 타자를 칠 곳이니 어디인지 보여야
+ * 한다고 브라우저가 정해 뒀다). 예전 코드에 그 조건이 붙어 있었지만 실제로는 한 번도
+ * 걸러진 적이 없다. .picker는 버튼이라 그 조건이 진짜로 듣지만, 마우스로 눌러도
+ * 목록이 열려 있는 동안은 어디를 만지는 중인지 보이는 편이 낫다.
  */
-.input:focus {
+.input:focus,
+.picker:focus {
   outline: none;
 }
 
-.control:has(.input:focus-visible) {
-  outline: 2px solid var(--color-brand-deep);
-  outline-offset: 2px;
-}
-
-/*
- * 기간 선택칸은 버튼 자신이 곧 .control이라 처음부터 칸 전체에 걸린다.
- * 마우스로 눌렀을 때만 지운다 — :focus-within이 테두리를 조금 짙게 해 준다.
- */
-.picker:focus:not(:focus-visible) {
-  outline: none;
+.control:has(.input:focus-visible),
+.picker:focus-visible {
+  border-color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-text);
 }
 
 .input::placeholder {
