@@ -23,7 +23,6 @@ import {
 import { getPreset, getPresetOptions, runBacktest } from '../api/backtest'
 import { useCountUp, useGrown } from '../hooks/useReveal'
 import type { PresetOption } from '../api/backtest'
-import type { InvestTypeInfo } from '../utils/backtest'
 import styles from './BacktestPage.module.css'
 
 /**
@@ -587,6 +586,31 @@ export default function BacktestPage() {
                 )
               })}
             </ul>
+
+            {/*
+              고른 카드 바로 아래에 규칙을 편다.
+              한때 이걸 오른쪽 가이드에 뒀는데, 매수·매도·기간은 읽고 마는 참고자료가
+              아니라 **방금 고른 선택의 근거**다. 고른 자리에서 눈을 떼어 반대편 아래까지
+              옮겨야 보이면 대부분 안 본다.
+              게다가 '기간 3개월 이상'은 바로 다음 3단계에서 고를 수 있는 범위를 정한다.
+              2와 3 사이가 제자리다.
+            */}
+            {selected !== null && (
+              <div className={styles.pickDetail}>
+                <span className={styles.detailRow}>
+                  <b className={styles.buy}>매수</b>
+                  {selected.entryRule}
+                </span>
+                <span className={styles.detailRow}>
+                  <b className={styles.sell}>매도</b>
+                  {selected.exitRule}
+                </span>
+                <span className={styles.detailRow}>
+                  <b className={styles.term}>기간</b>
+                  {periodLabel(selected.minPeriod)} 이상
+                </span>
+              </div>
+            )}
           </div>
 
           {/* 투자기간 선택 ------------------------------------------------ */}
@@ -681,7 +705,7 @@ export default function BacktestPage() {
         </div>
       </div>
 
-      <BacktestGuide selected={selected} />
+      <BacktestGuide />
     </div>
   )
 }
@@ -1118,11 +1142,6 @@ function RunFigures({ run }: { run: BacktestRun }) {
  * 오른쪽 가이드 — 읽는 글이 아니라 고르는 도구다
  * -------------------------------------------------------------------- */
 
-interface GuideProps {
-  /** 왼쪽에서 고른 전략. 아직 안 골랐으면 null */
-  selected: InvestTypeInfo | null
-}
-
 /**
  * 읽는 곳이다. **여기서는 아무것도 고를 수 없다.**
  *
@@ -1133,7 +1152,7 @@ interface GuideProps {
  * 여기 남은 것은 셋이다 — 백테스트가 뭔지, **고른 전략이 언제 사고 파는지**,
  * 점수가 어떻게 나오는지. 셋 다 왼쪽과 겹치지 않는다.
  */
-function BacktestGuide({ selected }: GuideProps) {
+function BacktestGuide() {
   return (
     <aside className={styles.guide}>
       <h2 className={styles.guideTitle}>
@@ -1184,43 +1203,6 @@ function BacktestGuide({ selected }: GuideProps) {
           </dl>
         </section>
 
-        {/*
-          고른 전략이 **언제 사고 언제 파는지**를 적는다. 고르는 일은 왼쪽이 맡으므로
-          여기서는 누를 수 있는 것을 두지 않는다.
-
-          아직 안 골랐으면 자리를 비우지 않고 어디서 고르는지 알린다. 빈칸으로 두면
-          고장인지 원래 그런지 알 수 없다.
-          다만 방향은 말하지 않는다 — 좁은 화면에서는 가이드가 오른쪽이 아니라
-          아래로 내려가서 '왼쪽'이 절반은 틀린 말이 된다.
-        */}
-        <section className={styles.guideSection}>
-          <h3 className={styles.guideHeading}>
-            {selected === null ? '전략 설명' : selected.strategyName}
-          </h3>
-
-          {selected === null ? (
-            <p className={styles.guideBody}>
-              전략을 고르면 언제 사고 언제 파는지, 얼마나 긴 기간이 필요한지 여기에
-              적어 드려요.
-            </p>
-          ) : (
-            <div className={styles.detail}>
-              <p className={styles.guideBody}>{selected.strategySummary}</p>
-              <span className={styles.detailRow}>
-                <b className={styles.buy}>매수</b>
-                {selected.entryRule}
-              </span>
-              <span className={styles.detailRow}>
-                <b className={styles.sell}>매도</b>
-                {selected.exitRule}
-              </span>
-              <span className={styles.detailRow}>
-                <b className={styles.term}>기간</b>
-                {periodLabel(selected.minPeriod)} 이상
-              </span>
-            </div>
-          )}
-        </section>
       </div>
     </aside>
   )

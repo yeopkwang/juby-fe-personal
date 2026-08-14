@@ -32,7 +32,7 @@ export const AXIS_LABEL: Record<Axis, string> = {
   growth: '성장성',
 }
 
-export interface InvestTypeInfo {
+interface InvestTypeInfo {
   /** 백엔드에 보내는 값(1~5). 커질수록 공격적이다 */
   investType: number
   personality: PersonalityType
