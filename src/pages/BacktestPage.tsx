@@ -21,6 +21,7 @@ import {
   toPercent,
 } from '../utils/backtest'
 import { getPreset, getPresetOptions, runBacktest } from '../api/backtest'
+import { useCountUp, useGrown } from '../hooks/useReveal'
 import type { PresetOption } from '../api/backtest'
 import styles from './BacktestPage.module.css'
 
@@ -573,12 +574,24 @@ function BacktestResult({
   run,
   onRetry,
 }: ResultProps) {
+  const { result } = preset
+
+  /*
+   * 결과가 0에서 자라 올라오게 한다. 여섯 건을 기다린 끝에 완성된 막대가 툭 나타나면
+   * 화면이 뚝딱거리는데, 자라 오르면 기다림의 끝이 결과로 이어져 보인다.
+   * 판정 문구('잘 안 맞아요')는 움직이지 않는다 — 숫자가 오르는 동안 말이 바뀌면
+   * 결론이 흔들리는 것처럼 읽힌다.
+   *
+   * 아래 조기 반환보다 **위에** 있어야 한다. 훅은 그릴 때마다 같은 순서로 불려야 하는데,
+   * return 아래에 두면 어떤 경우엔 불리고 어떤 경우엔 안 불려 순서가 어긋난다.
+   */
+  const grown = useGrown()
+
   const info = findInvestType(preset.investType)
   const best = ranking[0]
   const bestInfo = best === undefined ? null : findInvestType(best.investType)
   if (info === null || bestInfo === null || best === undefined) return null
 
-  const { result } = preset
   const axisScores = calculateAxisScores(result)
   const verdict = scoreVerdict(result.finalScore)
   /** 종목이 나와 같은 성향으로 판정됐는가 */
@@ -707,7 +720,7 @@ function BacktestResult({
           <div className={styles.scoreBox}>
             <span className={styles.scoreLabel}>적합도</span>
             <span className={styles.score}>
-              {result.finalScore.toFixed(1)}
+              <CountUp value={result.finalScore} digits={1} />
               <span className={styles.scoreMax}>/ 100</span>
             </span>
             <span
@@ -722,7 +735,7 @@ function BacktestResult({
             가중치를 함께 적어 두면 "왜 이 총점인지"가 표만 보고도 읽힌다.
           */}
           <ul className={styles.axes}>
-            {AXES.map((axis) => (
+            {AXES.map((axis, index) => (
               <li key={axis}>
                 <div className={styles.axisHead}>
                   <span className={styles.axisName}>{AXIS_LABEL[axis]}</span>
@@ -730,13 +743,22 @@ function BacktestResult({
                     비중 {Math.round(info.weights[axis] * 100)}%
                   </span>
                   <span className={styles.axisScore}>
-                    {axisScores[axis].toFixed(0)}
+                    <CountUp value={axisScores[axis]} />
                   </span>
                 </div>
                 <div className={styles.bar}>
                   <div
                     className={styles.barFill}
-                    style={{ width: `${axisScores[axis]}%` }}
+                    style={{
+                      /*
+                       * 시작값이 '0%'다. 숫자 0으로 두면 React가 '0px'로 그리는데,
+                       * px에서 %로는 브라우저가 중간값을 못 만들어 **전환이 통째로
+                       * 건너뛴다.** 단위를 맞춰야 자란다.
+                       */
+                      width: grown ? `${axisScores[axis]}%` : '0%',
+                      /* 위에서부터 차례로 자란다. 넷이 한꺼번에 뛰면 그냥 '나타남'이 된다 */
+                      transitionDelay: `${index * 90}ms`,
+                    }}
                   />
                 </div>
               </li>
@@ -822,10 +844,17 @@ function BacktestResult({
                 <div className={styles.bar}>
                   <div
                     className={index === 0 ? styles.barFillTop : styles.barFill}
-                    style={{ width: `${item.score}%` }}
+                    style={{
+                      /* 위와 같은 이유로 '0%'다 (0px → % 는 전환되지 않는다) */
+                      width: grown ? `${item.score}%` : '0%',
+                      /* 위 4축이 다 자란 뒤에 이어서 시작한다 */
+                      transitionDelay: `${360 + index * 70}ms`,
+                    }}
                   />
                 </div>
-                <span className={styles.rankScore}>{item.score.toFixed(1)}</span>
+                <span className={styles.rankScore}>
+                  <CountUp value={item.score} digits={1} />
+                </span>
               </li>
             )
           })}
@@ -840,6 +869,18 @@ function BacktestResult({
       </div>
     </section>
   )
+}
+
+/**
+ * 0에서 목표값까지 올라가는 숫자 하나.
+ *
+ * 컴포넌트로 만든 이유는 **반복문 안에서 훅을 부를 수 없기 때문**이다. 4축·순위처럼
+ * 목록으로 그리는 숫자마다 useCountUp이 필요한데, map 안에서 직접 부르면 그리는 개수에
+ * 따라 훅 순서가 달라져 React가 상태를 뒤섞는다. 낱개를 컴포넌트로 감싸면 각자
+ * 자기 훅을 갖는다.
+ */
+function CountUp({ value, digits = 0 }: { value: number; digits?: number }) {
+  return <>{useCountUp(value).toFixed(digits)}</>
 }
 
 /* -------------------------------------------------------------------- *
