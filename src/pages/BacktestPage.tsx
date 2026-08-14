@@ -97,6 +97,14 @@ export default function BacktestPage() {
    */
   const [serverOptions, setServerOptions] = useState<PresetOption[] | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
+  /**
+   * 실행 요청의 세대 번호.
+   *
+   * 실행은 서버가 그 자리에서 계산하는 것이라 느릴 수 있다. 기다리는 동안 사용자가
+   * 다른 종목으로 바꿔 다시 누르면, 먼저 보낸 응답이 나중에 도착해 **엉뚱한 종목의
+   * 결과 밑에 수치가 꽂힌다.** 보낼 때의 번호를 기억했다가 돌아왔을 때 달라졌으면 버린다.
+   */
+  const runSeqRef = useRef(0)
 
   const selected = investType === null ? null : findInvestType(investType)
   /* 서버 목록이 도착했으면 그걸 쓰고, 아직이면(또는 실패했으면) 사본을 쓴다 */
@@ -146,10 +154,24 @@ export default function BacktestPage() {
   }, [])
 
   /*
+   * 서버 목록이 뒤늦게 도착해 고를 수 있는 기간이 좁아졌으면, 이미 고른 기간을 놓아 준다.
+   *
+   * 전략을 바꿀 때(changeStrategy)는 사본으로 검증하는데 사본이 서버보다 넓을 수 있다.
+   * 그러면 선택칸은 빈칸인데 '시작하기'는 눌리는 상태가 되고, 눌러 봐야 400이 온다.
+   */
+  useEffect(() => {
+    if (period !== null && !periodChoices.includes(period)) {
+      setPeriod(null)
+    }
+  }, [periodChoices, period])
+
+  /*
    * 조건을 건드리면 이전 결과는 더 이상 그 조건의 결과가 아니다.
    * 남겨 두면 화면의 입력과 결과가 어긋난 채로 보인다.
    */
   function clearResult() {
+    // 돌아오는 중인 실행 응답이 있으면 버린다
+    runSeqRef.current += 1
     setPreset(null)
     setRanking([])
     setRun(null)
@@ -196,6 +218,8 @@ export default function BacktestPage() {
   async function handleSubmit() {
     if (stock === null || investType === null || period === null) return
 
+    const seq = (runSeqRef.current += 1)
+
     setIsRunning(true)
     setRunError(null)
     setPreset(null)
@@ -203,12 +227,12 @@ export default function BacktestPage() {
     setRun(null)
 
     try {
-      const [chosen, ...others] = await Promise.all([
-        getPreset(stock.stockCode, investType, period),
-        ...INVEST_TYPES.map((item) =>
-          getPreset(stock.stockCode, item.investType, COMPARE_PERIOD),
-        ),
-      ])
+      /*
+       * 고른 조건 하나와 비교용 다섯을 한 묶음(Promise.all)으로 받다가 나눴다.
+       * 한 묶음이면 곁다리 하나가 400을 맞을 때 **사용자가 실제로 고른 결과까지 함께
+       * 버려진다.** 다섯 성향 중 하나라도 그 종목의 프리셋이 안 적재돼 있으면 그렇게 된다.
+       */
+      const chosen = await getPreset(stock.stockCode, investType, period)
 
       setPreset(chosen)
       /*
@@ -216,7 +240,26 @@ export default function BacktestPage() {
        * 사용자가 고른 '3개월'이 실제로 어느 날부터 어느 날까지였는지는 서버만 안다.
        * 지어낸 날짜를 보내면 프리셋 결과와 다른 구간을 돌려 두 숫자가 어긋난다.
        */
-      void loadRun(stock.stockCode, investType, chosen)
+      void loadRun(stock.stockCode, investType, chosen, seq)
+
+      /* 받은 것만 줄 세운다. 넷만 와도 순위는 그릴 수 있다 */
+      const settled = await Promise.allSettled(
+        INVEST_TYPES.map((item) =>
+          getPreset(stock.stockCode, item.investType, COMPARE_PERIOD),
+        ),
+      )
+      const others = settled
+        .filter((item) => item.status === 'fulfilled')
+        .map((item) => item.value)
+
+      /*
+       * 하나도 못 받으면 종목 성향을 가릴 수 없다. 결과 화면이 그 비교를 중심으로
+       * 짜여 있어 반쪽으로는 그릴 게 없으므로, 예전처럼 에러 화면으로 보낸다.
+       */
+      if (others.length === 0) {
+        throw new Error('종목의 성향을 비교할 자료를 받지 못했습니다.')
+      }
+
       setRanking(
         others
           .map((item) => ({
@@ -247,20 +290,23 @@ export default function BacktestPage() {
     stockCode: string,
     chosenType: number,
     chosen: BacktestPreset,
+    seq: number,
   ) {
     const key = findInvestType(chosenType)?.strategyKey ?? null
     // 짝이 없는 전략이다. 없는 이름을 지어 보내지 않는다
     if (key === null) return
 
     try {
-      setRun(
-        await runBacktest({
-          stockCode,
-          strategyName: key,
-          startDate: chosen.startDate,
-          endDate: chosen.endDate,
-        }),
-      )
+      const result = await runBacktest({
+        stockCode,
+        strategyName: key,
+        startDate: chosen.startDate,
+        endDate: chosen.endDate,
+      })
+
+      // 기다리는 사이에 조건이 바뀌었다. 이 값은 이미 다른 화면의 것이다
+      if (seq !== runSeqRef.current) return
+      setRun(result)
     } catch (error: unknown) {
       console.warn('백테스트 실행 실패', error)
     }

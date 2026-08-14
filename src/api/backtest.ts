@@ -60,8 +60,19 @@ export function getPresetOptions(): Promise<PresetOption[]> {
  * (노션 명세에는 `annulizedReturn`으로 a가 빠져 있는데, **백엔드 코드 쪽이 맞다.**
  * 노션을 고치기로 했으므로 정상 철자 하나만 읽는다.)
  */
-type BacktestRunRaw = Omit<BacktestRun, 'annualizedReturn'> & {
+type BacktestRunRaw = Omit<
+  BacktestRun,
+  'annualizedReturn' | 'investPersonality' | 'recommendPersonality'
+> & {
   annualizedReturn?: number
+  /*
+   * 성향 두 가지도 없을 수 있다. 백엔드 `BacktestResDto.GetInfo`에는 아직 이 필드가
+   * 없고 노션 명세에만 있다. 없으면 undefined로 오는데, 화면이 `!== null`로 거르면
+   * undefined는 그냥 통과해 "이 종목은 undefined에게 어울린다"가 그려진다.
+   * 그런 일이 없도록 창구에서 null로 맞춰 둔다.
+   */
+  investPersonality?: string | null
+  recommendPersonality?: string | null
 }
 
 /**
@@ -85,5 +96,7 @@ export async function runBacktest(
     ...raw,
     /* 없으면 0이 아니라 null이다. 0%는 '못 받았다'와 전혀 다른 뜻이다 */
     annualizedReturn: raw.annualizedReturn ?? null,
+    investPersonality: raw.investPersonality ?? null,
+    recommendPersonality: raw.recommendPersonality ?? null,
   }
 }

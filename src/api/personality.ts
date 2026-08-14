@@ -60,6 +60,19 @@ export async function getQuestions(): Promise<Question[]> {
   if (!USE_BACKEND_QUESTIONS) return sortByIds(MOCK_QUESTIONS)
 
   const { questions } = await get<QuestionListResponse>('/api/personality-tests')
+
+  /*
+   * 빈 목록은 성공이 아니라 실패로 친다.
+   *
+   * 문항은 누가 DB에 직접 넣어야 생긴다(백엔드에 넣는 코드가 없다). 비어 있으면
+   * 서버는 200에 빈 배열을 준다. 그대로 넘기면 화면이 `questions[0]`에서 undefined를
+   * 집어 터지는데, **이 앱에는 ErrorBoundary가 없어서 흰 화면이 된다.**
+   * 여기서 던져야 화면의 catch가 받아 '문항을 불러오지 못했습니다'로 넘어간다.
+   */
+  if (questions === undefined || questions.length === 0) {
+    throw new Error('성향 테스트 문항이 비어 있습니다')
+  }
+
   return sortByIds(questions)
 }
 
