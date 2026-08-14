@@ -168,9 +168,20 @@ export function supportedPeriods(investType: number): BacktestPeriod[] {
   return PERIODS.slice(minIndex).map((item) => item.period)
 }
 
+/**
+ * 기간을 사람이 읽는 말로. 필요할 때만 개월 수를 괄호에 덧붙인다.
+ *
+ * 늘 붙이던 것을 고쳤다. '1년 (12개월)'은 12라는 숫자를 알려 주지만
+ * **'3개월 (3개월)'은 같은 말을 두 번 하는 것**이라 읽는 사람이 잠깐 멈칫한다.
+ * 이름이 이미 개월 수와 같으면 괄호를 생략한다.
+ */
 export function periodLabel(period: BacktestPeriod): string {
   const found = PERIODS.find((item) => item.period === period)
-  return found === undefined ? '' : `${found.label} (${found.months}개월)`
+  if (found === undefined) return ''
+
+  return found.label === `${found.months}개월`
+    ? found.label
+    : `${found.label} (${found.months}개월)`
 }
 
 /**

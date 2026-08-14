@@ -616,11 +616,16 @@ export default function BacktestPage() {
                     ? '투자전략을 먼저 선택해주세요.'
                     : '투자기간을 선택해주세요.'}
                 </option>
+                {/*
+                  이름을 여기서 조립하지 않고 periodLabel에 맡긴다.
+                  직접 `{label} ({months}개월)`로 붙이던 탓에 이 칸만 '3개월 (3개월)'로
+                  나왔다. 같은 표기를 두 곳에서 만들면 한쪽만 고쳐지고 끝난다.
+                */}
                 {PERIODS.filter((item) =>
                   periodChoices.includes(item.period),
                 ).map((item) => (
                   <option key={item.period} value={item.period}>
-                    {item.label} ({item.months}개월)
+                    {periodLabel(item.period)}
                   </option>
                 ))}
               </select>
@@ -1138,29 +1143,65 @@ function BacktestGuide({ selected }: GuideProps) {
       </h2>
 
       <div className={styles.guideCard}>
+        {/*
+          "미래 주가를 예측하는 것"이라고 쓰지 않는다.
+          백테스트는 과거에 대고 **확인**하는 일이지 앞을 맞히는 일이 아니다.
+          예측이라고 적으면 결과를 예언으로 읽게 되는데, 이 화면은 초보자가 보는
+          곳이라 그 오해가 그대로 투자 판단이 된다. 대신 "무엇에 쓰는지"를 적어
+          왜 보는지는 알 수 있게 한다.
+        */}
         <section className={styles.guideSection}>
           <h3 className={styles.guideHeading}>백테스트가 뭔가요?</h3>
           <p className={styles.guideBody}>
             투자 전략을 과거 주가에 그대로 적용해 <b>가상으로</b> 사고팔아 보는
-            거예요. 실제 돈 없이 수익률과 최대 손실을 미리 확인할 수 있어요.
+            거예요. 실제 돈 없이 <b>그 전략이 이 종목에서 통했는지</b> 확인할 수
+            있어요. 앞으로도 그럴 거라는 뜻은 아니지만, 어떤 전략이 이 종목과
+            맞는지 가늠하는 데 씁니다.
           </p>
+        </section>
+
+        {/*
+          채점 기준을 전략 설명보다 앞에 둔다.
+          전략을 고르기 전에 "무엇을 잘해야 점수가 오르는지"를 알아야, 아래 전략들이
+          서로 어떻게 다른지가 비로소 읽힌다. 순서를 뒤집으면 매수·매도 조건만 보고
+          고른 뒤에야 채점 기준을 알게 된다.
+        */}
+        <section className={styles.guideSection}>
+          <h3 className={styles.guideHeading}>점수는 어떻게 나오나요?</h3>
+          <p className={styles.guideBody}>
+            네 가지를 각각 100점으로 매긴 뒤, 전략마다 다른 비중으로 합쳐
+            <b> 적합도</b>를 냅니다.
+          </p>
+          <dl className={styles.axisGuide}>
+            <dt>안정성</dt>
+            <dd>얼마나 안 깨졌나 (최대낙폭·변동성)</dd>
+            <dt>수익성</dt>
+            <dd>얼마나 벌었나 (누적·연평균 수익률)</dd>
+            <dt>효율성</dt>
+            <dd>위험 대비 얼마나 벌었나 (샤프비율)</dd>
+            <dt>성장성</dt>
+            <dd>지금 뜨고 있나 (모멘텀·거래량)</dd>
+          </dl>
         </section>
 
         {/*
           고른 전략이 **언제 사고 언제 파는지**를 적는다. 고르는 일은 왼쪽이 맡으므로
           여기서는 누를 수 있는 것을 두지 않는다.
 
-          아직 안 골랐으면 자리를 비우지 않고 무엇이 들어올지 알린다. 빈칸으로 두면
+          아직 안 골랐으면 자리를 비우지 않고 어디서 고르는지 알린다. 빈칸으로 두면
           고장인지 원래 그런지 알 수 없다.
+          다만 방향은 말하지 않는다 — 좁은 화면에서는 가이드가 오른쪽이 아니라
+          아래로 내려가서 '왼쪽'이 절반은 틀린 말이 된다.
         */}
         <section className={styles.guideSection}>
           <h3 className={styles.guideHeading}>
-            {selected === null ? '전략을 고르면' : selected.strategyName}
+            {selected === null ? '전략 설명' : selected.strategyName}
           </h3>
 
           {selected === null ? (
             <p className={styles.guideBody}>
-              언제 사고 언제 파는지, 얼마나 긴 기간이 필요한지 여기에 적어 드려요.
+              전략을 고르면 언제 사고 언제 파는지, 얼마나 긴 기간이 필요한지 여기에
+              적어 드려요.
             </p>
           ) : (
             <div className={styles.detail}>
@@ -1179,24 +1220,6 @@ function BacktestGuide({ selected }: GuideProps) {
               </span>
             </div>
           )}
-        </section>
-
-        <section className={styles.guideSection}>
-          <h3 className={styles.guideHeading}>점수는 어떻게 나오나요?</h3>
-          <p className={styles.guideBody}>
-            네 가지를 각각 100점으로 매긴 뒤, 전략마다 다른 비중으로 합쳐
-            <b> 적합도</b>를 냅니다.
-          </p>
-          <dl className={styles.axisGuide}>
-            <dt>안정성</dt>
-            <dd>얼마나 안 깨졌나 (최대낙폭·변동성)</dd>
-            <dt>수익성</dt>
-            <dd>얼마나 벌었나 (누적·연평균 수익률)</dd>
-            <dt>효율성</dt>
-            <dd>위험 대비 얼마나 벌었나 (샤프비율)</dd>
-            <dt>성장성</dt>
-            <dd>지금 뜨고 있나 (모멘텀·거래량)</dd>
-          </dl>
         </section>
       </div>
     </aside>
