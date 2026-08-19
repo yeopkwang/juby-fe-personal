@@ -5,11 +5,16 @@
   gap: 12px;
 }
 
+/*
+ * 위 차트 판의 제목(.cardTitle)과 **같은 크기**다. 예전에는 34px이라 종목명(17px)의
+ * 두 배였고, 그래서 종목 화면인데 '뉴스 모아보기'가 제일 크게 읽혔다.
+ * 한쪽만 고치면 다시 어긋나니 StockChartPage.module.css의 사다리 주석을 같이 본다.
+ */
 .heading {
   margin: 0;
-  font-size: var(--fs-4xl);
+  font-size: var(--fs-2xl);
   font-weight: var(--fw-bold);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 .tabs {
@@ -26,10 +31,10 @@
 }
 
 .tab {
-  height: 36px;
-  padding: 0 16px;
+  height: 32px;
+  padding: 0 14px;
   border: 1px solid var(--color-border);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--color-surface);
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
@@ -51,12 +56,12 @@
 }
 
 .list {
-  margin: 20px 0 0;
+  margin: 16px 0 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   /* 정렬을 바꿀 때 흐려졌다 돌아오는 데 쓴다(.listBusy) */
   transition: opacity 160ms ease-out;
 }
@@ -67,23 +72,32 @@
   }
 }
 
+/*
+ * 기사 한 장. 예전에는 제목 20px + 요약 15px + 넉넉한 여백이라 카드 하나가 화면의
+ * 1/6을 먹었고, 그래서 목록이 끝없이 길어 보였다. 기사 제목이 종목명보다 커야 할
+ * 이유가 없으므로 한 단계씩 내리고 여백도 같이 줄였다.
+ */
 .card {
   display: block;
-  padding: 18px 20px;
+  padding: 16px 18px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
   background: var(--color-surface);
-  transition: box-shadow 0.15s, transform 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+/*
+ * 떠오르는(translateY) 대신 테두리만 짙게 한다. 카드가 8px 간격으로 촘촘히 붙어 있어
+ * 한 장이 위로 뜨면 위 카드와 겹쳐 보인다.
+ */
 .card:hover {
-  box-shadow: 0 6px 16px rgba(25, 31, 40, 0.08);
-  transform: translateY(-2px);
+  border-color: var(--color-text-mute);
+  box-shadow: var(--shadow-sm);
 }
 
 .meta {
   margin: 0;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   color: var(--color-text-sub);
 }
 
@@ -93,15 +107,26 @@
 
 .title {
   margin: 6px 0 0;
-  font-size: var(--fs-xl);
+  font-size: var(--fs-lg);
   font-weight: var(--fw-bold);
+  line-height: 1.4;
   letter-spacing: -0.02em;
 }
 
+/*
+ * 카드가 본문 폭(1040px)을 꽉 채우다 보니 요약이 한 줄에 80자 넘게 들어가서,
+ * 줄을 바꿀 때마다 눈이 화면 왼쪽 끝까지 돌아와야 했다. 읽기 좋은 길이에서 끊는다.
+ * 제목도 같이 묶어 두 줄의 왼쪽·오른쪽 끝이 어긋나지 않게 한다.
+ */
+.title,
 .description {
-  margin: 8px 0 0;
-  font-size: var(--fs-md);
-  line-height: 1.55;
+  max-width: 860px;
+}
+
+.description {
+  margin: 6px 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
   color: var(--color-text-sub);
   /* 두 줄까지만 보여주고 넘치면 자른다 */
   display: -webkit-box;
@@ -134,8 +159,8 @@
  */
 .more {
   width: 100%;
-  height: 48px;
-  margin: 16px 0 0;
+  height: 44px;
+  margin: 12px 0 0;
   border: 1px solid var(--color-border);
   border-radius: 10px;
   background: var(--color-surface);
@@ -155,7 +180,7 @@
 
 @media (max-width: 900px) {
   .heading {
-    font-size: var(--fs-3xl);
+    font-size: var(--fs-xl);
   }
 }
 
@@ -167,15 +192,11 @@
     gap: 10px;
   }
 
-  .heading {
-    font-size: var(--fs-2xl);
-  }
-
   .title {
-    font-size: var(--fs-lg);
+    font-size: var(--fs-md);
   }
 
   .card {
-    padding: 16px;
+    padding: 14px 16px;
   }
 }

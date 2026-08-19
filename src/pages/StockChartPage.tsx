@@ -15,24 +15,18 @@ import type { Candle } from '../types/market'
 import type { DailyPrice, StockDetail, StockPeriod } from '../types/stock'
 import styles from './StockChartPage.module.css'
 
-/**
- * 차트에 담을 기간.
+/*
+ * 이 화면이 그리는 건 **일봉 하나뿐**이다.
  *
- * ⚠️ 값이 **단수형**이다(`THREE_MONTH`). 백테스트 쪽 기간은 복수형(`THREE_MONTHS`)이라
- * 같은 백엔드인데도 다르다. 복사해 오지 말 것.
+ * 예전에는 1주·1개월·3개월…7개 버튼으로 기간을 골랐는데, 봉이 한 종류뿐인 화면에서
+ * '3개월'은 "3개월짜리 봉"으로 읽힌다. 그래서 버튼을 걷어내고 차트 위에 '일봉 그래프 보기'
+ * 한 줄만 남겼다. 얼마나 볼지는 버튼 대신 차트를 밀거나 좁혀서 정한다 — 있는 걸 전부 받아 두고
+ * 처음엔 최근 30봉만 열어 두므로(CandleChart의 INITIAL_VISIBLE_BARS) 첫 화면은 그대로다.
+ *
+ * ⚠️ 이 값을 다시 손볼 일이 생기면 `StockPeriod`의 주석을 먼저 읽는다. 백테스트 쪽
+ * 기간과 열거값이 갈려 있어서(단수 `THREE_MONTH` vs 복수 `THREE_MONTHS`) 복사하면 400이 온다.
  */
-const PERIODS: { key: StockPeriod; label: string }[] = [
-  { key: 'ONE_WEEK', label: '1주' },
-  { key: 'ONE_MONTH', label: '1개월' },
-  { key: 'THREE_MONTH', label: '3개월' },
-  { key: 'SIX_MONTH', label: '6개월' },
-  { key: 'ONE_YEAR', label: '1년' },
-  { key: 'THREE_YEAR', label: '3년' },
-  { key: 'ALL', label: '전체' },
-]
-
-/** 예전에 증권사에서 365일치를 받아 오던 것과 같은 범위로 맞춘다 */
-const DEFAULT_PERIOD: StockPeriod = 'ONE_YEAR'
+const CHART_PERIOD: StockPeriod = 'ALL'
 
 /** 백엔드 daily_price 한 줄 → 차트가 읽는 형태. 날짜만 YYYYMMDD로 맞추면 된다 */
 function toCandle(daily: DailyPrice): Candle {
@@ -62,19 +56,18 @@ export default function StockChartPage() {
   const hint = stockCode === undefined ? null : findStock(stockCode)
 
   const [detail, setDetail] = useState<StockDetail | null>(null)
-  const [period, setPeriod] = useState<StockPeriod>(DEFAULT_PERIOD)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (stockCode === undefined) return
 
-    // 종목이나 기간을 빠르게 갈아타면 늦게 온 응답이 최신 응답을 덮어쓸 수 있다
+    // 종목을 빠르게 갈아타면 늦게 온 응답이 최신 응답을 덮어쓸 수 있다
     let isStale = false
     setIsLoading(true)
     setErrorMessage(null)
 
-    getStockDetail(stockCode, period)
+    getStockDetail(stockCode, CHART_PERIOD)
       .then((result) => {
         if (!isStale) setDetail(result)
       })
@@ -93,7 +86,7 @@ export default function StockChartPage() {
     return () => {
       isStale = true
     }
-  }, [stockCode, period])
+  }, [stockCode])
 
   const candles = useMemo(
     () => (detail === null ? [] : detail.dailyPrices.map(toCandle)),
@@ -123,7 +116,7 @@ export default function StockChartPage() {
     )
   }
 
-  // 서버가 모르는 종목코드다. 기간을 바꿔도 소용없으니 화면을 통째로 접는다
+  // 서버가 모르는 종목코드다. 여기서 할 수 있는 게 없으니 화면을 통째로 접는다
   if (errorMessage !== null && detail === null && hint === null) {
     return (
       <section className={styles.section}>
@@ -143,95 +136,100 @@ export default function StockChartPage() {
       <section className={styles.section}>
         {/* 뒤로 가기 말고는 목록으로 돌아갈 길이 없었다 */}
         <Link to="/" className={styles.back}>
-          <span aria-hidden="true">‹</span> 홈으로 돌아가기
+          <span aria-hidden="true" className={styles.backArrow}>
+            ‹
+          </span>
+          홈으로 돌아가기
         </Link>
 
-        <h1 className={styles.identity}>
-          <span className={styles.name}>{stockName}</span>
-          <span className={styles.code}>{stockCode}</span>
-        </h1>
+        {/*
+          왼쪽은 지금 값(이름·코드·현재가·등락률), 오른쪽은 마지막 확정 거래일의 표.
+          성격이 다른 두 덩어리라 좌우로 갈라 놓는다 — 표를 차트 아래에 두었더니
+          현재가에서 차트를 지나 한참 내려가야 시·고·저가 나왔다.
+        */}
+        <header className={styles.head}>
+          <div className={styles.identityBlock}>
+            <h1 className={styles.identity}>
+              <span className={styles.name}>{stockName}</span>
+              <span className={styles.code}>{stockCode}</span>
+            </h1>
 
-        <p className={styles.price}>
-          {formatPrice(detail?.currentPrice ?? null)}
-        </p>
-
-        <p className={styles.change}>
-          전일 대비{' '}
-          <span className={toRateClassName(changeRate)}>
-            {formatChangeRate(changeRate)}
-          </span>
-        </p>
-
-        <div className={styles.periods}>
-          {PERIODS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={
-                period === item.key
-                  ? `${styles.period} ${styles.periodOn}`
-                  : styles.period
-              }
-              onClick={() => setPeriod(item.key)}
-              aria-pressed={period === item.key}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.chartBox}>
-          {errorMessage !== null && (
-            <p className={styles.chartMessage}>차트를 불러오지 못했습니다.</p>
-          )}
-
-          {errorMessage === null && isLoading && candles.length === 0 && (
-            <Skeleton className={styles.chartSkeleton} label="차트를 불러오는 중" />
-          )}
-
-          {errorMessage === null && !isLoading && candles.length === 0 && (
-            <p className={styles.chartMessage}>이 기간에는 거래 기록이 없습니다.</p>
-          )}
-
-          {errorMessage === null && candles.length > 0 && (
-            <CandleChart candles={candles} />
-          )}
-        </div>
-
-        {lastDaily !== null && (
-          <>
-            <dl className={styles.summary}>
-              <div className={styles.summaryItem}>
-                <dt className={styles.summaryLabel}>시가</dt>
-                <dd className={styles.summaryValue}>
-                  {formatPrice(lastDaily.openPrice)}
-                </dd>
-              </div>
-              <div className={styles.summaryItem}>
-                <dt className={styles.summaryLabel}>고가</dt>
-                <dd className={`${styles.summaryValue} ${styles.up}`}>
-                  {formatPrice(lastDaily.highPrice)}
-                </dd>
-              </div>
-              <div className={styles.summaryItem}>
-                <dt className={styles.summaryLabel}>저가</dt>
-                <dd className={`${styles.summaryValue} ${styles.down}`}>
-                  {formatPrice(lastDaily.lowPrice)}
-                </dd>
-              </div>
-              <div className={styles.summaryItem}>
-                <dt className={styles.summaryLabel}>거래량</dt>
-                <dd className={styles.summaryValue}>
-                  {formatVolume(lastDaily.volume)}
-                </dd>
-              </div>
-            </dl>
-
-            <p className={styles.summaryNote}>
-              {toKoreanDate(toPlainYmd(lastDaily.date))} 장 기준
+            <p className={styles.priceRow}>
+              <span className={styles.price}>
+                {formatPrice(detail?.currentPrice ?? null)}
+              </span>
+              <span className={styles.changeLabel}>전일 대비</span>
+              <span className={`${styles.change} ${toRateClassName(changeRate)}`}>
+                {formatChangeRate(changeRate)}
+              </span>
             </p>
-          </>
-        )}
+          </div>
+
+          {lastDaily !== null && (
+            <div className={styles.facts}>
+              {/*
+                날짜를 표의 머리에 박아 둔다. 왼쪽 현재가는 지금 값이고 이 표는
+                지난 장 값이라, 나란히 놓으면 표까지 오늘 것으로 읽히기 때문이다.
+              */}
+              <p className={styles.factsCaption}>
+                {toKoreanDate(toPlainYmd(lastDaily.date))} 장 기준
+              </p>
+
+              <dl className={styles.factsList}>
+                <div className={styles.factsRow}>
+                  <dt className={styles.factsLabel}>시가</dt>
+                  <dd className={styles.factsValue}>
+                    {formatPrice(lastDaily.openPrice)}
+                  </dd>
+                </div>
+                <div className={styles.factsRow}>
+                  <dt className={styles.factsLabel}>고가</dt>
+                  <dd className={`${styles.factsValue} ${styles.up}`}>
+                    {formatPrice(lastDaily.highPrice)}
+                  </dd>
+                </div>
+                <div className={styles.factsRow}>
+                  <dt className={styles.factsLabel}>저가</dt>
+                  <dd className={`${styles.factsValue} ${styles.down}`}>
+                    {formatPrice(lastDaily.lowPrice)}
+                  </dd>
+                </div>
+                <div className={styles.factsRow}>
+                  <dt className={styles.factsLabel}>거래량</dt>
+                  <dd className={styles.factsValue}>
+                    {formatVolume(lastDaily.volume)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
+        </header>
+
+        <div className={styles.card}>
+          {/* 고를 게 없으므로 버튼처럼 보이면 안 된다. 판의 이름표다 */}
+          <h2 className={styles.cardTitle}>일봉 그래프 보기</h2>
+
+          <div className={styles.chartBox}>
+            {errorMessage !== null && (
+              <p className={styles.chartMessage}>차트를 불러오지 못했습니다.</p>
+            )}
+
+            {errorMessage === null && isLoading && candles.length === 0 && (
+              <Skeleton
+                className={styles.chartSkeleton}
+                label="차트를 불러오는 중"
+              />
+            )}
+
+            {errorMessage === null && !isLoading && candles.length === 0 && (
+              <p className={styles.chartMessage}>거래 기록이 없습니다.</p>
+            )}
+
+            {errorMessage === null && candles.length > 0 && (
+              <CandleChart candles={candles} />
+            )}
+          </div>
+        </div>
       </section>
 
       <section className={styles.section}>
