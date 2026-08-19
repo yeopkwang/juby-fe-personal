@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import type { MouseEvent } from 'react'
-import { prefetchCandles } from '../api/candles'
 import type { SortDirection, SortKey, SortState, Stock } from '../types/stock'
 import {
   formatChangeRate,
@@ -106,12 +105,7 @@ export default function StockTable({
           const isFavorite = favoriteCodes.has(stock.stockCode)
 
           return (
-            <li
-              key={stock.stockCode}
-              className={styles.row}
-              /* 마우스를 올린 순간부터 일봉을 받아 둔다. 누를 때쯤이면 차트가 이미 준비된다 */
-              onMouseEnter={() => prefetchCandles(stock.stockCode)}
-            >
+            <li key={stock.stockCode} className={styles.row}>
               <button
                 type="button"
                 className={

@@ -38,7 +38,7 @@ function authHeaders(): Record<string, string> {
  * | --- | --- |
  * | `/api/market/**` | 증권사(KIS) 중계. 계정 정지 경고를 받아 막아 둔 그 경로다 |
  * | `/api/token`, `/api/initiate` | 마찬가지로 KIS를 부른다. 프론트는 원래 안 쓴다 |
- * | `/api/news` | 노션 어느 표에도 없다 |
+ * | `/api/news` | 네이버 검색 중계. 관련도 정렬이 없었다. 종목 뉴스는 `/api/stocks/{code}/news`로 옮겼다 |
  * | `/api/open-ai/ask`, `/v1/ai/sessions` | AI 표에 행이 하나도 없다 |
  * | `/api/guides` | 노션에서 확인하지 못했다 |
  * | `/v1/auth/logout` | 인증 API. 프론트가 건드리지 않기로 했다 |
@@ -48,6 +48,14 @@ function authHeaders(): Record<string, string> {
  *
  * KIS 경로는 노션에 완료로 있더라도 여기 적으면 안 된다. 증권사 계정 문제는
  * 명세와 별개의 사정이라, 백엔드가 다 만들었어도 부르지 않는 것이 맞다.
+ *
+ * ## "KIS를 거치면 무조건 금지"는 아니다 — 문제는 **몰아치기**였다
+ *
+ * `/api/stocks/{stockCode}`는 백엔드에서 KIS 현재가를 **1건** 부른다(나머지 OHLCV는 DB).
+ * 그런데도 허용한 이유는, 계정 경고를 부른 것이 KIS를 거친다는 사실 자체가 아니라
+ * **홈이 102종목을 한 번에 몰아쳐 108건을 만든 것**이었기 때문이다. 상세 화면은
+ * 사용자가 종목 하나를 열 때 1건이고, 심지어 이 창구로 옮기면서 상세의 KIS 호출이
+ * 2건(현재가+일봉)에서 1건으로 **줄었다.** 판단 기준은 경로 이름이 아니라 호출량이다.
  */
 const ALLOWED_PREFIXES = [
   /* 백테스트 — 실행·프리셋·기간 옵션. 백엔드 자기 DB만 읽는다 */
@@ -56,6 +64,15 @@ const ALLOWED_PREFIXES = [
   '/api/personality-tests',
   /* 내 정보 조회·수정·탈퇴, 내 투자성향 조회·변경 */
   '/api/members/me',
+  /*
+   * 종목 상세 — OHLCV 조회, 종목별 뉴스 조회.
+   *
+   * OHLCV는 백엔드 daily_price 테이블, 뉴스는 Pinecone이라 둘 다 자기 데이터다.
+   * 상세 조회가 현재가·전일대비 두 값만 KIS에서 가져오는데, **종목 하나당 1건**이라
+   * 홈(102종목 108건)에서 문제가 됐던 몰아치기와는 성격이 다르다. 오히려 이 창구로
+   * 옮기면서 상세 화면의 KIS 호출이 2건에서 1건으로 줄었다.
+   */
+  '/api/stocks',
 ]
 
 function isAllowed(path: string): boolean {

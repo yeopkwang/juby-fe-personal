@@ -1,6 +1,5 @@
 import { Suspense, lazy } from 'react'
 import { Link } from 'react-router-dom'
-import { prefetchCandles } from '../api/candles'
 import Skeleton from './Skeleton'
 import type { TopStock, TopTheme } from '../types/stock'
 import styles from './TopStockCard.module.css'
@@ -29,7 +28,6 @@ export default function TopStockCard({ theme, stock }: Props) {
     <Link
       to={`/stocks/${theme.stockCode}`}
       className={styles.card}
-      onMouseEnter={() => prefetchCandles(theme.stockCode)}
     >
       <p className={styles.theme}>{theme.theme}</p>
       <p className={styles.name}>{theme.stockName}</p>

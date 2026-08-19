@@ -1,48 +1,104 @@
-import { useState } from 'react'
-import type { NewsItem } from '../types/market'
-import { formatRelativeTime } from '../utils/format'
+import { useEffect, useState } from 'react'
+import { getStockNews } from '../api/stock'
+import type { NewsSort, StockNewsItem } from '../types/stock'
 import styles from './NewsList.module.css'
 
 /**
- * 최신순은 화면에서 직접 정렬하고, 관련도순은 백엔드가 준 순서를 그대로 쓴다.
- * 다만 `/api/news`가 sort 파라미터를 무시하고 늘 최신순 20건만 주고 있어서
- * 지금은 두 순서가 같게 나온다. 백엔드가 sort를 받기 시작하면 그때 갈린다.
+ * 뉴스 모아보기.
+ *
+ * **정렬을 화면에서 하지 않는다.** 탭을 누르면 그 순서로 서버에 다시 물어본다.
+ * 예전에는 백엔드가 최신순 20건만 주고 sort를 무시해서, 관련도순을 눌러도 같은 목록이
+ * 나왔다. 그래서 눌러도 안 바뀌는 걸 감추려고 '준비중입니다'를 띄워 뒀었다.
+ * 2026-08-19에 `GET /api/stocks/{code}/news?sort=`가 생기면서 그 가림막을 걷었다.
+ *
+ * 관련도(RELEVANCE)는 Pinecone 벡터 유사도라 애초에 화면이 흉내 낼 수 있는 값이 아니다.
  */
-type SortKey = 'date' | 'sim'
 
-const TABS: { key: SortKey; label: string }[] = [
-  { key: 'date', label: '최신순' },
-  { key: 'sim', label: '관련도순' },
+const TABS: { key: NewsSort; label: string }[] = [
+  { key: 'LATEST', label: '최신순' },
+  { key: 'RELEVANCE', label: '관련도순' },
 ]
 
-interface Props {
-  news: NewsItem[]
+/** 백엔드가 후보 100건을 10건씩 준다. page는 0~9이고 넘기면 400이 온다 */
+const PAGE_SIZE = 10
+const MAX_PAGE = 9
+
+/** 언론사명이 응답에 없어 링크 도메인으로 대신한다 */
+function toSource(link: string): string {
+  try {
+    return new URL(link).hostname.replace(/^www\./, '')
+  } catch {
+    return '출처 미상'
+  }
 }
 
-export default function NewsList({ news }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>('date')
-  const [notice, setNotice] = useState('')
+interface Props {
+  stockCode: string
+}
+
+export default function NewsList({ stockCode }: Props) {
+  const [sort, setSort] = useState<NewsSort>('LATEST')
+  const [page, setPage] = useState(0)
+  const [items, setItems] = useState<StockNewsItem[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
+
+  useEffect(() => {
+    let isStale = false
+    setIsLoading(true)
+    setHasError(false)
+
+    getStockNews(stockCode, sort, page)
+      .then((result) => {
+        if (isStale) return
+        // 첫 장은 갈아끼우고, '더 보기'로 받은 장은 뒤에 잇는다
+        setItems((previous) =>
+          page === 0 ? result.newsList : [...previous, ...result.newsList],
+        )
+        setTotalCount(result.totalCount)
+      })
+      .catch((error: unknown) => {
+        if (isStale) return
+        console.warn('뉴스 조회 실패', error)
+        setHasError(true)
+      })
+      .finally(() => {
+        if (!isStale) setIsLoading(false)
+      })
+
+    return () => {
+      isStale = true
+    }
+  }, [stockCode, sort, page])
 
   /*
-   * 관련도순은 아직 고를 수 없다. 백엔드가 sort를 무시해 최신순과 결과가 똑같이 나오는데,
-   * 그대로 두면 눌러도 목록이 그대로라 고장으로 보인다. 바꾼 척하느니 준비 중이라고 밝힌다.
-   * 백엔드가 sort를 받기 시작하면 아래 분기만 지우면 된다.
+   * 정렬이 바뀌면 순서 자체가 달라지므로 이어 붙이지 않고 첫 장부터 다시 받는다.
+   *
+   * **여기서 목록을 비우지 않는다.** 예전에는 setItems([])로 즉시 비웠는데, 카드가 사라진
+   * 순간 문서 높이가 2562 → 1102로 무너지면서 브라우저가 스크롤을 700 → 202로 끌어올렸다.
+   * 응답이 오면 목록이 채워지며 700으로 되돌아오지만, 그 사이 1~2초 동안 차트가 보인다.
+   * 최종 위치가 같아 흔적이 안 남는 탓에 "누를 때마다 차트로 올라간다"로 느껴졌다.
+   * 새 목록이 도착할 때까지 이전 것을 그대로 두면 높이가 유지돼 그 일이 없다(A/B로 실측).
+   *
+   * 스크롤 위치를 따로 붙잡아 둘 필요는 없다. 탭 줄 위쪽(차트·시세)은 정렬이 바뀌어도
+   * 그대로라, 높이만 안 무너지면 화면은 저절로 제자리다. 실제로 보정 코드를 넣어 재봤더니
+   * 늘 0px이라 지웠다.
    */
-  function handleTabClick(key: SortKey) {
-    if (key === 'sim') {
-      setNotice('준비중입니다')
-      return
-    }
-    setNotice('')
-    setSortKey(key)
+  function handleTabClick(key: NewsSort) {
+    if (key === sort) return
+    setPage(0)
+    setSort(key)
   }
 
-  const sorted =
-    sortKey === 'sim'
-      ? news
-      : [...news].sort(
-          (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime(),
-        )
+  const hasMore = page < MAX_PAGE && (page + 1) * PAGE_SIZE < totalCount
+
+  /*
+   * 정렬을 바꾸는 중. 첫 장을 받으면서 화면에는 이전 목록이 아직 남아 있는 상태다.
+   * ('더 보기'는 뒤에 이어 붙이는 것이라 여기 해당하지 않는다 — page가 0이 아니다.)
+   * 목록을 그대로 두면 멈춘 것처럼 보이므로 잠깐 흐려서 바뀌는 중임을 알린다.
+   */
+  const isSwitching = isLoading && page === 0 && items.length > 0
 
   return (
     <>
@@ -50,23 +106,17 @@ export default function NewsList({ news }: Props) {
         <h2 className={styles.heading}>뉴스 모아보기</h2>
 
         <div className={styles.tabs}>
-          {notice !== '' && (
-            <span className={styles.notice} role="status">
-              {notice}
-            </span>
-          )}
-
           {TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"
               className={
-                sortKey === tab.key
+                sort === tab.key
                   ? `${styles.tab} ${styles.tabActive}`
                   : styles.tab
               }
               onClick={() => handleTabClick(tab.key)}
-              aria-pressed={sortKey === tab.key}
+              aria-pressed={sort === tab.key}
             >
               {tab.label}
             </button>
@@ -74,23 +124,33 @@ export default function NewsList({ news }: Props) {
         </div>
       </div>
 
-      {sorted.length === 0 && (
+      {hasError && <p className={styles.empty}>뉴스를 불러오지 못했습니다.</p>}
+
+      {!hasError && isLoading && items.length === 0 && (
+        <p className={styles.empty}>불러오는 중…</p>
+      )}
+
+      {!hasError && !isLoading && items.length === 0 && (
         <p className={styles.empty}>관련 뉴스를 찾지 못했습니다.</p>
       )}
 
-      <ul className={styles.list}>
-        {sorted.map((item) => (
-          <li key={item.link}>
+      <ul
+        className={isSwitching ? `${styles.list} ${styles.listBusy}` : styles.list}
+        aria-busy={isSwitching}
+      >
+        {items.map((item) => (
+          <li key={item.originalLink}>
             <a
               className={styles.card}
-              href={item.link}
+              href={item.originalLink}
               target="_blank"
               rel="noreferrer"
             >
               <p className={styles.meta}>
-                {item.source}
+                {toSource(item.originalLink)}
                 <span className={styles.dot}>·</span>
-                {formatRelativeTime(item.publishedAt)}
+                {/* "2시간 전"은 백엔드가 계산해서 준다 */}
+                {item.timeAgo}
               </p>
               <p className={styles.title}>{item.title}</p>
               <p className={styles.description}>{item.description}</p>
@@ -98,6 +158,17 @@ export default function NewsList({ news }: Props) {
           </li>
         ))}
       </ul>
+
+      {hasMore && (
+        <button
+          type="button"
+          className={styles.more}
+          onClick={() => setPage(page + 1)}
+          disabled={isLoading}
+        >
+          {isLoading ? '불러오는 중…' : '뉴스 더 보기'}
+        </button>
+      )}
     </>
   )
 }

@@ -1,22 +1,11 @@
 import { getRaw } from './client'
 import type { Candle, DailyCandleResponse, PriceResponse } from '../types/market'
 
-/**
- * 일봉 조회. 백엔드는 최신 날짜부터 내려주므로 뒤집어서 오름차순으로 돌려준다.
- * @param startDate YYYYMMDD
- * @param endDate   YYYYMMDD
+/*
+ * 여기 있던 getDailyCandles(`/api/market/daily_itemchartprice`, 기간 지정 일봉)는
+ * 2026-08-19에 지웠다. 증권사 **모의투자** 서버를 거쳐 건당 1.5~2.4초가 걸리던 창구인데,
+ * 유일한 사용처였던 상세 화면이 `GET /api/stocks/{stockCode}`(백엔드 DB)로 옮겨 갔다.
  */
-export async function getDailyCandles(
-  stockCode: string,
-  startDate: string,
-  endDate: string,
-): Promise<Candle[]> {
-  const candles = await getRaw<DailyCandleResponse[]>(
-    `/api/market/daily_itemchartprice?stockcode=${stockCode}&startdate=${startDate}&enddate=${endDate}`,
-  )
-
-  return toCandles(candles)
-}
 
 /**
  * 실전 서버로 나가는 요청의 제한 시간.
@@ -30,7 +19,7 @@ const FAST_TIMEOUT = 3_500
 /**
  * 최근 30거래일 일봉. 기간을 못 고르는 대신 **훨씬 빠르다.**
  *
- * 위 getDailyCandles는 증권사 **모의투자** 서버를 거쳐 건당 1.5~2.4초가 걸리는데,
+ * 지금은 지웠지만 기간 지정 일봉은 증권사 **모의투자** 서버를 거쳐 건당 1.5~2.4초였는데,
  * 이 API는 **실전** 서버라 60ms 안팎이다(실측). 홈 카드처럼 최근 흐름만 필요한 곳은
  * 이쪽을 쓴다. 대신 초당 호출 제한이 빡빡해서(EGW00201) 몰아치면 안 되고,
  * 부르는 쪽에서 순차 + withRetry로 감싼다.

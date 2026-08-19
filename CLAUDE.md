@@ -59,16 +59,19 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 
 - 현재가 `/api/market/price` — 실전 서버, 종목당 ~56ms. 하지만 **종목당 1회 호출**이라
   102종목을 몰아치면 60개가 500으로 떨어진다. → `settleInChunks(5개씩, 120ms 간격)` + `withRetry`
-- 일봉 `/api/market/daily_itemchartprice` — **모의투자 서버 중계라 건당 1.5~2.4초.**
-  → `loadCandles()`가 `inFlight` Map으로 동시 중복 요청을 합치고, 목록에서 hover 시
-  `prefetchCandles()`로 미리 받는다. 홈 카드도 상세와 **같은 창구**를 써서 캐시를 공유한다.
+- 일봉 — 예전에는 `/api/market/daily_itemchartprice`(모의투자 서버 중계, 건당 1.5~2.4초)를
+  써서 캐시·hover 미리받기로 버텼다. **2026-08-19에 상세 화면이 `GET /api/stocks/{code}`로
+  옮겨가면서 이 창구를 지웠다.** 지금 `candles.ts`에 남은 것은 홈 카드용
+  `loadRecentCandles()`(실전 서버, 30~90ms) 하나뿐이다.
 
 `shouldStop` 콜백은 "화면을 떠났는가"를 묻는다. 떠난 뒤에도 도는 요청이 다음 화면 요청을
 뒤로 밀어내기 때문에, 긴 루프를 새로 만들면 이 패턴을 따른다.
 
-**백엔드에 `daily_price` 테이블을 읽는 API가 생기면** `candles.ts`의 캐시·prefetch와
-`quoteSnapshot.ts`는 통째로 필요 없어진다. `home.ts`의 `getHomeStocks()`도
-`GET /v1/home`이 생기면 시세까지 담아 반환하도록 바꾸는 게 예정된 방향이다.
+**`daily_price`를 읽는 API가 생겼다** (`GET /api/stocks/{code}`, 2026-08-19). 예고대로
+`candles.ts`의 12시간 캐시와 `prefetchCandles`는 읽는 쪽이 없어져 지웠다. `quoteSnapshot.ts`는
+아직 홈이 쓴다 — 홈은 여전히 `/api/market/price`에 매여 있기 때문이다.
+`home.ts`의 `getHomeStocks()`도 `GET /v1/home`이 생기면 시세까지 담아 반환하도록 바꾸는 게
+예정된 방향이다.
 
 ## 장 시간 처리
 
@@ -105,6 +108,7 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 | `/api/backtest**` | 백테스트 (프리셋·기간 옵션. **둘 다 GET이다**) |
 | `/api/personality-tests` | 투자성향테스트 (문항 조회·결과 제출) |
 | `/api/members/me**` | 마이페이지 (정보·성향 조회/수정/탈퇴) |
+| `/api/stocks/**` | 종목 상세 (OHLCV 조회·종목별 뉴스. **둘 다 GET이다**) |
 
 **막는 목록이 아니라 허용 목록인 것이 핵심이다.** 막는 목록은 빠뜨리면 그 경로가 조용히
 뚫리지만, 허용 목록은 빠뜨려도 안 나갈 뿐이다. 새 API를 붙이면서 여기 적는 걸 잊으면
@@ -116,14 +120,22 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 | --- | --- |
 | `/api/market/**` | **증권사(KIS) 중계.** 홈 한 번이 108건이라 계정 정지 경고를 받았다 |
 | `/api/token`, `/api/initiate` | 마찬가지로 KIS를 부른다. 프론트는 원래 안 쓴다 |
-| `/api/news` | 노션 어느 표에도 없다 |
+| `/api/news` | 네이버 검색 중계라 관련도 정렬이 없었다. 종목 뉴스는 `/api/stocks/{code}/news`로 옮겼다 |
 | `/api/open-ai/ask`, `/v1/ai/**` | AI 표에 행이 하나도 없다 |
 | `/api/guides` | 노션에서 확인하지 못했다 |
 | `/v1/auth/logout` | 인증 API. 프론트가 건드리지 않기로 했다 |
 
 **KIS 경로는 노션에 완료로 있어도 적으면 안 된다.** 증권사 계정 문제는 명세와 별개의
 사정이라, 백엔드가 다 만들었어도 부르지 않는 것이 맞다.
-(백엔드에서 `domain/kis` 패키지를 쓰는 곳을 전수 확인했다 — market·token뿐이고
+
+> ⚠️ **다만 기준은 "KIS를 거치는가"가 아니라 "몰아치는가"다.** `/api/stocks/{code}`는
+> 백엔드에서 KIS 현재가를 **1건** 부르지만 허용했다. 계정 경고를 부른 것은 KIS를 거친다는
+> 사실 자체가 아니라 **홈이 102종목을 한 번에 몰아쳐 108건을 만든 것**이었기 때문이다.
+> 상세는 사용자가 종목 하나를 열 때 1건이고, 오히려 이 창구로 옮기면서 상세의 KIS 호출이
+> 2건(현재가+일봉)에서 **1건으로 줄었다.** `/api/market/**`이 계속 막혀 있는 이유는
+> 그 경로가 KIS라서가 아니라 **홈이 그걸 102번 부르기 때문**이다.
+
+(백엔드에서 `domain/kis` 패키지를 쓰는 곳을 전수 확인했다 — market·token·**stock**이고
 backtest·openai·news·personality_test·member는 참조가 0건이다.)
 
 같은 목록이 `vite.config.ts`의 `server.proxy`에 한 번 더 적혀 있다. 두 번째 자물쇠라
@@ -136,14 +148,15 @@ backtest·openai·news·personality_test·member는 참조가 0건이다.)
 창구**이기 때문이다(전수 확인함). 창구에서 가르면 빠뜨릴 곳이 없고 새로 추가되는 코드까지
 자동으로 걸린다.
 
-### 지금 화면이 어떻게 보이는지 (2026-08-12 브라우저 확인)
+### 지금 화면이 어떻게 보이는지 (2026-08-19 브라우저 확인)
 
 | 화면 | 상태 |
 | --- | --- |
 | 투자성향테스트 | **10문항이 실제로 뜬다.** 백엔드 DB에 문항이 들어왔다 |
 | 백테스트 | 전략 목록이 실제로 뜬다 |
+| **종목 상세** | **차트·시세·뉴스가 전부 실제로 뜬다** (2026-08-19 연결) |
 | 홈 | 종목명·코드는 뜨고 시세는 `-`. **고장이 아니라 KIS 차단 때문이다** |
-| 상세·AI·뉴스·사용설명서 | 각자의 에러/빈 화면. 허용 목록에 없다 |
+| AI·사용설명서 | 각자의 에러/빈 화면. 허용 목록에 없다 |
 | 마이페이지 | 토큰이 있으면 요청은 나간다 |
 
 ## 로그인: 나가는 길만 이어져 있다 (2026-08-14)
@@ -270,6 +283,53 @@ growth  { momentumRatio, volGrowthRatio, positionCount }
 `rsiReversionStrategy`(안정형) / `bollingerBandStrategy`(안정추구형) /
 `smaStrategy`(위험중립형). MACD·돌파는 짝이 없었다. 프리셋은 전략 이름이 아니라
 `investType` 하나로 정해지므로 지금은 이 이름들이 어디에도 필요 없다.
+
+## 종목 상세: `GET /api/stocks/**` 둘 (2026-08-19 연결)
+
+`StockController` 매핑은 둘뿐이다 — `GET /{stockCode}`, `GET /{stockCode}/news`.
+**둘의 성격이 다르니 같이 묶어 생각하지 않는다.**
+
+| | 데이터 출처 | KIS |
+| --- | --- | --- |
+| `/{stockCode}` | OHLCV는 백엔드 **DB(daily_price)**, 현재가·전일대비만 KIS | **1건** |
+| `/{stockCode}/news` | **Pinecone(벡터DB)** | 없음 |
+
+이 창구로 옮기면서 상세 화면의 KIS 호출이 **2건 → 1건**으로 줄었다. 없어진 쪽이 하필
+`daily_itemchartprice`(모의투자 서버, 건당 1.5~2.4초)라 체감도 크게 바뀐다.
+
+### ⚠️ `period` 열거값이 백테스트와 다르다
+
+```
+종목 상세   ONE_WEEK ONE_MONTH THREE_MONTH  SIX_MONTH  ONE_YEAR THREE_YEAR ALL   ← 단수
+백테스트                       THREE_MONTHS SIX_MONTHS ONE_YEAR                  ← 복수
+```
+
+같은 백엔드인데 enum이 둘로 갈려 있다(`domain/stock/enums/Period` vs 백테스트 쪽).
+**복사해 쓰면 400이 온다.** 안 보내면 기본값이 `ALL`(2025-01-02부터, 약 400건)이라
+화면이 쓰는 기간을 반드시 명시한다.
+
+### 뉴스: 정렬을 화면에서 하지 않는다
+
+`sort=LATEST|RELEVANCE`를 서버가 받는다. 탭을 누르면 그 순서로 **다시 물어본다.**
+관련도는 Pinecone 벡터 유사도라 애초에 프론트가 흉내 낼 수 있는 값이 아니다.
+(예전에 `/api/news`가 sort를 무시해서 관련도순 탭에 '준비중입니다'를 띄워 뒀었다.
+그 가림막은 걷어냈다.)
+
+후보 100건을 10건씩 준다 — **`page`는 0~9**이고 넘기면 400이다(`@Min(0) @Max(9)`).
+`title`·`description`에 HTML 태그도 엔티티도 섞여 오지 않는다(확인함). `stripHtml`이 필요 없다.
+`timeAgo`("2시간 전")를 백엔드가 계산해서 주므로 화면은 그대로 쓴다.
+언론사명은 없어서 `originalLink` 도메인으로 대신한다.
+
+### 아직 남은 것: 장 시작 전 `전일 대비 0.00%`
+
+`comparePrev`는 KIS에서 오는 값이라 **장이 열리기 전에는 0.0**이고, 그때 `currentPrice`는
+전일 종가와 같다(2026-08-19 08:57에 실측 — 268,500원 / 0.0, 전일 종가 268,500원).
+홈은 `quoteSnapshot`으로 이미 다루지만 상세는 그대로다.
+
+시·고·저·거래량 네 칸은 이 문제에서 벗어났다. 예전에는 KIS 현재가 응답에서 꺼내 써서
+장 전에 통째로 `-`였는데, 지금은 `dailyPrices`의 **마지막 확정 거래일** 값을 쓴다.
+오늘 것이 아니므로 "8월 18일 장 기준"을 함께 적는다.
+(`dailyPrices`에는 오늘 봉이 아예 안 들어온다 — 확정된 것만 적재된다. `dropUnsettled` 불필요.)
 
 ## 잔가지
 

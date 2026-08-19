@@ -38,25 +38,3 @@ export interface PriceResponse {
   /** 1 상한 2 상승 3 보합 4 하한 5 하락 */
   prdy_vrss_sign: string
 }
-
-/** 네이버 뉴스 검색 응답. title과 description에 <b> 태그와 HTML 엔티티가 섞여 온다 */
-export interface NewsSearchResponse {
-  display: number
-  items: {
-    title: string
-    originallink: string
-    description: string
-    /** "Thu, 06 Aug 2026 09:32:00 +0900" */
-    pubDate: string
-  }[]
-}
-
-/** 태그를 걷어내고 화면에서 쓰기 좋게 바꾼 형태 */
-export interface NewsItem {
-  title: string
-  link: string
-  description: string
-  /** 언론사명 필드가 없어 링크 도메인을 대신 쓴다 */
-  source: string
-  publishedAt: Date
-}

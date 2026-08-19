@@ -36,6 +36,7 @@ export default defineConfig({
             '/api/backtest',
             '/api/personality-tests',
             '/api/members/me',
+            '/api/stocks',
           ]
           if (allowed.some((prefix) => url.startsWith(prefix))) {
             return undefined
