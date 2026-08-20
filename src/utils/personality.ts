@@ -60,3 +60,45 @@ export const PERSONALITY_INFO: Record<
     imageUrl: '/personality/aggressive.svg',
   },
 }
+
+/**
+ * 화면에 늘어놓는 순서. 안정 → 공격으로 위험이 커지는 차례이고,
+ * 백엔드 `InvestPersonality` enum의 선언 순서와도 같다.
+ */
+export const PERSONALITY_ORDER: PersonalityType[] = [
+  '안정형',
+  '안정추구형',
+  '위험중립형',
+  '적극투자형',
+  '공격투자형',
+]
+
+/**
+ * 성향 이름 → `PATCH /api/members/me/personality`가 받는 `personalityId`.
+ *
+ * ⚠️ **확인된 표가 아니라 추정이다.**
+ *
+ * 번호는 백엔드 `Personality` 엔티티의 `@GeneratedValue(IDENTITY)`, 즉 personality
+ * 테이블의 자동 증가 id다. 코드가 정하는 값이 아니라 **누가 어떤 순서로 행을 넣었느냐**로
+ * 정해지는데, 리포지토리에 시드 SQL이 없고(`SQL.sql`에는 daily_price 조회문 한 줄뿐)
+ * 다섯 성향의 번호를 알려주는 API도 없다(`MemberController` 매핑 다섯 개를 전수 확인).
+ *
+ * 확실한 건 범위뿐이다 — 백엔드 `PersonalityErrorCode`가 이렇게 말한다:
+ * "해당 투자성향ID가 존재하지 않습니다. 1 ~ 5 사이의 숫자를 입력해주세요."
+ * 그래서 위 `PERSONALITY_ORDER`(= enum 선언 순서)를 그대로 1~5로 놓았다.
+ *
+ * **틀려도 조용히 넘어가지 않게 화면이 받친다.** MypagePersonalityPage는 변경한 뒤
+ * 반드시 `GET /api/members/me/personality`를 다시 불러 **서버가 실제로 저장한 이름**을
+ * 보여준다. 번호가 어긋나 있으면 고른 것과 다른 이름이 그 자리에 뜬다.
+ * 이 화면을 이제야 붙인 이유가 그 '조용함'이었으므로, 받침을 빼면 안 된다.
+ *
+ * 백엔드에서 `SELECT id, invest_personality FROM personality;` 결과를 받으면
+ * **이 표만 고치면 된다.**
+ */
+export const PERSONALITY_IDS: Record<PersonalityType, number> = {
+  안정형: 1,
+  안정추구형: 2,
+  위험중립형: 3,
+  적극투자형: 4,
+  공격투자형: 5,
+}

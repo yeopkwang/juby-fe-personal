@@ -75,3 +75,145 @@
     margin: 24px auto;
   }
 }
+
+/*
+ * 카드(또는 '검사 전' 안내)와 '직접 고르기'를 세로로 쌓는다.
+ * 카드 자체가 max-width 560px로 가운데 정렬이라 여기서는 폭을 건드리지 않는다.
+ */
+.wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * 검사 없이 직접 고르기.
+ *
+ * 위 카드와 같은 무게로 그리지 않는다. 이 화면의 주인공은 '내 성향'이고 이건 곁길이라,
+ * 테두리 없이 옅은 바탕에만 얹어 한 단계 뒤로 물린다.
+ */
+.picker {
+  /*
+   * 다섯 알약이 한 줄에 들어가는 최소 폭이다(실측 538px + 여유). 560px에서는 '지금'
+   * 배지가 붙은 만큼 넘쳐서 마지막 하나만 다음 줄로 떨어졌는데, 그러면 위험이 낮은
+   * 쪽부터 늘어놓은 순서가 줄바꿈에 끊겨 눈에 안 들어온다.
+   */
+  max-width: 620px;
+  margin: 8px auto 40px;
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--color-bg-sub);
+  text-align: center;
+}
+
+.pickerTitle {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+}
+
+.pickerHint {
+  margin: 8px 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+/*
+ * 다섯 개가 한 줄에 다 들어가지 않는다(가장 긴 '안정추구형'이 알약으로 90px 남짓).
+ * 줄을 억지로 맞추지 않고 wrap으로 흘려보낸다 — 순서만 지켜지면 되는 목록이다.
+ */
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 이 앱에서 고르는 것들(뉴스 정렬 탭·홈 검색)과 같은 알약이다 */
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 19px;
+  background: var(--color-surface);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-sub);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.option:hover:not(:disabled) {
+  border-color: var(--color-text-sub);
+  color: var(--color-text);
+}
+
+/*
+ * 지금 저장된 성향. 누를 수 없으므로(:disabled) 흐려 보이는 게 맞지만, 그러면 '지금'
+ * 배지까지 같이 흐려져 어느 것이 내 성향인지 안 보인다. 색을 뒤집어 또렷하게 남긴다.
+ */
+.optionCurrent:disabled {
+  border-color: var(--color-text);
+  background: var(--color-text);
+  color: var(--color-surface);
+}
+
+/* 바꾸는 중이라 잠긴 것들. 위 .optionCurrent보다 먼저 와야 현재 항목을 덮지 않는다 */
+.option:disabled:not(.optionCurrent) {
+  opacity: 0.45;
+}
+
+.badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+}
+
+/*
+ * 진행·결과 한 줄. **비어 있어도 자리를 지운다(min-height).**
+ * 문구가 나타났다 사라질 때마다 아래 여백이 들썩이면 방금 무슨 일이 있었는지 놓친다.
+ */
+.status {
+  min-height: 20px;
+  margin: 16px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--color-text-sub);
+}
+
+/*
+ * 고른 것과 저장된 것이 다르다. 이 화면에서 유일하게 붉게 칠하는 곳이다 —
+ * 사용자가 자기 성향을 잘못 알고 나가는 것을 막는 마지막 문구라 눈에 띄어야 한다.
+ */
+.mismatch {
+  margin: 4px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--color-up-weak);
+  border-radius: 10px;
+  background: var(--color-surface);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.mismatchTitle {
+  display: block;
+  margin-bottom: 4px;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  color: var(--color-up);
+}
+
+@media (max-width: 600px) {
+  .picker {
+    margin: 4px 16px 32px;
+    padding: 20px 16px;
+  }
+}
