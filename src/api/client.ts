@@ -158,6 +158,51 @@ function redirectToLogin(): void {
   window.location.href = '/login'
 }
 
+/**
+ * 2xx가 아닌 응답. `status`와 서버가 붙인 `code`를 들고 다닌다.
+ *
+ * 부르는 쪽이 **"실패했다"와 "그런 건 없다"를 갈라야 할 때가 있어서** 만들었다.
+ * 예를 들어 성향 조회는 아직 검사하지 않은 회원에게 404 `MEMBER404_2`를 주는데,
+ * 그건 오류 화면이 아니라 '검사하러 가기' 화면으로 보내야 할 신호다.
+ * 상태 코드만으로는 부족하다 — 같은 404라도 `MEMBER404_1`은 진짜 오류다.
+ *
+ * `message`는 예전과 **한 글자도 다르지 않다.** 이 문구를 그대로 제목으로 그리는
+ * 화면이 있어서(StockChartPage), 여기서 바꾸면 그쪽까지 함께 바뀐다.
+ * 서버 문구를 사람 말로 보여주는 일은 따로 다룬다.
+ */
+export class ApiError extends Error {
+  status: number
+  /** 서버가 붙인 코드("MEMBER404_2"). 본문이 그 모양이 아니면 null */
+  code: string | null
+
+  /* 생성자 파라미터 프로퍼티는 쓸 수 없다 — tsconfig의 erasableSyntaxOnly */
+  constructor(message: string, status: number, code: string | null) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
+  }
+}
+
+/**
+ * 실패 응답의 본문에서 코드만 꺼낸다.
+ *
+ * 본문이 없거나 JSON이 아닐 수 있고(게이트웨이가 대신 답하는 경우), 그건 오류가 아니다.
+ * 코드를 못 읽으면 없는 셈 치고 status만으로 판단하게 둔다.
+ */
+async function readErrorCode(response: Response): Promise<string | null> {
+  try {
+    const body: unknown = await response.json()
+    if (typeof body === 'object' && body !== null && 'code' in body) {
+      const { code } = body as { code: unknown }
+      return typeof code === 'string' ? code : null
+    }
+  } catch {
+    /* 본문을 읽지 못했다. status만 들고 간다 */
+  }
+  return null
+}
+
 async function requestJson<T>(
   path: string,
   init?: RequestInit,
@@ -207,7 +252,12 @@ async function requestJson<T>(
     redirectToLogin()
   }
   if (!response.ok) {
-    throw new Error(`요청 실패 (${response.status}) ${path}`)
+    throw new ApiError(
+      // 문구는 그대로 둔다. 화면들이 이 message를 그리고 있어 바꾸면 같이 바뀐다
+      `요청 실패 (${response.status}) ${path}`,
+      response.status,
+      await readErrorCode(response),
+    )
   }
   return (await response.json()) as T
 }

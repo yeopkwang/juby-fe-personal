@@ -1,4 +1,4 @@
-import { get, patch, remove } from './client'
+import { ApiError, get, patch, remove } from './client'
 import type { MemberInfo, PersonalityInfo } from '../types/member'
 
 /**
@@ -17,18 +17,33 @@ export function getMemberInfo(): Promise<MemberInfo> {
 /**
  * 저장된 내 투자성향. 아직 검사하지 않았으면 null.
  *
- * 값이 비는 모양을 넓게 받아준다. 성향을 검사하지 않은 회원(member.personality가 null)에게
- * 서버가 무엇을 돌려주는지 확인되지 않아서다 — 본문이 null일 수도, 필드만 빈 채 올 수도 있다.
+ * **미검사 회원에게 서버는 404를 던진다.** (2026-08-20 백엔드 소스에서 확인 —
+ * `MemberService.getPersonalityInfo`가 `member.getPersonality()`가 null이면
+ * `MemberErrorCode.PERSONALITY_NOT_FOUND`, 즉 404 `MEMBER404_2`를 낸다.)
+ * 그건 오류가 아니라 '아직 안 함'이라는 뜻이므로 여기서 null로 옮긴다.
+ * 그러지 않으면 검사 한 번 안 한 사람이 마이페이지에서
+ * "불러오지 못했습니다 / 로그인이 풀렸을 수 있어요"를 보게 된다.
  *
- * 다만 **통신·서버 오류는 삼키지 않고 던진다.** 부르는 쪽이
+ * 코드까지 보고 가르는 이유는 **같은 404라도 `MEMBER404_1`(회원을 찾을 수 없음)은
+ * 진짜 오류**이기 때문이다. 그건 그대로 던져야 한다.
+ *
+ * 그 밖의 통신·서버 오류도 삼키지 않고 던진다. 부르는 쪽이
  * "아직 검사 안 함"과 "못 불러옴"을 다른 화면으로 보여줘야 하기 때문이다.
- * 서버가 미검사 회원에게 예외를 던지는 쪽이라면 그건 오류로 잡히는데,
- * 어느 쪽인지는 백엔드 확인이 필요하다(전달 사항 3번).
  */
 export async function getMyPersonality(): Promise<PersonalityInfo | null> {
-  const result = await get<PersonalityInfo | null>(
-    '/api/members/me/personality',
-  )
+  let result: PersonalityInfo | null
+  try {
+    result = await get<PersonalityInfo | null>('/api/members/me/personality')
+  } catch (error: unknown) {
+    if (
+      error instanceof ApiError &&
+      error.status === 404 &&
+      error.code === 'MEMBER404_2'
+    ) {
+      return null
+    }
+    throw error
+  }
   // 성향 이름이 없으면 결과 화면을 그릴 수 없다. 없는 것으로 본다
   return result === null || !result.investPersonality ? null : result
 }
@@ -57,13 +72,11 @@ export function updateMemberInfo(
 /**
  * 저장된 투자성향을 다른 것으로 바꾼다. 검사를 다시 풀지 않고 직접 고르는 길이다.
  *
- * ⚠️ **번호를 알아야 부를 수 있다.** 이름('위험중립형')이 아니라 personalityId를 받는데,
- * 그 번호를 알려주는 창구가 **성향테스트 결과 하나뿐이다**(`submitTest`의 응답).
- * 즉 지금은 "방금 검사해서 받은 번호"만 알 수 있고, 다섯 성향의 번호 전체는 모른다.
- * 그래서 화면에 '직접 고르기'를 아직 붙이지 못했다 — 목록을 지어내면 사용자의 성향이
- * 엉뚱한 값으로 바뀌는데, 틀려도 화면에는 성공으로 보인다.
- *
- * 성향 목록을 번호와 함께 주는 API가 생기거나 번호 표를 받으면 그때 화면을 붙인다.
+ * ⚠️ **이름이 아니라 번호(`personalityId`)를 받는다.** 어느 번호가 어느 성향인지
+ * 알려주는 창구가 없어서 `utils/personality.ts`의 `PERSONALITY_IDS`가 추정으로 메운다.
+ * 그 표의 주석을 반드시 읽고 쓴다 — **틀렸을 때 조용히 넘어가지 않게 하는 책임이
+ * 부르는 쪽에 있다.** MypagePersonalityPage는 변경 뒤 `getMyPersonality()`를 다시 불러
+ * 서버가 실제로 저장한 이름을 보여주는 것으로 그 책임을 진다.
  *
  * 응답은 수정 시각 하나뿐이라 화면이 쓸 값이 없다. 바뀐 성향은 다시 조회해서 받는다.
  */
