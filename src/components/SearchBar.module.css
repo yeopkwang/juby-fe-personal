@@ -1,21 +1,34 @@
 /*
- * 폭을 본문 칸에 맞춘다. 예전에는 660px로 가운데 띄워 두어, 아래 카드와 표는 왼쪽 끝에서
- * 시작하는데 검색만 안쪽에서 시작해 세로 기준선이 두 개로 보였다.
+ * 검색은 **가운데 놓인 좁은 칸**이다.
+ *
+ * 한때 본문 폭(1040px)을 꽉 채웠다. 아래 카드·표와 왼쪽 끝을 맞춰 세로 기준선을 하나로
+ * 두려던 것인데, 그 대가로 화면 맨 위에 1040px짜리 회색 덩어리가 놓였다. 검색은 훑어보다
+ * 필요할 때 쓰는 칸이지 이 화면의 주인공이 아닌데, 크기만으로 제일 무거운 것이 됐다.
+ *
+ * 기준선이 둘로 보이던 문제는 폭을 그때(660px)보다 더 줄여서 푼다. 어중간하게 넓으면
+ * '왼쪽이 안 맞는 칸'으로 보이지만, 확실히 좁고 가운데 있으면 '가운데 놓인 검색창'으로
+ * 읽힌다. 아래 것들과 줄을 맞출 대상이 아니라는 게 모양으로 분명해진다.
  */
 .form {
   position: relative;
-  margin: 40px 0 0;
+  /* 종목명 여덟 자와 검색 버튼이 들어가고도 남는 최소치 */
+  max-width: 520px;
+  margin: 40px auto 0;
 }
 
+/*
+ * 알약 모양이다. 이 앱에서 누르는 것들(홈으로 돌아가기·뉴스 정렬 탭)이 이미 알약이라
+ * 새로 들여오는 모양은 아니고, 같은 폭이어도 각진 네모보다 가벼워 보인다.
+ */
 .box {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 58px;
+  gap: 10px;
+  height: 52px;
   /* 오른쪽은 검색 버튼이 안쪽에 앉을 만큼만 띄운다 */
-  padding: 0 7px 0 22px;
+  padding: 0 6px 0 20px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 26px;
   background: var(--color-page-bg);
 }
 
@@ -55,21 +68,22 @@
   color: var(--color-text-sub);
 }
 
+/* 칸이 좁아진 만큼 버튼도 같이 줄인다. 안 줄이면 칸의 절반을 버튼이 먹는다 */
 .button {
   flex-shrink: 0;
-  height: 44px;
-  padding: 0 26px;
+  height: 40px;
+  padding: 0 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--color-surface);
-  box-shadow: 0 1px 3px rgba(25, 31, 40, 0.08);
-  font-size: var(--fs-md);
+  box-shadow: 0 1px 2px rgba(25, 31, 40, 0.07);
+  font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
   color: var(--color-text);
 }
 
 .button:hover {
-  box-shadow: 0 2px 6px rgba(25, 31, 40, 0.12);
+  box-shadow: 0 2px 5px rgba(25, 31, 40, 0.11);
 }
 
 /* 아래 내용을 밀어내지 않도록 띄워서 겹친다 */
@@ -82,7 +96,7 @@
   padding: 6px;
   list-style: none;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--color-surface);
   box-shadow: 0 8px 20px rgba(25, 31, 40, 0.1);
 }
@@ -129,9 +143,10 @@
   }
 
   .box {
-    height: 50px;
-    padding: 0 6px 0 16px;
+    height: 48px;
+    padding: 0 5px 0 16px;
     gap: 8px;
+    border-radius: 24px;
   }
 
   .input {
@@ -140,7 +155,7 @@
 
   .button {
     height: 38px;
-    padding: 0 16px;
-    font-size: var(--fs-md);
+    padding: 0 14px;
+    border-radius: 19px;
   }
 }
