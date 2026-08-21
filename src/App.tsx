@@ -6,6 +6,7 @@ import {
   Routes,
   useLocation,
 } from 'react-router-dom'
+import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
 import ScrollToTop from './components/ScrollToTop'
 import HomePage from './pages/HomePage'
@@ -49,46 +50,53 @@ function Layout() {
 
       <main className={isLoginPage ? styles.bareMain : styles.main}>
         {/*
-          화면 묶음을 받는 동안 자리를 비워 둔다. 스피너를 넣으면 이미 캐시된 뒤에도
-          껌뻑여서, 받아오는 시간이 짧을수록 오히려 어수선해진다.
+          화면 하나가 터져도 헤더는 남긴다. 여기가 아니라 App 바깥에 두면 오류가 났을 때
+          로고·메뉴까지 사라져서, 사용자가 다른 화면으로 옮길 방법이 없어진다.
+          주소가 바뀌면 저절로 다시 펴진다(resetKey).
         */}
-        <Suspense fallback={<div className={styles.routeFallback} />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/ai" element={<AiPage />} />
-            <Route path="/stocks/:stockCode" element={<StockChartPage />} />
-            {/* 사이드바는 MypageLayout이 들고, 오른쪽 내용만 자식 라우트가 갈아끼운다 */}
-            <Route path="/mypage" element={<MypageLayout />}>
+        <ErrorBoundary resetKey={pathname}>
+          {/*
+            화면 묶음을 받는 동안 자리를 비워 둔다. 스피너를 넣으면 이미 캐시된 뒤에도
+            껌뻑여서, 받아오는 시간이 짧을수록 오히려 어수선해진다.
+          */}
+          <Suspense fallback={<div className={styles.routeFallback} />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/ai" element={<AiPage />} />
+              <Route path="/stocks/:stockCode" element={<StockChartPage />} />
+              {/* 사이드바는 MypageLayout이 들고, 오른쪽 내용만 자식 라우트가 갈아끼운다 */}
+              <Route path="/mypage" element={<MypageLayout />}>
+                <Route
+                  index
+                  element={<Navigate to="/mypage/personality" replace />}
+                />
+                <Route path="personality" element={<MypagePersonalityPage />} />
+                <Route path="profile" element={<MypageProfilePage />} />
+              </Route>
+
+              <Route path="/guide" element={<GuidePage />} />
+              <Route path="/backtest" element={<BacktestPage />} />
+
+              {/*
+                투자성향테스트. 예전에는 personality.html이라는 별도 페이지였다.
+                경로 이름을 그때부터 똑같이 맞춰 뒀기 때문에 라우트만 옮겨 붙였고
+                화면 코드는 한 줄도 고치지 않았다.
+              */}
               <Route
-                index
-                element={<Navigate to="/mypage/personality" replace />}
+                path="/personality-test"
+                element={<PersonalityTestPage />}
               />
-              <Route path="personality" element={<MypagePersonalityPage />} />
-              <Route path="profile" element={<MypageProfilePage />} />
-            </Route>
+              <Route
+                path="/personality-test/result"
+                element={<PersonalityResultPage />}
+              />
 
-            <Route path="/guide" element={<GuidePage />} />
-            <Route path="/backtest" element={<BacktestPage />} />
-
-            {/*
-              투자성향테스트. 예전에는 personality.html이라는 별도 페이지였다.
-              경로 이름을 그때부터 똑같이 맞춰 뒀기 때문에 라우트만 옮겨 붙였고
-              화면 코드는 한 줄도 고치지 않았다.
-            */}
-            <Route
-              path="/personality-test"
-              element={<PersonalityTestPage />}
-            />
-            <Route
-              path="/personality-test/result"
-              element={<PersonalityResultPage />}
-            />
-
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
-            <Route path="*" element={<NotReadyPage />} />
-          </Routes>
-        </Suspense>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+              <Route path="*" element={<NotReadyPage />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   )
