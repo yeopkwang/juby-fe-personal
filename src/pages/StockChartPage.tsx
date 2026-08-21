@@ -235,7 +235,28 @@ export default function StockChartPage() {
                     {formatPrice(lastDaily.lowPrice)}
                   </dd>
                 </div>
+                {/*
+                  종가가 빠져 있었다. 시·고·저만 있고 그 장이 **얼마로 끝났는지**가
+                  없었던 셈이라, 하루의 이야기가 결말 없이 끊겼다.
+                  왼쪽 현재가로 대신 읽을 수도 없다 — 그건 오늘 값이고 이건 지난 장이다.
+
+                  고가·저가와 달리 색을 칠하지 않는다. 빨강·파랑은 '오르고 내림'인데
+                  종가의 오르내림은 그 전날과 견줘야 나오는 값이라 여기에 없다.
+                  칠하면 고가는 빨강, 저가는 파랑이라는 뜻과 섞여 잘못 읽힌다.
+                */}
                 <div className={styles.factsRow}>
+                  <dt className={styles.factsLabel}>종가</dt>
+                  <dd className={styles.factsValue}>
+                    {formatPrice(lastDaily.closePrice)}
+                  </dd>
+                </div>
+
+                {/*
+                  factsRowWide는 **좁은 화면에서만** 쓰인다. 3열로 접힐 때 두 번째
+                  줄에 한 자리가 남는데, 거래량이 두 칸을 먹어 그 구멍을 메운다.
+                  넓은 화면에서는 다섯이 한 줄이라 아무 일도 하지 않는다.
+                */}
+                <div className={`${styles.factsRow} ${styles.factsRowWide}`}>
                   <dt className={styles.factsLabel}>거래량</dt>
                   <dd className={styles.factsValue}>
                     {formatVolume(lastDaily.volume)}
