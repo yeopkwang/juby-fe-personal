@@ -1,4 +1,5 @@
-import { ApiError, get, patch, remove } from './client'
+import { get, patch, remove } from './client'
+import { ApiError } from '../utils/error'
 import type { MemberInfo, PersonalityInfo } from '../types/member'
 
 /**

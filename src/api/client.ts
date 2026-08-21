@@ -1,4 +1,10 @@
 import { clearTokens, getAccessToken, isLoggedIn } from '../utils/auth'
+import {
+  ApiError,
+  BlockedPathError,
+  NoResponseError,
+  UserFacingError,
+} from '../utils/error'
 
 /**
  * 공통 fetch 래퍼. baseURL과 토큰 헤더를 여기서만 관리한다.
@@ -159,32 +165,6 @@ function redirectToLogin(): void {
 }
 
 /**
- * 2xx가 아닌 응답. `status`와 서버가 붙인 `code`를 들고 다닌다.
- *
- * 부르는 쪽이 **"실패했다"와 "그런 건 없다"를 갈라야 할 때가 있어서** 만들었다.
- * 예를 들어 성향 조회는 아직 검사하지 않은 회원에게 404 `MEMBER404_2`를 주는데,
- * 그건 오류 화면이 아니라 '검사하러 가기' 화면으로 보내야 할 신호다.
- * 상태 코드만으로는 부족하다 — 같은 404라도 `MEMBER404_1`은 진짜 오류다.
- *
- * `message`는 예전과 **한 글자도 다르지 않다.** 이 문구를 그대로 제목으로 그리는
- * 화면이 있어서(StockChartPage), 여기서 바꾸면 그쪽까지 함께 바뀐다.
- * 서버 문구를 사람 말로 보여주는 일은 따로 다룬다.
- */
-export class ApiError extends Error {
-  status: number
-  /** 서버가 붙인 코드("MEMBER404_2"). 본문이 그 모양이 아니면 null */
-  code: string | null
-
-  /* 생성자 파라미터 프로퍼티는 쓸 수 없다 — tsconfig의 erasableSyntaxOnly */
-  constructor(message: string, status: number, code: string | null) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.code = code
-  }
-}
-
-/**
  * 실패 응답의 본문에서 코드만 꺼낸다.
  *
  * 본문이 없거나 JSON이 아닐 수 있고(게이트웨이가 대신 답하는 경우), 그건 오류가 아니다.
@@ -213,14 +193,14 @@ async function requestJson<T>(
    * 증권사 계정 보호를 위한 조치라 실수로 새어 나가면 안 된다.
    */
   if (!isAllowed(path)) {
-    throw new Error(
+    throw new BlockedPathError(
       `허용 목록에 없는 경로입니다 (src/api/client.ts의 ALLOWED_PREFIXES) ${path}`,
     )
   }
 
   // 방금 전까지 연달아 무응답이었다. 보내봐야 제한 시간만 태운다
   if (Date.now() < breakerUntil) {
-    throw new Error(`서버 무응답 상태 ${path}`)
+    throw new NoResponseError(`서버 무응답 상태 ${path}`)
   }
 
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT
@@ -236,13 +216,16 @@ async function requestJson<T>(
     // 제한 시간 초과든 연결 실패든 '서버에 닿지 못했다'는 점은 같다
     tripBreaker()
     /*
-     * 제한 시간을 넘기면 TimeoutError로 온다. 부르는 쪽은 '왜 실패했는지'가 아니라
-     * '실패했다'만 알면 되므로, 서버가 안 뜬 경우와 같은 모양의 에러로 맞춰 던진다.
+     * 제한 시간을 넘기면 TimeoutError, 서버가 안 떠 있으면 TypeError로 온다.
+     * 부르는 쪽은 '왜 실패했는지'가 아니라 '서버에 닿지 못했다'만 알면 되므로
+     * 한 가지 모양으로 맞춰 던진다. 원인은 cause에 매달아 콘솔에서 볼 수 있게 둔다.
      */
     if (error instanceof DOMException && error.name === 'TimeoutError') {
-      throw new Error(`응답 없음 (${timeoutMs}ms 초과) ${path}`)
+      throw new NoResponseError(`응답 없음 (${timeoutMs}ms 초과) ${path}`, {
+        cause: error,
+      })
     }
-    throw error
+    throw new NoResponseError(`서버에 닿지 못했습니다 ${path}`, { cause: error })
   }
 
   // 상태 코드가 무엇이든 응답이 왔다는 건 서버가 살아 있다는 뜻이다
@@ -253,7 +236,7 @@ async function requestJson<T>(
   }
   if (!response.ok) {
     throw new ApiError(
-      // 문구는 그대로 둔다. 화면들이 이 message를 그리고 있어 바꾸면 같이 바뀐다
+      // 개발자용 문구다. 화면은 utils/error.ts의 toUserMessage를 거쳐 그린다
       `요청 실패 (${response.status}) ${path}`,
       response.status,
       await readErrorCode(response),
@@ -262,10 +245,15 @@ async function requestJson<T>(
   return (await response.json()) as T
 }
 
-/** { isSuccess, result } 래퍼를 벗긴다. 실패 코드는 서버가 준 message로 던진다 */
+/**
+ * { isSuccess, result } 래퍼를 벗긴다. 실패면 서버가 준 message로 던진다.
+ *
+ * 이 문구는 **서버가 사람에게 보여주라고 쓴 한국어**라 그대로 화면에 올려도 된다.
+ * 개발자용 문구와 갈리게 UserFacingError로 감싼다.
+ */
 function unwrap<T>(body: ApiResponse<T>): T {
   if (!body.isSuccess) {
-    throw new Error(body.message)
+    throw new UserFacingError(body.message)
   }
   return body.result
 }

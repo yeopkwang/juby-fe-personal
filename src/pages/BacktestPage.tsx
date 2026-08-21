@@ -17,6 +17,7 @@ import {
   toPercent,
 } from '../utils/backtest'
 import { getPreset, getPresetOptions } from '../api/backtest'
+import { UserFacingError, toUserMessage } from '../utils/error'
 import { useCountUp, useGrown } from '../hooks/useReveal'
 import type { PresetOption } from '../api/backtest'
 import styles from './BacktestPage.module.css'
@@ -358,7 +359,9 @@ export default function BacktestPage() {
        * 짜여 있어 반쪽으로는 그릴 게 없으므로, 예전처럼 에러 화면으로 보낸다.
        */
       if (others.length === 0) {
-        throw new Error('종목의 성향을 비교할 자료를 받지 못했습니다.')
+        throw new UserFacingError(
+          '종목의 성향을 비교할 자료를 받지 못했습니다.',
+        )
       }
 
       /*
@@ -378,11 +381,12 @@ export default function BacktestPage() {
           .sort((left, right) => left.investType - right.investType),
       )
     } catch (error: unknown) {
-      setRunError(
-        error instanceof Error
-          ? error.message
-          : '백테스트 결과를 불러오지 못했습니다.',
-      )
+      /*
+       * 위에서 직접 던진 문구(UserFacingError)는 그대로 나오고, 통신 실패는
+       * 사람 말로 바뀐다. 예전에는 둘을 못 갈라서 "요청 실패 (500) /api/backtest/preset"이
+       * 그대로 화면에 떴다.
+       */
+      setRunError(toUserMessage(error, '백테스트 결과를 찾지 못했습니다.'))
     } finally {
       setIsRunning(false)
     }
@@ -742,9 +746,14 @@ export default function BacktestPage() {
               {isRunning ? '불러오는 중…' : '백테스트 시작하기'}
             </button>
 
+            {/*
+              담긴 문구를 그대로 적는다. 예전에는 runError를 참·거짓으로만 쓰고
+              "잠시 후 다시 눌러주세요"를 항상 띄웠는데, 원인이 '자료가 없다'일 때는
+              기다려도 달라지지 않아 **틀린 안내**였다. 지금은 경우마다 다른 말이 나온다.
+            */}
             {runError !== null && (
               <p className={styles.submitError} role="alert">
-                백테스트 결과를 불러오지 못했어요. 잠시 후 다시 눌러주세요.
+                {runError}
               </p>
             )}
 
