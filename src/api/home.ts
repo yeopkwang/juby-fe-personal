@@ -5,6 +5,7 @@ import { STOCK_LIST } from './stockList'
 import { toYmd } from '../utils/date'
 import { delay, settleInChunks, withRetry } from '../utils/async'
 import { readCache, writeCache } from '../utils/cache'
+import { UserFacingError } from '../utils/error'
 import type { Candle } from '../types/market'
 import type {
   Quote,
@@ -65,6 +66,14 @@ export async function loadTopStocks(
   onEach: (index: number, stock: TopStock) => void,
 ): Promise<void> {
   const loaded: TopStock[] = []
+  /**
+   * 마지막으로 본 실패. 한 장도 못 받았을 때 **이걸 그대로 다시 던진다.**
+   *
+   * 뭉뚱그린 새 에러를 만들면 실패의 종류가 지워져서, 화면이 '다시 시도' 버튼을
+   * 내밀지 말지 판단할 근거를 잃는다. 지금이 딱 그런 경우다 — 카드가 부르는
+   * `/api/market/**`은 허용 목록에 없어서 몇 번을 눌러도 결과가 같다.
+   */
+  let lastError: unknown = null
 
   for (const [index, theme] of TOP_THEMES.entries()) {
     if (index > 0) await delay(CARD_REQUEST_GAP)
@@ -80,6 +89,7 @@ export async function loadTopStocks(
       onEach(index, stock)
     } catch (error: unknown) {
       console.warn(`${theme.stockName} 카드 조회 실패`, error)
+      lastError = error
     }
   }
 
@@ -91,7 +101,10 @@ export async function loadTopStocks(
 
   // 한 장도 못 받았을 때만 실패로 알린다. 부르는 쪽이 에러 화면으로 바꾼다
   if (loaded.length === 0) {
-    throw new Error('테마별 대표 종목을 한 건도 받지 못했습니다')
+    throw (
+      lastError ??
+      new UserFacingError('테마별 대표 종목을 한 건도 받지 못했습니다')
+    )
   }
 }
 

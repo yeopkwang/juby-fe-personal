@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { MouseEvent } from 'react'
+import Skeleton from './Skeleton'
 import type { SortDirection, SortKey, SortState, Stock } from '../types/stock'
 import {
   formatChangeRate,
@@ -16,6 +17,14 @@ interface Props {
   isSortDisabled: boolean
   favoriteCodes: Set<string>
   onHeartClick: (stockCode: string) => void
+  /**
+   * 시세가 아직 오는 중인가.
+   *
+   * 이게 없을 때는 **빈 값과 오는 중인 값이 화면에서 똑같았다.** 둘 다 "-"였다.
+   * 102종목 시세는 다 차는 데 몇 초가 걸리는데, 그동안 표는 거래정지 종목만
+   * 잔뜩 있는 것처럼 보였다. 기다리면 되는 건지 고장인 건지 알 방법이 없었다.
+   */
+  isQuoteLoading: boolean
 }
 
 /**
@@ -45,6 +54,27 @@ function SortIcon({ direction }: { direction: SortDirection | null }) {
   )
 }
 
+/**
+ * 값이 없는 칸에 무엇을 그릴지 고른다.
+ *
+ * 오는 중이면 회색 판, 다 받고도 없으면 "-". **"-"는 "없다"는 뜻으로만 쓴다.**
+ * (거래정지 종목처럼 실제로 값이 없는 경우가 있어서 "-" 자체는 필요하다.)
+ */
+function Cell({
+  value,
+  text,
+  isLoading,
+}: {
+  value: number | null
+  text: string
+  isLoading: boolean
+}) {
+  if (value === null && isLoading) {
+    return <Skeleton className={styles.cellSkeleton} />
+  }
+  return <>{text}</>
+}
+
 function rateClassName(rate: number | null): string {
   if (rate === null) return styles.numeric
   if (isFlatRate(rate)) return `${styles.numeric} ${styles.flat}`
@@ -58,6 +88,7 @@ export default function StockTable({
   isSortDisabled,
   favoriteCodes,
   onHeartClick,
+  isQuoteLoading,
 }: Props) {
   function handleHeartClick(
     event: MouseEvent<HTMLButtonElement>,
@@ -147,13 +178,25 @@ export default function StockTable({
               </span>
 
               <span className={styles.numeric}>
-                {formatPrice(stock.currentPrice)}
+                <Cell
+                  value={stock.currentPrice}
+                  text={formatPrice(stock.currentPrice)}
+                  isLoading={isQuoteLoading}
+                />
               </span>
               <span className={rateClassName(stock.changeRate)}>
-                {formatChangeRate(stock.changeRate)}
+                <Cell
+                  value={stock.changeRate}
+                  text={formatChangeRate(stock.changeRate)}
+                  isLoading={isQuoteLoading}
+                />
               </span>
               <span className={`${styles.numeric} ${styles.colVolume}`}>
-                {formatVolume(stock.volume)}
+                <Cell
+                  value={stock.volume}
+                  text={formatVolume(stock.volume)}
+                  isLoading={isQuoteLoading}
+                />
               </span>
             </li>
           )

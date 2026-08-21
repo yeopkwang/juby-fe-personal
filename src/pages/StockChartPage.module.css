@@ -29,10 +29,37 @@
 
 .backLink {
   display: inline-block;
-  margin-top: 12px;
   font-size: var(--fs-md);
   color: var(--color-text-sub);
   text-decoration: underline;
+}
+
+/* 화면을 접었을 때의 나갈 길 두 개. 나란히 두어 어느 쪽이든 고를 수 있게 한다 */
+.foldActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.foldRetry {
+  height: 40px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-solid);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--color-surface);
+}
+
+.foldRetry:hover:not(:disabled) {
+  background: var(--color-solid-hover);
+}
+
+.foldRetry:disabled {
+  cursor: default;
+  background: var(--color-text-mute);
 }
 
 /*

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import LoadFailure from '../components/LoadFailure'
 import SearchBar from '../components/SearchBar'
 import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
@@ -14,6 +15,7 @@ import {
 import { delay } from '../utils/async'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
+import { isRetryable, toUserMessage } from '../utils/error'
 import { nextSort, sortStocks } from '../utils/sort'
 import type { SortKey, SortState, Stock, TopStock } from '../types/stock'
 import styles from './HomePage.module.css'
@@ -35,7 +37,11 @@ export default function HomePage() {
   const [topStocks, setTopStocks] = useState<(TopStock | null)[]>(
     () => readCachedTopStocks() ?? TOP_THEMES.map(() => null),
   )
-  const [hasTopError, setHasTopError] = useState(false)
+  /** 카드를 한 장도 못 받았을 때 적을 한 문장. 잘 받았으면 null */
+  const [topErrorMessage, setTopErrorMessage] = useState<string | null>(null)
+  /** 다시 눌러 볼 만한 실패였는가. 막힌 경로면 눌러도 결과가 같아 버튼을 안 그린다 */
+  const [canRetryTop, setCanRetryTop] = useState(false)
+  const [isRetryingTop, setIsRetryingTop] = useState(false)
   const [stocks, setStocks] = useState<Stock[]>([])
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [sort, setSort] = useState<SortState | null>(null)
@@ -74,20 +80,43 @@ export default function HomePage() {
     }
   }, [])
 
-  useEffect(() => {
-    // 개발 모드는 effect를 두 번 실행한다. 그대로 두면 일봉 요청이 6건이 되어 서로 제한에 걸린다
-    if (hasStartedTop.current) return
-    hasStartedTop.current = true
+  /**
+   * 카드 세 장을 받는다. 처음 한 번과 '다시 시도'가 같은 길로 지나간다.
+   *
+   * 실패의 종류를 그대로 들고 와야(`isRetryable`) 버튼을 내밀지 말지 정할 수 있다.
+   * 지금 이 경로(`/api/market/**`)는 허용 목록에 없어서 몇 번을 눌러도 결과가 같은데,
+   * 그때 '다시 시도'를 보여주면 사용자는 자기 인터넷을 의심하며 계속 누르게 된다.
+   */
+  const startTopStocks = useCallback(() => {
+    setTopErrorMessage(null)
 
     topStocksRef.current = loadTopStocks((index, stock) => {
       setTopStocks((previous) =>
         previous.map((item, i) => (i === index ? stock : item)),
       )
-    }).catch((error: unknown) => {
-      console.warn('테마별 대표 종목 조회 실패', error)
-      setHasTopError(true)
     })
+      .catch((error: unknown) => {
+        console.warn('테마별 대표 종목 조회 실패', error)
+        setTopErrorMessage(toUserMessage(error, '대표 종목을 찾지 못했습니다'))
+        setCanRetryTop(isRetryable(error))
+      })
+      .finally(() => {
+        setIsRetryingTop(false)
+      })
   }, [])
+
+  useEffect(() => {
+    // 개발 모드는 effect를 두 번 실행한다. 그대로 두면 일봉 요청이 6건이 되어 서로 제한에 걸린다
+    if (hasStartedTop.current) return
+    hasStartedTop.current = true
+
+    startTopStocks()
+  }, [startTopStocks])
+
+  function handleTopRetry() {
+    setIsRetryingTop(true)
+    startTopStocks()
+  }
 
   useEffect(() => {
     /* 저장해 둔 값이 있으면 표가 처음부터 채워진 채로 뜬다. 없으면 '-'로 시작한다 */
@@ -144,9 +173,18 @@ export default function HomePage() {
        */
       await Promise.race([topStocksRef.current, delay(CARD_HEAD_START)])
 
-      await loadQuotes(stocks.slice(0, PAGE_SIZE))
-      await loadQuotes(stocks)
-      setIsQuotesReady(true)
+      /*
+       * finally로 감싸는 이유는 아래 두 가지가 이 한 줄에 매달려 있기 때문이다.
+       * ① 표의 빈 칸이 회색 판(오는 중)에서 "-"(없음)로 넘어가는 시점,
+       * ② 정렬 버튼이 기다리는 대상(handleSort의 await).
+       * 여기서 예외가 새면 표는 영원히 오는 중이고 정렬은 영원히 잠긴다.
+       */
+      try {
+        await loadQuotes(stocks.slice(0, PAGE_SIZE))
+        await loadQuotes(stocks)
+      } finally {
+        setIsQuotesReady(true)
+      }
     })()
   }, [stocks, loadQuotes])
 
@@ -205,8 +243,13 @@ export default function HomePage() {
         <h1 className={styles.heading}>테마별 대표 종목</h1>
 
         {/* 한 장도 못 받았을 때만 에러로 대체한다. 일부라도 왔으면 그건 보여주는 편이 낫다 */}
-        {hasTopError && topStocks.every((stock) => stock === null) ? (
-          <p className={styles.loading}>차트를 불러오지 못했습니다.</p>
+        {topErrorMessage !== null &&
+        topStocks.every((stock) => stock === null) ? (
+          <LoadFailure
+            message={topErrorMessage}
+            onRetry={canRetryTop ? handleTopRetry : undefined}
+            isRetrying={isRetryingTop}
+          />
         ) : (
           <div className={styles.cards}>
             {TOP_THEMES.map((theme, index) => (
@@ -239,6 +282,7 @@ export default function HomePage() {
           sort={sort}
           onSort={handleSort}
           isSortDisabled={isSortLoading}
+          isQuoteLoading={!isQuotesReady}
           favoriteCodes={favoriteCodes}
           onHeartClick={handleHeartClick}
         />

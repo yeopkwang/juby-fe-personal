@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
+import LoadFailure from '../components/LoadFailure'
 import NewsList from '../components/NewsList'
 import Skeleton from '../components/Skeleton'
 import { findStock, getStockDetail } from '../api/stock'
 import { toKoreanDate, toPlainYmd } from '../utils/date'
+import { isRetryable, toUserMessage } from '../utils/error'
 import {
   formatChangeRate,
   formatPrice,
@@ -58,6 +60,15 @@ export default function StockChartPage() {
   const [detail, setDetail] = useState<StockDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  /** 다시 눌러 볼 만한 실패였는가. 없는 종목(404)이면 버튼을 내밀지 않는다 */
+  const [canRetry, setCanRetry] = useState(false)
+  /**
+   * '다시 시도'를 누른 횟수. 이 값이 바뀌면 아래 effect가 한 번 더 돈다.
+   *
+   * 요청 함수를 따로 빼서 부르지 않는 이유는, 그러면 지금 effect가 하고 있는
+   * "늦게 온 응답 버리기"를 그쪽에도 똑같이 만들어야 하기 때문이다. 같은 길로 보낸다.
+   */
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     if (stockCode === undefined) return
@@ -75,9 +86,13 @@ export default function StockChartPage() {
         if (isStale) return
         console.warn('종목 상세 조회 실패', error)
         setDetail(null)
-        setErrorMessage(
-          error instanceof Error ? error.message : '종목을 불러오지 못했습니다.',
-        )
+        /*
+         * 예전에는 `error.message`를 그대로 썼다. 그건 개발자용 문구라
+         * 사용자가 "요청 실패 (500) /api/stocks/005930"을 **제목으로** 봤다.
+         * 무엇이 잘못됐는지도, 다시 눌러 보면 되는지도 알 수 없는 화면이었다.
+         */
+        setErrorMessage(toUserMessage(error, '목록에 없는 종목입니다'))
+        setCanRetry(isRetryable(error))
       })
       .finally(() => {
         if (!isStale) setIsLoading(false)
@@ -86,7 +101,7 @@ export default function StockChartPage() {
     return () => {
       isStale = true
     }
-  }, [stockCode])
+  }, [stockCode, retryCount])
 
   const candles = useMemo(
     () => (detail === null ? [] : detail.dailyPrices.map(toCandle)),
@@ -105,25 +120,51 @@ export default function StockChartPage() {
       ? null
       : detail.dailyPrices[detail.dailyPrices.length - 1]
 
+  /** 다시 시도. 값만 올리면 위 effect가 같은 길로 한 번 더 돈다 */
+  function handleRetry() {
+    setRetryCount((count) => count + 1)
+  }
+
   if (stockCode === undefined) {
     return (
       <section className={styles.section}>
         <h1 className={styles.heading}>목록에 없는 종목입니다</h1>
-        <Link to="/" className={styles.backLink}>
-          홈으로 돌아가기
-        </Link>
+        <div className={styles.foldActions}>
+          <Link to="/" className={styles.backLink}>
+            홈으로 돌아가기
+          </Link>
+        </div>
       </section>
     )
   }
 
-  // 서버가 모르는 종목코드다. 여기서 할 수 있는 게 없으니 화면을 통째로 접는다
+  /*
+   * 목록에도 없고 서버도 모르는 종목코드다. 그릴 이름조차 없으니 화면을 통째로 접는다.
+   *
+   * 접더라도 **나갈 길은 둘 다 준다.** 서버가 잠깐 흔들린 것뿐일 수 있는데(500·무응답)
+   * 그때 홈으로 돌아가기만 있으면 사용자는 방금 누른 종목을 포기해야 한다.
+   * 없는 종목(404)이면 다시 물어도 없으므로 그때는 버튼을 그리지 않는다.
+   */
   if (errorMessage !== null && detail === null && hint === null) {
     return (
       <section className={styles.section}>
         <h1 className={styles.heading}>{errorMessage}</h1>
-        <Link to="/" className={styles.backLink}>
-          홈으로 돌아가기
-        </Link>
+
+        <div className={styles.foldActions}>
+          {canRetry && (
+            <button
+              type="button"
+              className={styles.foldRetry}
+              onClick={handleRetry}
+              disabled={isLoading}
+            >
+              {isLoading ? '불러오는 중…' : '다시 시도'}
+            </button>
+          )}
+          <Link to="/" className={styles.backLink}>
+            홈으로 돌아가기
+          </Link>
+        </div>
       </section>
     )
   }
@@ -210,8 +251,16 @@ export default function StockChartPage() {
           <h2 className={styles.cardTitle}>일봉 그래프 보기</h2>
 
           <div className={styles.chartBox}>
+            {/*
+              이름은 떴는데 차트만 못 받은 경우다(목록에 있는 종목). 화면을 접지 않고
+              차트 자리만 안내로 채운다. 서버가 흔들린 것뿐이면 여기서 바로 다시 받는다.
+            */}
             {errorMessage !== null && (
-              <p className={styles.chartMessage}>차트를 불러오지 못했습니다.</p>
+              <LoadFailure
+                message={errorMessage}
+                onRetry={canRetry ? handleRetry : undefined}
+                isRetrying={isLoading}
+              />
             )}
 
             {errorMessage === null && isLoading && candles.length === 0 && (

@@ -38,12 +38,6 @@
   white-space: nowrap;
 }
 
-.loading {
-  height: 288px;
-  margin: 20px 0 0;
-  color: var(--color-text-sub);
-  font-size: var(--fs-md);
-}
 
 .sentinel {
   height: 40px;

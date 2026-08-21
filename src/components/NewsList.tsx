@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import LoadFailure from './LoadFailure'
 import { getStockNews } from '../api/stock'
+import { isRetryable, toUserMessage } from '../utils/error'
 import type { NewsSort, StockNewsItem } from '../types/stock'
 import styles from './NewsList.module.css'
 
@@ -42,12 +44,16 @@ export default function NewsList({ stockCode }: Props) {
   const [items, setItems] = useState<StockNewsItem[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [hasError, setHasError] = useState(false)
+  /** 못 불러왔을 때 화면에 적을 한 문장. 성공했으면 null */
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [canRetry, setCanRetry] = useState(false)
+  /** '다시 시도'를 누른 횟수. 올리면 아래 effect가 같은 길로 한 번 더 돈다 */
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     let isStale = false
     setIsLoading(true)
-    setHasError(false)
+    setErrorMessage(null)
 
     getStockNews(stockCode, sort, page)
       .then((result) => {
@@ -61,7 +67,8 @@ export default function NewsList({ stockCode }: Props) {
       .catch((error: unknown) => {
         if (isStale) return
         console.warn('뉴스 조회 실패', error)
-        setHasError(true)
+        setErrorMessage(toUserMessage(error, '관련 뉴스를 찾지 못했습니다'))
+        setCanRetry(isRetryable(error))
       })
       .finally(() => {
         if (!isStale) setIsLoading(false)
@@ -70,7 +77,7 @@ export default function NewsList({ stockCode }: Props) {
     return () => {
       isStale = true
     }
-  }, [stockCode, sort, page])
+  }, [stockCode, sort, page, retryCount])
 
   /*
    * 정렬이 바뀌면 순서 자체가 달라지므로 이어 붙이지 않고 첫 장부터 다시 받는다.
@@ -89,6 +96,11 @@ export default function NewsList({ stockCode }: Props) {
     if (key === sort) return
     setPage(0)
     setSort(key)
+  }
+
+  /** 같은 정렬·같은 장을 한 번 더 물어본다 */
+  function handleRetry() {
+    setRetryCount((count) => count + 1)
   }
 
   const hasMore = page < MAX_PAGE && (page + 1) * PAGE_SIZE < totalCount
@@ -124,13 +136,23 @@ export default function NewsList({ stockCode }: Props) {
         </div>
       </div>
 
-      {hasError && <p className={styles.empty}>뉴스를 불러오지 못했습니다.</p>}
+      {/*
+        '더 보기'를 눌렀다가 실패한 경우에는 이미 받아 둔 기사가 화면에 남아 있다.
+        그 위에 안내를 얹어도 앞의 기사들은 그대로 읽을 수 있다.
+      */}
+      {errorMessage !== null && (
+        <LoadFailure
+          message={errorMessage}
+          onRetry={canRetry ? handleRetry : undefined}
+          isRetrying={isLoading}
+        />
+      )}
 
-      {!hasError && isLoading && items.length === 0 && (
+      {errorMessage === null && isLoading && items.length === 0 && (
         <p className={styles.empty}>불러오는 중…</p>
       )}
 
-      {!hasError && !isLoading && items.length === 0 && (
+      {errorMessage === null && !isLoading && items.length === 0 && (
         <p className={styles.empty}>관련 뉴스를 찾지 못했습니다.</p>
       )}
 

@@ -1,0 +1,44 @@
+/*
+ * 자리를 대신 채우는 안내라 **원래 있어야 할 것의 크기를 넘지 않는다.**
+ * 차트 자리에 들어가면 차트 높이 안에서, 뉴스 자리에 들어가면 카드 한 장쯤에서 끝난다.
+ * 그래서 자기 높이를 정하지 않고 부모가 준 만큼만 쓴다.
+ */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 0;
+}
+
+.message {
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--color-text-sub);
+}
+
+/*
+ * 이 앱에서 누르는 것들과 같은 알약이다(홈으로 돌아가기·뉴스 정렬 탭).
+ * 다만 **주인공이 아니다** — 실패는 사용자 잘못이 아니고, 이 버튼이 화면에서
+ * 제일 눈에 띄면 실패가 강조된다. 테두리만 두른 회색으로 조용히 둔다.
+ */
+.retry {
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-sub);
+}
+
+.retry:hover:not(:disabled) {
+  border-color: var(--color-text-sub);
+  color: var(--color-text);
+}
+
+.retry:disabled {
+  cursor: default;
+  color: var(--color-text-mute);
+}

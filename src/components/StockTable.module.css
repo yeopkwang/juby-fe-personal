@@ -204,3 +204,18 @@
     font-size: var(--fs-sm);
   }
 }
+
+/*
+ * 값이 오는 중인 칸. 숫자가 들어올 자리만큼만 회색 판으로 잡아 둔다.
+ *
+ * 폭을 숫자 폭에 맞추지 않고 조금 짧게 둔다. 꽉 채우면 표가 회색 벽처럼 보여서
+ * 오히려 고장 난 것 같다. 오른쪽 정렬을 그대로 따라가도록 inline-block으로 둔다.
+ */
+.cellSkeleton {
+  display: inline-block;
+  width: 52px;
+  height: 13px;
+  border-radius: 4px;
+  /* 글자 기준선에 맞춰 행 높이가 흔들리지 않게 한다 */
+  vertical-align: middle;
+}
