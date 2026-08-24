@@ -28,8 +28,8 @@ export function readQuoteSnapshot(): QuoteSnapshot | null {
 }
 
 /**
- * 받아온 정규장 시세를 저장한다. 표가 20종목을 먼저 받고 나머지를 뒤에 받으므로
- * 나눠서 들어온다. 같은 날짜면 얹고, 날짜가 바뀌었으면 지난 장 값은 버린다.
+ * 받아온 정규장 시세를 저장한다. 부르는 쪽이 나눠서 받으므로 여러 번에 걸쳐 들어온다.
+ * 같은 날짜면 앞서 저장한 것 위에 얹고, 날짜가 바뀌었으면 지난 장 값은 버린다.
  */
 export function saveQuoteSnapshot(date: string, quotes: Map<string, Quote>): void {
   if (quotes.size === 0) return

@@ -17,7 +17,8 @@ const FAST_TIMEOUT = 3_500
  * 최근 30거래일 일봉. 기간을 못 고르는 대신 훨씬 빠르다.
  *
  * 실전 서버라 60ms 안팎이다(지운 기간 지정 일봉은 모의투자 서버라 1.5~2.4초였다).
- * 초당 호출 제한(EGW00201)이 빡빡해 부르는 쪽에서 순차 + withRetry로 감싼다.
+ * 초당 호출 제한(EGW00201)이 빡빡하다. 몰아치면 안 되므로 부르는 쪽이
+ * 순차 + withRetry로 감싸야 한다.
  */
 export async function getRecentCandles(stockCode: string): Promise<Candle[]> {
   const candles = await getRaw<DailyCandleResponse[]>(

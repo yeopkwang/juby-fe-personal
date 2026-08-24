@@ -51,7 +51,7 @@ export async function getQuestions(): Promise<Question[]> {
    *
    * 문항은 누가 DB에 직접 넣어야 생기는데(백엔드에 넣는 코드가 없다) 비어 있으면
    * 서버가 200에 빈 배열을 준다. 그대로 넘기면 화면이 questions[0]에서 터진다.
-   * ErrorBoundary가 받아 주긴 하지만, 여기서 던져야 문구가 정확하다.
+   * 터진 뒤에 수습하는 것보다 여기서 실패로 다루는 쪽이 문구가 정확하다.
    */
   if (questions === undefined || questions.length === 0) {
     throw new Error('성향 테스트 문항이 비어 있습니다')
