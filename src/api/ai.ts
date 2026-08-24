@@ -4,7 +4,7 @@ import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../
 
 /**
  * AI 주가분석 창구. 질문 보내기는 실제로 `/api/open-ai/ask`를 부르고
- * 대화 목록·상세는 아직 mock이다(`/v1/ai/sessions` 4종이 백엔드에 없다).
+ * 대화 목록·상세 둘은 아직 mock이다(`/v1/ai/sessions`가 백엔드에 없다).
  *
  * ⚠️ 답변은 돌아오지 않는다. 백엔드 `OpenAiService.askQuestion()`이 void라 생성한
  * 답변을 로그에 찍고 버린다. 그래도 연결해 두는 편이 낫다 — 질문이 서버까지 닿는지가

@@ -5,7 +5,7 @@ import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
  * 백테스트 창구. 읽기 둘뿐이다.
  *
  * 요청 시점에 계산하지 않는다. 매일 새벽 배치가 종목×성향×기간 조합을 미리 돌려 DB에
- * 넣어 두고 여기서는 읽기만 한다. KIS가 섞이지 않아 다섯 번을 한꺼번에 보내도 된다.
+ * 넣어 두고 여기서는 읽기만 한다. KIS가 섞이지 않아 화면이 여러 건을 몰아 보내도 된다.
  * 로그인도 필요 없다(SecurityConfig가 /api/**를 permitAll).
  *
  * ⚠️ `POST /api/backtest`는 없다. 다시 붙이지 않는다(2026-08-14 확인).
