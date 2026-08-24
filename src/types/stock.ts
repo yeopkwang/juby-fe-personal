@@ -9,10 +9,7 @@ export interface Stock extends StockInfo {
   currentPrice: number | null
   /** 등락률(%). 1.01이면 +1.01% */
   changeRate: number | null
-  /**
-   * 누적 거래량(주). 화면에는 만 단위로 축약한다.
-   * 백엔드 daily_price 테이블에도 같은 이름의 컬럼이 있어, DB 조회 API가 생기면 그대로 받는다.
-   */
+  /** 누적 거래량(주). 화면에는 만 단위로 축약 */
   volume: number | null
 }
 
@@ -56,11 +53,8 @@ export interface TopStock extends StockInfo {
 
 /**
  * 상세 조회 기간.
- *
- * ⚠️ **백테스트의 `BacktestPeriod`와 값이 다르다.** 이쪽은 **단수**(`THREE_MONTH`),
- * 백테스트는 **복수**(`THREE_MONTHS`)다. 같은 백엔드인데 enum이 둘로 갈려 있으니
- * 복사해 쓰지 말 것 — 섞으면 400이 온다.
- * 근거: 백엔드 `domain/stock/enums/Period.java`.
+ * ⚠️ 백테스트의 BacktestPeriod와 값이 다르다. 이쪽은 단수(THREE_MONTH), 백테스트는
+ * 복수(THREE_MONTHS)다. 같은 백엔드인데 enum이 갈려 있어 섞으면 400이 온다.
  */
 export type StockPeriod =
   | 'ONE_WEEK'
@@ -85,12 +79,11 @@ export interface DailyPrice {
 /**
  * 상세 조회 응답.
  *
- * `dailyPrices`는 백엔드 **DB**에서 오고(증권사 아님), `currentPrice`·`comparePrev` 두 개만
- * KIS를 거친다. 그래서 종목 하나당 증권사 호출은 **1건**이다.
+ * dailyPrices는 백엔드 DB에서 오고 currentPrice·comparePrev 두 개만 KIS를 거친다.
+ * 종목 하나당 증권사 호출은 1건이다.
  *
- * ⚠️ **장 시작 전에는 `comparePrev`가 0.0으로 온다**(그때 `currentPrice`는 전일 종가와 같다).
- * 증권사 현재가가 "오늘 장" 기준이라 그렇다. 홈은 quoteSnapshot으로 이미 다루지만
- * 상세는 아직 그대로다.
+ * ⚠️ 장 시작 전에는 comparePrev가 0.0으로 온다(그때 currentPrice는 전일 종가와 같다).
+ * 홈은 quoteSnapshot으로 다루지만 상세는 아직 그대로다.
  */
 export interface StockDetail {
   stockName: string

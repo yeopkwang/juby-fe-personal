@@ -29,10 +29,7 @@ export function toKoreanDate(ymd: string, today: Date = new Date()): string {
 
 /**
  * "2026-08-18" → "20260818"
- *
- * 백엔드 daily_price는 LocalDate(하이픈 있음)로 오는데 이 앱의 날짜는 전부 YYYYMMDD
- * 문자열이다(사전순 비교가 곧 날짜순 비교라는 전제가 여기저기 깔려 있다).
- * 들어오는 길목에서 한 번 맞춰 두면 화면 쪽은 손댈 게 없다.
+ * 백엔드 daily_price만 하이픈 형식으로 온다. 들어오는 길목에서 한 번 맞춰 둔다.
  */
 export function toPlainYmd(dashed: string): string {
   return dashed.replace(/-/g, '')

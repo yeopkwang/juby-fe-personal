@@ -5,7 +5,7 @@ export interface ChatMessage {
   messageId: number
   role: ChatRole
   content: string
-  /** ISO 8601. 백엔드 ChatContent에 생성 시각 필드가 생기면 그 값이 온다 */
+  /** ISO 8601 */
   createdAt: string
 }
 

@@ -23,22 +23,15 @@ import type { PresetOption } from '../api/backtest'
 import styles from './BacktestPage.module.css'
 
 /**
- * 🧪 원래는 GET /api/members/me/personality 로 받는 값이다.
- *
- * 백엔드 호출이 막혀 있어 고정해 둔다. 붙일 때 세 가지를 함께 다뤄야 한다.
- *   1. 이 API는 로그인이 필요하다 (@AuthenticationPrincipal)
- *   2. 토큰 없이 부르면 401이 아니라 **500**이 난다 (서버가 principal에서 id를 바로 꺼낸다)
- *   3. 로그인해도 성향테스트를 안 했으면 비어 있다 (personality 테이블도 아직 비어 있다)
- * 셋 다 "성향 없음"으로 뭉뚱그려 null로 두고, 화면은 성향테스트로 안내한다.
+ * 🧪 원래는 GET /api/members/me/personality로 받는 값인데 고정해 뒀다.
+ * 붙일 때 셋을 함께 다뤄야 한다 — 로그인 필요, 토큰 없이 부르면 401이 아니라 500,
+ * 로그인해도 검사 안 했으면 비어 있음. 셋 다 "성향 없음"(null)으로 뭉뚱그린다.
  */
 const SAVED_PERSONALITY: PersonalityType | null = '안정형'
 
 /**
- * 종목의 성향을 가릴 때 쓰는 기준 기간.
- *
- * 전략 5개의 점수를 견주려면 **같은 기간**이어야 한다. 그런데 전략마다 고를 수 있는
- * 최소 기간이 달라서(이동평균 교차는 6개월부터), 다섯 전략이 모두 갖춘 기간으로 고정한다.
- * 사용자가 3개월을 골라도 종목 성향만은 늘 이 기간으로 비교한다.
+ * 종목의 성향을 가릴 때 쓰는 기준 기간. 전략 5개를 견주려면 같은 기간이어야 하는데
+ * 최소 기간이 제각각이라(이동평균 교차는 6개월부터) 다섯이 모두 갖춘 기간으로 고정한다.
  */
 const COMPARE_PERIOD: BacktestPeriod = 'ONE_YEAR'
 
@@ -65,9 +58,7 @@ export default function BacktestPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   /**
    * 방향키로 짚고 있는 후보의 자리. -1이면 아무것도 안 짚은 상태다.
-   *
-   * '고른 종목'(stock)과 다르다. 이건 아직 고르지 않고 훑고만 있는 것이라
-   * 목록을 닫으면 없던 일이 된다.
+   * '고른 종목'(stock)과 달리 목록을 닫으면 없던 일이 된다.
    */
   const [activeIndex, setActiveIndex] = useState(-1)
   /* 기간 목록도 1단계와 같은 방식으로 연다. 열림 여부와 짚은 자리 */
@@ -75,32 +66,21 @@ export default function BacktestPage() {
   const [periodIndex, setPeriodIndex] = useState(-1)
 
   /*
-   * 전략을 미리 골라 두지 않는다.
-   *
-   * 서버가 성향 번호 하나로 전략까지 정하는 탓에 둘이 한 몸이지만, 그렇다고
-   * "안정형이니까 이 전략"이라고 말할 근거는 없다 — 배정 이유가 백엔드 저장소
-   * 어디에도 적혀 있지 않고, 전략과 채점 저울이 같은 번호에 묶여 있어 서로를
-   * 검증할 수도 없다. 화면이 없는 인과를 지어내지 않도록 전략은 사용자가 직접
-   * 고르게 두고, 성향과 종목을 견주는 일은 결과에서만 한다.
+   * 전략을 미리 골라 두지 않는다. 서버가 성향 번호 하나로 전략까지 정하지만
+   * "안정형이니까 이 전략"이라고 말할 근거가 백엔드 어디에도 없다. 없는 인과를
+   * 지어내지 않도록 전략은 사용자가 고르고, 견주는 일은 결과에서만 한다.
    */
   const [investType, setInvestType] = useState<number | null>(null)
   const [period, setPeriod] = useState<BacktestPeriod | null>(null)
   const [preset, setPreset] = useState<BacktestPreset | null>(null)
-  /**
-   * 서버가 그 자리에서 돌린 결과(POST /api/backtest).
-   *
-   * 위 preset과 따로 두는 이유: 이건 **없어도 화면이 성립한다.** 로그인이 필요하고
-   * 전략에 따라 아예 부르지 못하며, 지금은 서버에 엔드포인트가 없어 늘 실패한다.
-   * 같은 상태에 섞으면 이 하나 때문에 결과 전체가 사라진다.
-   */
+  /* 조회 중·실패 문구·다섯 성향 순위. 셋 다 위 preset을 받아오는 과정의 상태다 */
   const [isRunning, setIsRunning] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
   const [ranking, setRanking] = useState<Ranked[]>([])
 
   /*
-   * 성향별 기간 목록은 서버가 진짜다. 다만 화면이 열리자마자 선택지를 그려야 해서
-   * utils/backtest.ts의 사본으로 먼저 그리고, 응답이 오면 그때 갈아끼운다.
-   * 못 받아도 사본으로 계속 쓸 수 있으니 실패를 화면에 알리지 않는다.
+   * 기간 목록은 서버가 진짜지만 화면이 열리자마자 그려야 해서 사본으로 먼저 그리고
+   * 응답이 오면 갈아끼운다. 못 받아도 사본으로 쓸 수 있어 실패를 알리지 않는다.
    */
   const [serverOptions, setServerOptions] = useState<PresetOption[] | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
@@ -126,7 +106,7 @@ export default function BacktestPage() {
 
   const matches = useMemo(() => {
     const keyword = query.trim()
-    if (keyword === '') return []
+    if (!keyword) return []
     // 고른 종목의 이름이 그대로 적혀 있으면 다시 펼칠 이유가 없다
     if (stock !== null && keyword === stock.stockName) return []
 
@@ -157,10 +137,8 @@ export default function BacktestPage() {
   }, [])
 
   /*
-   * 서버 목록이 뒤늦게 도착해 고를 수 있는 기간이 좁아졌으면, 이미 고른 기간을 놓아 준다.
-   *
-   * 전략을 바꿀 때(changeStrategy)는 사본으로 검증하는데 사본이 서버보다 넓을 수 있다.
-   * 그러면 선택칸은 빈칸인데 '시작하기'는 눌리는 상태가 되고, 눌러 봐야 400이 온다.
+   * 서버 목록이 뒤늦게 도착해 기간이 좁아졌으면 이미 고른 것을 놓아 준다.
+   * 사본이 서버보다 넓으면 선택칸은 빈칸인데 '시작하기'는 눌리는 상태가 된다.
    */
   useEffect(() => {
     if (period !== null && !periodChoices.includes(period)) {
@@ -198,22 +176,13 @@ export default function BacktestPage() {
   /**
    * 검색칸을 키보드만으로 다룬다. ↓↑로 훑고 엔터로 고른다.
    *
-   * ## 엔터가 고르는 대상
+   * 엔터는 방향키로 짚어 둔 것, 없으면 후보가 하나뿐일 때만 그것을 고른다. 여럿
+   * 남았는데 안 짚었으면 아무 일도 안 한다 — 고른 종목이 곧 백테스트 대상이라
+   * 엉뚱한 게 잡히면 다른 종목의 결과를 모른 채 본다('삼성'만 쳐도 일곱 개다).
    *
-   * ① 방향키로 짚어 둔 것이 있으면 그것. ② 없으면 **후보가 하나뿐일 때만** 그것.
-   *
-   * 여럿 남았는데 아무것도 안 짚었으면 아무 일도 하지 않는다. 맨 위를 집어 주는 앱도
-   * 많지만, 여기서는 고른 종목이 곧 백테스트 대상이라 엉뚱한 게 잡히면 사용자가
-   * 모른 채 다른 종목의 결과를 본다. '삼성'만 쳐도 일곱 개가 남는 목록이다.
-   *
-   * ## 방향키에는 조합 검사를 걸지 않는다
-   *
-   * 엔터에만 `isComposing`을 본다. 한글은 마지막 글자가 조합 중인 채로 남아 있어서
-   * ('삼성'의 '성') 방향키까지 막으면 **다 치고 바로 ↓를 눌러도 안 먹는다.**
-   * 방향키는 조합을 끝내면서 이동까지 하는 게 사용자가 기대하는 동작이다.
-   *
-   * 엔터는 반대다. 조합 중의 엔터는 글자를 확정하겠다는 뜻이지 고르겠다는 게 아니다.
-   * 안 거르면 '두산에너빌'을 치다가 바로 골라져 버린다.
+   * isComposing은 엔터에만 본다. 한글은 마지막 글자가 조합 중으로 남아 있어서
+   * ('삼성'의 '성') 방향키까지 막으면 다 치고 ↓를 눌러도 안 먹는다. 반대로 조합
+   * 중의 엔터는 글자를 확정하겠다는 뜻이라, 안 거르면 치다가 바로 골라져 버린다.
    */
   function handleStockKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -261,10 +230,8 @@ export default function BacktestPage() {
   }
 
   /**
-   * 기간 목록의 키보드 조작. 1단계 종목 검색과 같은 규칙이다.
-   *
-   * 다른 점은 **글자를 칠 수 없다**는 것뿐이다. 그래서 한글 조합을 볼 일이 없고
-   * (`isComposing` 검사가 없다), 닫혀 있을 때 ↓를 누르면 열면서 첫 칸을 짚는다.
+   * 기간 목록의 키보드 조작. 1단계 검색과 같은 규칙인데 글자를 칠 수 없어
+   * isComposing 검사가 없고, 닫혀 있을 때 ↓를 누르면 열면서 첫 칸을 짚는다.
    */
   function handlePeriodKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
     if (event.key === 'Escape') {
@@ -319,12 +286,8 @@ export default function BacktestPage() {
 
   /**
    * 고른 조건의 결과 하나와, 종목 성향을 가리기 위한 다섯 전략의 점수를 함께 받는다.
-   *
-   * 둘을 따로 받지 않는 이유는 결과 화면이 두 값을 모두 있어야 그릴 수 있어서다.
-   * 한쪽만 오면 화면이 반쯤 비거나 아무 설명 없이 사라진다.
-   *
-   * 여섯 번을 한꺼번에 보내도 되는 건 전부 DB 조회이기 때문이다(새벽 배치가 미리 계산해 둔다).
-   * KIS를 거치는 홈·상세와 달리 호출 제한이 걸리지 않아 나눠 보낼 이유가 없다.
+   * 결과 화면이 두 값을 모두 있어야 그릴 수 있어서 따로 받지 않는다.
+   * 여섯 번을 한꺼번에 보내도 되는 건 전부 DB 조회라 호출 제한이 없어서다.
    */
   async function handleSubmit() {
     if (stock === null || investType === null || period === null) return
@@ -336,9 +299,8 @@ export default function BacktestPage() {
 
     try {
       /*
-       * 고른 조건 하나와 비교용 다섯을 한 묶음(Promise.all)으로 받다가 나눴다.
-       * 한 묶음이면 곁다리 하나가 400을 맞을 때 **사용자가 실제로 고른 결과까지 함께
-       * 버려진다.** 다섯 성향 중 하나라도 그 종목의 프리셋이 안 적재돼 있으면 그렇게 된다.
+       * 한 묶음(Promise.all)으로 받다가 나눴다. 곁다리 하나가 400을 맞으면 사용자가
+       * 실제로 고른 결과까지 함께 버려지기 때문이다.
        */
       const chosen = await getPreset(stock.stockCode, investType, period)
 
@@ -365,12 +327,10 @@ export default function BacktestPage() {
       }
 
       /*
-       * **점수 순이 아니라 성향 번호 순(안정형 → 공격투자형)으로 세운다.**
-       *
-       * 점수로 줄 세우면 종목마다 순서가 바뀐다. 그러면 볼 때마다 "안정형이 어디 있지"를
-       * 다시 찾아야 하고, 다섯 성향이 원래 순한 것에서 센 것으로 이어지는 한 줄이라는
-       * 것도 안 보인다. 자리를 고정하면 막대 모양만으로 "이 종목은 순한 쪽에 맞는구나"가
-       * 한눈에 읽힌다. 1위는 순서가 아니라 왕관과 색으로 표시한다.
+       * 점수 순이 아니라 성향 번호 순(안정형 → 공격투자형)으로 세운다.
+       * 점수로 줄 세우면 종목마다 순서가 바뀌어 매번 "안정형이 어디 있지"를 찾아야 하고,
+       * 다섯이 순한 것에서 센 것으로 이어지는 한 줄이라는 것도 안 보인다.
+       * 1위는 순서가 아니라 왕관과 색으로 표시한다.
        */
       setRanking(
         others
@@ -381,11 +341,7 @@ export default function BacktestPage() {
           .sort((left, right) => left.investType - right.investType),
       )
     } catch (error: unknown) {
-      /*
-       * 위에서 직접 던진 문구(UserFacingError)는 그대로 나오고, 통신 실패는
-       * 사람 말로 바뀐다. 예전에는 둘을 못 갈라서 "요청 실패 (500) /api/backtest/preset"이
-       * 그대로 화면에 떴다.
-       */
+      // UserFacingError는 그대로, 통신 실패는 사람 말로. 예전엔 개발자용 문구가 그대로 떴다
       setRunError(toUserMessage(error, '백테스트 결과를 찾지 못했습니다.'))
     } finally {
       setIsRunning(false)
@@ -468,10 +424,8 @@ export default function BacktestPage() {
                   onBlur={() => setIsSearchOpen(false)}
                   onKeyDown={handleStockKeyDown}
                   /*
-                   * 화면을 읽어 주는 도구에 '아래에 고를 목록이 딸린 입력칸'이라고 알린다.
-                   * 방향키로 짚은 항목은 aria-activedescendant로 전한다 — 실제 focus는
-                   * 입력칸에 그대로 있어야 글자를 계속 칠 수 있기 때문에, 짚은 자리는
-                   * 이 속성으로만 알릴 수 있다.
+                   * '아래에 고를 목록이 딸린 입력칸'이라고 알린다. focus는 입력칸에
+                   * 있어야 글자를 계속 칠 수 있어서 짚은 자리는 이 속성으로만 전한다.
                    */
                   role="combobox"
                   aria-expanded={isSearchOpen && matches.length > 0}
@@ -513,11 +467,7 @@ export default function BacktestPage() {
                             : styles.match
                         }
                         onClick={() => selectStock(item)}
-                        /*
-                         * 마우스가 지나가면 짚은 자리도 그리로 옮긴다.
-                         * 안 옮기면 키보드가 짚은 칸과 마우스가 얹힌 칸이 따로 밝아져,
-                         * 엔터를 눌렀을 때 어느 쪽이 골라질지 알 수 없다.
-                         */
+                        // 안 옮기면 키보드가 짚은 칸과 마우스가 얹힌 칸이 따로 밝아진다
                         onMouseEnter={() => setActiveIndex(index)}
                       >
                         <span>{item.stockName}</span>
@@ -545,9 +495,8 @@ export default function BacktestPage() {
           <div
             className={styles.field}
             /*
-             * fieldset/legend가 아니라 role="group"이다. fieldset은 브라우저마다
-             * 기본 여백·테두리가 붙고 legend가 flex 안에서 제멋대로 놓여서,
-             * 1·3단계와 줄이 안 맞는다. 묶음이라는 뜻만 필요하므로 이쪽이 안전하다.
+             * fieldset이 아니라 role="group"이다. fieldset은 기본 여백·테두리가 붙고
+             * legend가 flex 안에서 제멋대로 놓여 1·3단계와 줄이 안 맞는다.
              */
             role="group"
             aria-labelledby="backtest-strategy-label"
@@ -813,13 +762,9 @@ function BacktestResult({
   const { result } = preset
 
   /*
-   * 결과가 0에서 자라 올라오게 한다. 여섯 건을 기다린 끝에 완성된 막대가 툭 나타나면
-   * 화면이 뚝딱거리는데, 자라 오르면 기다림의 끝이 결과로 이어져 보인다.
-   * 판정 문구('잘 안 맞아요')는 움직이지 않는다 — 숫자가 오르는 동안 말이 바뀌면
-   * 결론이 흔들리는 것처럼 읽힌다.
-   *
-   * 아래 조기 반환보다 **위에** 있어야 한다. 훅은 그릴 때마다 같은 순서로 불려야 하는데,
-   * return 아래에 두면 어떤 경우엔 불리고 어떤 경우엔 안 불려 순서가 어긋난다.
+   * 결과가 0에서 자라 올라오게 한다. 판정 문구는 움직이지 않는다 — 숫자가 오르는
+   * 동안 말이 바뀌면 결론이 흔들리는 것처럼 읽힌다.
+   * 아래 조기 반환보다 위에 있어야 한다. 훅은 그릴 때마다 같은 순서로 불려야 한다.
    */
   const grown = useGrown()
 
@@ -841,9 +786,8 @@ function BacktestResult({
   const isSame = SAVED_PERSONALITY === bestInfo.personality
 
   /*
-   * 지표를 표로 늘어놓으면 숫자는 보이는데 뜻이 안 보인다. JUBY는 초보자용이라
-   * 용어 자체가 벽이다("샤프비율 1.69"를 읽고 좋은지 나쁜지 알 수 있는 사람은 적다).
-   * 그래서 값마다 한 줄 해설을 붙이고, 어려운 말은 쉬운 이름을 앞세우고 원래 용어를 괄호에 둔다.
+   * 표로 늘어놓으면 숫자는 보이는데 뜻이 안 보인다("샤프비율 1.69"가 좋은지 나쁜지
+   * 아는 사람은 적다). 값마다 한 줄 해설을 붙이고 어려운 말은 괄호로 푼다.
    */
   const metrics: {
     label: string
@@ -994,9 +938,8 @@ function BacktestResult({
                     className={styles.barFill}
                     style={{
                       /*
-                       * 시작값이 '0%'다. 숫자 0으로 두면 React가 '0px'로 그리는데,
-                       * px에서 %로는 브라우저가 중간값을 못 만들어 **전환이 통째로
-                       * 건너뛴다.** 단위를 맞춰야 자란다.
+                       * 시작값이 '0%'다. 숫자 0이면 React가 '0px'로 그리는데 px→%는
+                       * 브라우저가 중간값을 못 만들어 전환이 통째로 건너뛴다.
                        */
                       width: grown ? `${axisScores[axis]}%` : '0%',
                       /* 위에서부터 차례로 자란다. 넷이 한꺼번에 뛰면 그냥 '나타남'이 된다 */
@@ -1123,11 +1066,8 @@ function BacktestResult({
 
 /**
  * 0에서 목표값까지 올라가는 숫자 하나.
- *
- * 컴포넌트로 만든 이유는 **반복문 안에서 훅을 부를 수 없기 때문**이다. 4축·순위처럼
- * 목록으로 그리는 숫자마다 useCountUp이 필요한데, map 안에서 직접 부르면 그리는 개수에
- * 따라 훅 순서가 달라져 React가 상태를 뒤섞는다. 낱개를 컴포넌트로 감싸면 각자
- * 자기 훅을 갖는다.
+ * 컴포넌트로 만든 건 반복문 안에서 훅을 부를 수 없어서다 — map 안에서 직접 부르면
+ * 그리는 개수에 따라 훅 순서가 달라져 React가 상태를 뒤섞는다.
  */
 function CountUp({ value, digits = 0 }: { value: number; digits?: number }) {
   return <>{useCountUp(value).toFixed(digits)}</>
@@ -1138,14 +1078,10 @@ function CountUp({ value, digits = 0 }: { value: number; digits?: number }) {
  * -------------------------------------------------------------------- */
 
 /**
- * 읽는 곳이다. **여기서는 아무것도 고를 수 없다.**
- *
- * 예전에는 이 안에 누를 수 있는 전략 목록이 있었다. 왼쪽 드롭다운이 이름만 보여주던
- * 시절, 고를 근거를 읽을 수 있는 곳이 여기뿐이라 목록을 그대로 버튼으로 만든 것이었다.
- * 이제 왼쪽 카드가 이름과 설명을 함께 보여주므로 고르는 일은 그쪽 하나로 모았다.
- *
- * 여기 남은 것은 셋이다 — 백테스트가 뭔지, **고른 전략이 언제 사고 파는지**,
- * 점수가 어떻게 나오는지. 셋 다 왼쪽과 겹치지 않는다.
+ * 읽는 곳이다. 여기서는 아무것도 고를 수 없다.
+ * 예전에는 누를 수 있는 전략 목록이 있었지만, 왼쪽 카드가 이름과 설명을 함께 보여주게
+ * 되면서 고르는 일은 그쪽으로 모았다. 남은 것은 백테스트가 뭔지, 고른 전략이 언제
+ * 사고 파는지, 점수가 어떻게 나오는지 셋이다.
  */
 function BacktestGuide() {
   return (

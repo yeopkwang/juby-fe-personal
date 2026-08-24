@@ -2,13 +2,8 @@ import { delay } from '../utils/async'
 import type { GuideSection } from '../types/guide'
 
 /*
- * 사용설명서 창구.
- *
- *   USE_BACKEND_GUIDE  false → 아래 MOCK_SECTIONS / true → GET /api/guides
- *
- * 지금은 false다. 백엔드에 설명서 API도 테이블도 없다(Swagger에 /api/guides가 없음).
- * 글이 DB로 들어오면 이 플래그만 true로 바꾼다. 응답을 MOCK_SECTIONS와 같은 모양으로
- * 맞춰 두면 화면 코드는 손대지 않아도 된다.
+ * 사용설명서 창구. false면 아래 MOCK_SECTIONS, true면 GET /api/guides.
+ * 지금 false인 건 백엔드에 설명서 API도 테이블도 없어서다.
  */
 const USE_BACKEND_GUIDE = false
 

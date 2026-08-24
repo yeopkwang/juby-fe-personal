@@ -141,7 +141,7 @@ export default function PersonalityTestPage() {
           })}
         </div>
 
-        {submitError !== '' && (
+        {submitError && (
           <p className={styles.submitError} role="alert">
             {submitError}
           </p>

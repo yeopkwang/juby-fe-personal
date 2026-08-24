@@ -21,62 +21,38 @@ interface ApiResponse<T> {
 
 function authHeaders(): Record<string, string> {
   const token = getAccessToken()
-  return token === null ? {} : { Authorization: `Bearer ${token}` }
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 /**
- * ✅ 나갈 수 있는 경로 목록. **여기 없으면 못 나간다.**
+ * ✅ 나갈 수 있는 경로 목록. 여기 없으면 못 나간다.
  *
- * 막는 목록이 아니라 **허용 목록**인 것이 핵심이다. 둘은 실수했을 때가 다르다.
- * 막는 목록은 빠뜨리면 그 경로가 조용히 뚫리고, 허용 목록은 빠뜨려도 안 나갈 뿐이다.
- * 새 API를 붙이는 사람이 여기 적는 걸 잊으면 화면이 바로 실패하니 눈에 띈다.
- * 잘못될 방향이 안전한 쪽인 구조를 고른다.
+ * 막는 목록이 아니라 허용 목록인 것이 핵심이다. 막는 목록은 빠뜨리면 그 경로가 조용히
+ * 뚫리지만, 허용 목록은 빠뜨려도 안 나갈 뿐이라 화면이 바로 실패해서 눈에 띈다.
+ * 잘못될 방향이 안전한 쪽인 구조를 고른 것이다.
  *
- * ## 기준: 팀 노션의 '완료' 표. 스웨거가 아니다.
+ * 기준은 팀 노션의 '완료' 표다. 스웨거에는 개발 중인 것까지 올라와 있어서
+ * 그걸 보고 붙였다가 백엔드가 만들지도 않은 API를 부른 적이 있다.
  *
- * 스웨거에는 아직 개발 중인 것까지 다 올라와 있어서, 그걸 보고 붙이면 백엔드가
- * 만들지도 않은 API를 부르게 된다. 실제로 그렇게 붙였다가 되돌린 것들이 있다.
- * **명세의 근거는 노션 한 곳뿐이고, 노션에 '완료'로 찍힌 것만 여기 적는다.**
+ * 빠져 있는 것들: `/api/market/**`·`/api/token`·`/api/initiate`(KIS 중계, 계정 정지
+ * 경고를 받은 그 경로), `/api/news`(네이버 중계, 관련도 정렬이 없었다),
+ * `/api/open-ai/ask`·`/v1/ai/**`(AI 표에 행이 없다), `/api/guides`(노션에서 확인 못 함),
+ * `/v1/auth/logout`(인증 API, 프론트가 안 건드리기로 했다).
+ * KIS 경로는 노션에 완료로 있어도 여기 적으면 안 된다.
  *
- * ## 지금 목록에 없는 것들 (부르면 안 된다)
- *
- * | 경로 | 왜 빠졌나 |
- * | --- | --- |
- * | `/api/market/**` | 증권사(KIS) 중계. 계정 정지 경고를 받아 막아 둔 그 경로다 |
- * | `/api/token`, `/api/initiate` | 마찬가지로 KIS를 부른다. 프론트는 원래 안 쓴다 |
- * | `/api/news` | 네이버 검색 중계. 관련도 정렬이 없었다. 종목 뉴스는 `/api/stocks/{code}/news`로 옮겼다 |
- * | `/api/open-ai/ask`, `/v1/ai/sessions` | AI 표에 행이 하나도 없다 |
- * | `/api/guides` | 노션에서 확인하지 못했다 |
- * | `/v1/auth/logout` | 인증 API. 프론트가 건드리지 않기로 했다 |
- *
- * 막힌 요청은 '실패'로 떨어진다. 화면들은 이미 실패를 다루게 되어 있어서
- * 홈은 저장해 둔 지난 시세로, 나머지는 각자의 에러 안내로 넘어간다.
- *
- * KIS 경로는 노션에 완료로 있더라도 여기 적으면 안 된다. 증권사 계정 문제는
- * 명세와 별개의 사정이라, 백엔드가 다 만들었어도 부르지 않는 것이 맞다.
- *
- * ## "KIS를 거치면 무조건 금지"는 아니다 — 문제는 **몰아치기**였다
- *
- * `/api/stocks/{stockCode}`는 백엔드에서 KIS 현재가를 **1건** 부른다(나머지 OHLCV는 DB).
- * 그런데도 허용한 이유는, 계정 경고를 부른 것이 KIS를 거친다는 사실 자체가 아니라
- * **홈이 102종목을 한 번에 몰아쳐 108건을 만든 것**이었기 때문이다. 상세 화면은
- * 사용자가 종목 하나를 열 때 1건이고, 심지어 이 창구로 옮기면서 상세의 KIS 호출이
- * 2건(현재가+일봉)에서 1건으로 **줄었다.** 판단 기준은 경로 이름이 아니라 호출량이다.
+ * 다만 기준은 'KIS를 거치는가'가 아니라 '몰아치는가'다. `/api/stocks/{code}`는 KIS를
+ * 1건 부르지만 허용했다 — 경고를 부른 건 홈이 102종목을 몰아쳐 108건을 만든 것이었다.
  */
 const ALLOWED_PREFIXES = [
-  /* 백테스트 — 실행·프리셋·기간 옵션. 백엔드 자기 DB만 읽는다 */
+  /* 백테스트 — 프리셋·기간 옵션. 백엔드 자기 DB만 읽는다 */
   '/api/backtest',
   /* 성향테스트 문항 조회·결과 제출 */
   '/api/personality-tests',
   /* 내 정보 조회·수정·탈퇴, 내 투자성향 조회·변경 */
   '/api/members/me',
   /*
-   * 종목 상세 — OHLCV 조회, 종목별 뉴스 조회.
-   *
-   * OHLCV는 백엔드 daily_price 테이블, 뉴스는 Pinecone이라 둘 다 자기 데이터다.
-   * 상세 조회가 현재가·전일대비 두 값만 KIS에서 가져오는데, **종목 하나당 1건**이라
-   * 홈(102종목 108건)에서 문제가 됐던 몰아치기와는 성격이 다르다. 오히려 이 창구로
-   * 옮기면서 상세 화면의 KIS 호출이 2건에서 1건으로 줄었다.
+   * 종목 상세 — OHLCV(백엔드 daily_price), 종목별 뉴스(Pinecone).
+   * 현재가·전일대비만 KIS인데 종목 하나당 1건이라 홈의 몰아치기와 성격이 다르다.
    */
   '/api/stocks',
 ]
@@ -88,30 +64,22 @@ function isAllowed(path: string): boolean {
 /**
  * 응답을 이만큼 기다려도 안 오면 실패로 친다.
  *
- * fetch는 기본적으로 기다리는 시간에 제한이 없다. 백엔드가 멈춰 서면(응답도 거절도 안 하면)
- * 화면은 로딩 자리 그대로 영원히 앉아 있고, 실패했을 때 쓰라고 만들어 둔 대체 값도
- * 영영 쓰이지 않는다. 실제로 서버가 죽었을 때 홈이 통째로 '-'가 되는 걸 이 방식으로 겪었다.
- *
- * 12초는 가장 느린 요청(일봉 1.5~2.4초)에 맞춘 값이다. 빠른 API를 부르는 쪽은
- * timeoutMs로 훨씬 짧게 잡는다 — 56ms짜리를 12초씩 기다릴 이유가 없다.
+ * fetch는 기다리는 시간에 제한이 없어서, 백엔드가 응답도 거절도 안 하면 화면이 로딩
+ * 자리에 영원히 앉는다(서버가 죽었을 때 실제로 겪었다). 12초는 가장 느린 요청에 맞춘
+ * 값이고, 빠른 API를 부르는 쪽은 timeoutMs로 훨씬 짧게 잡는다.
  */
 const DEFAULT_TIMEOUT = 12_000
 
 /**
  * 서버가 통째로 응답을 멈췄을 때 요청마다 제한 시간을 다 채우지 않게 하는 차단기.
  *
- * 서버가 죽는 방식이 두 가지인데 체감이 전혀 다르다. 연결을 거절(RST)하면 fetch가
- * 즉시 실패하지만, 들어온 연결을 그냥 삼키면(SYN 드롭) 제한 시간까지 매달린다.
- * 실제로 겪은 건 후자였고, 그때 홈 카드 한 장이 실패를 확정하는 데만 36초가 걸렸다.
- * 재시도까지 겹치면 102종목 표는 몇 분씩 회색으로 남는다.
+ * 연결을 거절(RST)하면 fetch가 즉시 실패하지만, 들어온 연결을 삼키면(SYN 드롭)
+ * 제한 시간까지 매달린다. 실제로 겪은 건 후자였고 홈 카드 한 장이 실패를 확정하는 데만
+ * 36초가 걸렸다. 재시도까지 겹치면 102종목 표는 몇 분씩 회색으로 남는다.
  *
- * 연달아 무응답이면 서버가 아픈 것이지 이 요청만의 문제가 아니다.
- * 잠시 아예 보내지 않고 즉시 실패시켜서, 화면이 대체 값으로 빨리 넘어가게 한다.
- *
- * 응답이 오기만 하면(500이어도) 서버는 살아 있는 것이므로 바로 되돌린다.
- * 호출 제한으로 인한 500은 재시도로 복구되는 정상 흐름이라 차단기를 건드리면 안 된다.
- * 그래서 문턱이 두 번으로 낮아도 괜찮다 — 여기 걸리는 건 '아예 안 오는' 경우뿐이고,
- * 56ms짜리 요청이 3.5초를 두 번 연달아 넘겼다면 다시 물어도 답은 같다.
+ * 응답이 오기만 하면(500이어도) 서버는 살아 있으므로 바로 되돌린다. 호출 제한으로 인한
+ * 500은 재시도로 복구되는 정상 흐름이라 차단기를 건드리면 안 된다. 그래서 문턱이 둘이어도
+ * 괜찮다 — 여기 걸리는 건 '아예 안 오는' 경우뿐이다.
  */
 const BREAKER_THRESHOLD = 2
 const BREAKER_COOLDOWN = 15_000
@@ -119,10 +87,7 @@ const BREAKER_COOLDOWN = 15_000
 let deadStreak = 0
 let breakerUntil = 0
 
-/**
- * 식은 뒤에는 저절로 한 건이 통과한다. 그게 성공하면 아래 resetBreaker가 풀고,
- * 또 실패하면 여기서 다시 잠긴다. 따로 상태를 둘 필요가 없다.
- */
+/** 식은 뒤 한 건이 저절로 통과한다. 성공하면 resetBreaker가 풀고 실패하면 여기서 다시 잠근다 */
 function tripBreaker(): void {
   deadStreak += 1
   if (deadStreak >= BREAKER_THRESHOLD) {
@@ -136,19 +101,15 @@ function resetBreaker(): void {
 }
 
 interface RequestOptions {
-  /**
-   * 401을 받아도 로그인 화면으로 보내지 않는다.
-   * 로그아웃처럼 어차피 나가는 길이라 튕겨낼 이유가 없는 요청에만 쓴다.
-   */
+  /** 401을 받아도 로그인 화면으로 보내지 않는다. 로그아웃처럼 어차피 나가는 길에 쓴다 */
   ignoreUnauthorized?: boolean
   /** 이 요청만 다른 제한 시간을 쓴다(ms) */
   timeoutMs?: number
 }
 
 /**
- * 토큰이 만료되면 서버가 401을 준다. 화면마다 처리하면 다 흩어지므로 여기서 한 번에 끝낸다.
- * client.ts는 컴포넌트가 아니라 navigate()를 쓸 수 없고,
- * 헤더가 로그인 상태를 다시 읽어야 하므로 주소창을 통째로 바꾸는 편이 맞다.
+ * 401을 화면마다 처리하면 흩어지므로 여기서 한 번에 끝낸다.
+ * 컴포넌트가 아니라 navigate()를 쓸 수 없고, 헤더가 로그인 상태를 다시 읽어야 한다.
  */
 function redirectToLogin(): void {
   // 이미 로그인 화면이면 보낼 곳이 없다. 여기서 401이 또 나면 무한히 새로고침한다
@@ -164,12 +125,7 @@ function redirectToLogin(): void {
   window.location.href = '/login'
 }
 
-/**
- * 실패 응답의 본문에서 코드만 꺼낸다.
- *
- * 본문이 없거나 JSON이 아닐 수 있고(게이트웨이가 대신 답하는 경우), 그건 오류가 아니다.
- * 코드를 못 읽으면 없는 셈 치고 status만으로 판단하게 둔다.
- */
+/** 실패 응답에서 코드만 꺼낸다. 본문이 JSON이 아닐 수 있고 그건 오류가 아니다 */
 async function readErrorCode(response: Response): Promise<string | null> {
   try {
     const body: unknown = await response.json()
@@ -188,10 +144,7 @@ async function requestJson<T>(
   init?: RequestInit,
   options?: RequestOptions,
 ): Promise<T> {
-  /*
-   * 무엇보다 먼저 확인한다. 아래 어떤 경로로도 fetch에 닿지 못하게 여기서 끊는다.
-   * 증권사 계정 보호를 위한 조치라 실수로 새어 나가면 안 된다.
-   */
+  // 무엇보다 먼저 확인한다. 증권사 계정 보호라 실수로 새어 나가면 안 된다
   if (!isAllowed(path)) {
     throw new BlockedPathError(
       `허용 목록에 없는 경로입니다 (src/api/client.ts의 ALLOWED_PREFIXES) ${path}`,
@@ -215,11 +168,7 @@ async function requestJson<T>(
   } catch (error: unknown) {
     // 제한 시간 초과든 연결 실패든 '서버에 닿지 못했다'는 점은 같다
     tripBreaker()
-    /*
-     * 제한 시간을 넘기면 TimeoutError, 서버가 안 떠 있으면 TypeError로 온다.
-     * 부르는 쪽은 '왜 실패했는지'가 아니라 '서버에 닿지 못했다'만 알면 되므로
-     * 한 가지 모양으로 맞춰 던진다. 원인은 cause에 매달아 콘솔에서 볼 수 있게 둔다.
-     */
+    // 시간 초과는 TimeoutError, 서버가 안 떠 있으면 TypeError로 온다. 원인은 cause에 매단다
     if (error instanceof DOMException && error.name === 'TimeoutError') {
       throw new NoResponseError(`응답 없음 (${timeoutMs}ms 초과) ${path}`, {
         cause: error,
@@ -247,9 +196,7 @@ async function requestJson<T>(
 
 /**
  * { isSuccess, result } 래퍼를 벗긴다. 실패면 서버가 준 message로 던진다.
- *
- * 이 문구는 **서버가 사람에게 보여주라고 쓴 한국어**라 그대로 화면에 올려도 된다.
- * 개발자용 문구와 갈리게 UserFacingError로 감싼다.
+ * 그 문구는 서버가 사람에게 보여주라고 쓴 한국어라 UserFacingError로 갈라 둔다.
  */
 function unwrap<T>(body: ApiResponse<T>): T {
   if (!body.isSuccess) {
@@ -278,10 +225,7 @@ export async function remove<T>(
   )
 }
 
-/**
- * 이미 있는 자원의 일부만 고친다. 보내는 방식은 post와 같고 메서드만 다르다.
- * 서버가 PUT이 아니라 PATCH를 쓰므로(보낸 항목만 바꾼다) 이름을 맞춘다.
- */
+/** 이미 있는 자원의 일부만 고친다. 서버가 PUT이 아니라 PATCH를 쓴다 */
 export async function patch<T>(
   path: string,
   body: unknown,
@@ -300,10 +244,7 @@ export async function patch<T>(
   )
 }
 
-/**
- * 서버에 값을 보낼 때 쓴다. GET과 다른 점은 두 가지뿐이다.
- * 보낼 내용을 JSON 문자열로 바꾸고, 그게 JSON이라고 Content-Type으로 알려준다.
- */
+/** 서버에 값을 보낸다. 본문을 JSON 문자열로 바꾸고 Content-Type으로 알려준다 */
 export async function post<T>(
   path: string,
   body: unknown,

@@ -40,32 +40,19 @@ export default function LoginPage() {
   const hasLoginFailed = state?.loginFailed === true
 
   /**
-   * ⚠️ fetch·axios를 쓰면 안 된다. **주소창을 통째로 옮기는 것이 맞다.**
+   * ⚠️ fetch·axios를 쓰면 안 된다. 주소창을 통째로 옮기는 것이 맞다.
    *
-   * 이 주소는 백엔드가 302로 네이버·카카오·구글 로그인 화면에 넘겨주는 자리다.
-   * 사용자가 그 화면을 눈으로 보고 아이디를 입력해야 하는데, fetch는 배경에서 도는
-   * 통신이라 화면을 옮기지 못한다. 응답으로 302를 받아 봐야 아무 일도 일어나지 않는다.
+   * 백엔드가 302로 각 provider 로그인 화면에 넘겨주는 자리라 사용자가 그 화면을
+   * 눈으로 봐야 한다. fetch는 배경에서 도는 통신이라 302를 받아 봐야 소용없다.
+   * 이 함수는 client.ts의 허용 목록을 지나지 않는다 — 주소를 늘릴 일이 생기면
+   * client.ts가 아니라 이 파일을 본다.
    *
-   * 이 함수는 client.ts의 허용 목록 판단을 지나지 않는다. 창구가 다르다.
-   * 여기 적힌 주소를 늘릴 일이 생기면 client.ts가 아니라 이 파일을 봐야 한다.
-   *
-   * ⚠️ **돌아오는 길이 아직 안 이어져 있다** (2026-08-14 백엔드 소스 확인).
-   *
-   * 나가는 길은 살아 있다. 세 provider 모두 302로 네이버·카카오·구글 로그인 화면에
-   * 제대로 넘긴다. 문제는 로그인을 마친 뒤다.
-   *
-   * 백엔드 `OAuth2SuccessHandler`가 **주소를 옮기지 않고 JSON을 그려 버린다.**
-   * `objectMapper.writeValue(response.getOutputStream(), ...)` 한 줄이 전부라,
-   * 사용자는 앱으로 돌아오지 못하고 백엔드 주소에서 이런 화면을 마주한다.
-   *
-   *   {"isSuccess":true,...,"result":{"accessToken":"ey...","refreshToken":"ey..."}}
-   *
-   * 백엔드가 `sendRedirect`로 우리 `/oauth/callback?accessToken=..&refreshToken=..`에
-   * 되돌려보내 주면 그때부터 저절로 이어진다. **프론트는 이미 다 준비돼 있다** —
-   * OAuthCallbackPage가 토큰을 꺼내 저장하고 헤더까지 갱신하는 것을 확인했다.
-   *
-   * 그때까지 손으로 확인하는 법: 위 JSON 화면에서 두 토큰을 복사해
-   * `/oauth/callback?accessToken=붙여넣기&refreshToken=붙여넣기`로 직접 들어간다.
+   * ⚠️ 돌아오는 길이 아직 안 이어져 있다(2026-08-14 백엔드 소스 확인).
+   * 나가는 길은 셋 다 살아 있는데, `OAuth2SuccessHandler`가 주소를 옮기지 않고
+   * 토큰이 담긴 JSON을 그려 버려서 사용자가 앱으로 돌아오지 못한다.
+   * `sendRedirect`로 `/oauth/callback?accessToken=..&refreshToken=..`에 되돌려보내
+   * 주면 저절로 이어진다 — 프론트는 이미 다 준비돼 있다.
+   * 손으로 확인하려면 그 JSON에서 토큰을 복사해 위 주소로 직접 들어간다.
    */
   function handleSocialLogin(provider: string) {
     window.location.href = `${API_ORIGIN}/oauth2/authorization/${provider}`

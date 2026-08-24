@@ -3,16 +3,12 @@ import { delay } from '../utils/async'
 import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../types/ai'
 
 /**
- * AI 주가분석 창구.
+ * AI 주가분석 창구. 질문 보내기는 실제로 `/api/open-ai/ask`를 부르고
+ * 대화 목록·상세는 아직 mock이다(`/v1/ai/sessions` 4종이 백엔드에 없다).
  *
- * 질문 보내기는 **실제로 `/api/open-ai/ask`를 부른다.** 대화 목록·상세는 아직 mock이다
- * (`/v1/ai/sessions` 4종이 백엔드에 없다).
- *
- * ⚠️ **답변은 돌아오지 않는다.** 백엔드 `OpenAiService.askQuestion()`이 void라
- * 생성한 답변을 `log.info()`로 서버 로그에 찍고 버리고, 컨트롤러도 `ApiResponse<Void>`다.
- * 그래도 연결해 두는 편이 낫다 — 질문이 서버까지 닿는지, 벡터DB 검색이 도는지가
- * 서버 로그로 확인되고, 백엔드가 String을 반환하도록 바꾸는 순간
- * 이 파일에서 **답변을 꺼내는 한 줄만** 고치면 끝난다.
+ * ⚠️ 답변은 돌아오지 않는다. 백엔드 `OpenAiService.askQuestion()`이 void라 생성한
+ * 답변을 로그에 찍고 버린다. 그래도 연결해 두는 편이 낫다 — 질문이 서버까지 닿는지가
+ * 로그로 확인되고, String을 반환하도록 바뀌면 여기 한 줄만 고치면 된다.
  */
 
 const MOCK_SESSIONS: ChatSession[] = [
@@ -48,11 +44,7 @@ export async function getSessionDetail(
 
 /**
  * 질문을 서버로 보낸다.
- *
- * 서버가 답변을 돌려주기 시작하면 `get<null>`을 `get<string>`으로 바꾸고
- * 아래 answer 자리에 그 값을 넣으면 된다. 화면 코드는 손대지 않는다.
- *
- * 세션 번호와 제목은 아직 프론트가 만든다. 서버에 대화를 저장하는 곳이 없어서,
+ * 세션 번호와 제목은 아직 프론트가 만든다. 서버에 대화를 저장하는 곳이 없어
  * 새로고침하면 방금 나눈 대화가 사라진다.
  */
 export async function ask(
@@ -69,10 +61,7 @@ export async function ask(
     sessionId: sessionId ?? nextSessionId++,
     /* 서버는 첫 질문을 요약해 제목을 만든다. 여기서는 앞부분을 잘라 흉내만 낸다 */
     title: toTitle(question),
-    /*
-     * 답변 자리를 비워 두지 않는다. 빈 말풍선은 '실패'로 읽히는데 실제로는 성공했고,
-     * 지어낸 답을 넣으면 AI가 답한 것처럼 보여 더 나쁘다. 무슨 일이 있었는지 그대로 적는다.
-     */
+    // 빈 말풍선은 '실패'로 읽히고 지어낸 답은 더 나쁘다. 무슨 일인지 그대로 적는다
     answer:
       '질문은 서버까지 전달됐어요. 다만 서버가 만든 답변을 아직 돌려주지 않아서 ' +
       '여기에 옮길 내용이 없습니다.\n\n' +

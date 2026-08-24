@@ -51,10 +51,8 @@ export interface QuantScoring {
 
 /**
  * GET /api/backtest/preset 의 응답.
- *
- * 요청 시점에 계산하는 게 아니라 매일 새벽 4시 배치가 미리 채워 둔 값을 읽어온다.
- * 그래서 startDate/endDate가 요청한 날짜가 아니라 **계산에 실제로 쓰인 날짜**이고,
- * updatedAt으로 언제 계산된 값인지 알려준다.
+ * 매일 새벽 4시 배치가 미리 채워 둔 값이라 startDate/endDate는 요청한 날짜가 아니라
+ * 계산에 실제로 쓰인 날짜다.
  */
 export interface BacktestPreset {
   stockCode: string

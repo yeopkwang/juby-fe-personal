@@ -125,7 +125,7 @@ export default function MypageProfilePage() {
       setEditError('이름은 2~4자로 입력해 주세요.')
       return
     }
-    if (editBirth !== '' && editBirth > toDashedYmd(toYmd(new Date()))) {
+    if (editBirth && editBirth > toDashedYmd(toYmd(new Date()))) {
       setEditError('생년월일은 오늘 이전으로 입력해 주세요.')
       return
     }
@@ -251,7 +251,7 @@ export default function MypageProfilePage() {
             </p>
           )}
 
-          {editError !== '' && (
+          {editError && (
             <p className={styles.modalError} role="alert">
               {editError}
             </p>
@@ -280,7 +280,7 @@ export default function MypageProfilePage() {
           계정과 투자성향 정보가 모두 삭제되며 복구할 수 없습니다.
         </p>
 
-        {deleteError !== '' && (
+        {deleteError && (
           <p className={styles.modalError} role="alert">
             {deleteError}
           </p>

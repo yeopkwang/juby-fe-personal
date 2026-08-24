@@ -18,15 +18,13 @@ import type { DailyPrice, StockDetail, StockPeriod } from '../types/stock'
 import styles from './StockChartPage.module.css'
 
 /*
- * 이 화면이 그리는 건 **일봉 하나뿐**이다.
+ * 이 화면이 그리는 건 일봉 하나뿐이다.
  *
- * 예전에는 1주·1개월·3개월…7개 버튼으로 기간을 골랐는데, 봉이 한 종류뿐인 화면에서
- * '3개월'은 "3개월짜리 봉"으로 읽힌다. 그래서 버튼을 걷어내고 차트 위에 '일봉 그래프 보기'
- * 한 줄만 남겼다. 얼마나 볼지는 버튼 대신 차트를 밀거나 좁혀서 정한다 — 있는 걸 전부 받아 두고
- * 처음엔 최근 30봉만 열어 두므로(CandleChart의 INITIAL_VISIBLE_BARS) 첫 화면은 그대로다.
+ * 예전에는 7개 버튼으로 기간을 골랐는데 봉이 한 종류뿐인 화면에서 '3개월'은
+ * "3개월짜리 봉"으로 읽힌다. 지금은 전부 받아 두고 처음엔 최근 30봉만 열어 둔다.
  *
- * ⚠️ 이 값을 다시 손볼 일이 생기면 `StockPeriod`의 주석을 먼저 읽는다. 백테스트 쪽
- * 기간과 열거값이 갈려 있어서(단수 `THREE_MONTH` vs 복수 `THREE_MONTHS`) 복사하면 400이 온다.
+ * ⚠️ 손볼 일이 생기면 StockPeriod의 주석을 먼저 읽는다. 백테스트 쪽과 열거값이
+ * 갈려 있어서(단수 THREE_MONTH vs 복수 THREE_MONTHS) 복사하면 400이 온다.
  */
 const CHART_PERIOD: StockPeriod = 'ALL'
 
@@ -63,10 +61,8 @@ export default function StockChartPage() {
   /** 다시 눌러 볼 만한 실패였는가. 없는 종목(404)이면 버튼을 내밀지 않는다 */
   const [canRetry, setCanRetry] = useState(false)
   /**
-   * '다시 시도'를 누른 횟수. 이 값이 바뀌면 아래 effect가 한 번 더 돈다.
-   *
-   * 요청 함수를 따로 빼서 부르지 않는 이유는, 그러면 지금 effect가 하고 있는
-   * "늦게 온 응답 버리기"를 그쪽에도 똑같이 만들어야 하기 때문이다. 같은 길로 보낸다.
+   * '다시 시도'를 누른 횟수. 바뀌면 아래 effect가 한 번 더 돈다.
+   * 요청 함수를 따로 빼면 effect가 하는 "늦게 온 응답 버리기"를 그쪽에도 만들어야 한다.
    */
   const [retryCount, setRetryCount] = useState(0)
 
@@ -86,11 +82,7 @@ export default function StockChartPage() {
         if (isStale) return
         console.warn('종목 상세 조회 실패', error)
         setDetail(null)
-        /*
-         * 예전에는 `error.message`를 그대로 썼다. 그건 개발자용 문구라
-         * 사용자가 "요청 실패 (500) /api/stocks/005930"을 **제목으로** 봤다.
-         * 무엇이 잘못됐는지도, 다시 눌러 보면 되는지도 알 수 없는 화면이었다.
-         */
+        // 예전에는 error.message를 그대로 써서 개발자용 문구가 제목에 박혔다
         setErrorMessage(toUserMessage(error, '목록에 없는 종목입니다'))
         setCanRetry(isRetryable(error))
       })
@@ -109,11 +101,9 @@ export default function StockChartPage() {
   )
 
   /*
-   * 시·고·저·거래량은 **마지막 확정 거래일** 것이다.
-   *
-   * 예전에는 증권사 현재가 응답에서 꺼내 썼는데, 그건 "오늘 장" 기준이라 장이 열리기
-   * 전에는 전부 0으로 와서 네 칸이 통째로 "-"가 됐다. 지금은 DB에서 오므로 언제 들어와도
-   * 값이 있다. 대신 오늘 것이 아니므로 어느 날 기준인지 함께 적는다.
+   * 시·고·저·종·거래량 다섯은 마지막 확정 거래일 것이다.
+   * 예전에는 증권사 현재가 응답에서 꺼내 써서 장 전에 통째로 "-"였다. 지금은 DB에서
+   * 오므로 언제 들어와도 값이 있고, 대신 어느 날 기준인지 함께 적는다.
    */
   const lastDaily =
     detail === null || detail.dailyPrices.length === 0
@@ -139,11 +129,9 @@ export default function StockChartPage() {
   }
 
   /*
-   * 목록에도 없고 서버도 모르는 종목코드다. 그릴 이름조차 없으니 화면을 통째로 접는다.
-   *
-   * 접더라도 **나갈 길은 둘 다 준다.** 서버가 잠깐 흔들린 것뿐일 수 있는데(500·무응답)
-   * 그때 홈으로 돌아가기만 있으면 사용자는 방금 누른 종목을 포기해야 한다.
-   * 없는 종목(404)이면 다시 물어도 없으므로 그때는 버튼을 그리지 않는다.
+   * 목록에도 없고 서버도 모르는 종목코드다. 그릴 이름조차 없어 화면을 통째로 접는다.
+   * 접더라도 나갈 길은 둘 다 준다 — 500·무응답이면 다시 눌러 볼 만하고, 404면
+   * 다시 물어도 없으므로 그때는 버튼을 그리지 않는다.
    */
   if (errorMessage !== null && detail === null && hint === null) {
     return (

@@ -126,7 +126,7 @@ export default function AiPage() {
   function handleSubmit() {
     const text = question.trim()
     // 공백만 친 경우까지 걸러진다
-    if (text === '' || pending === 'loading') return
+    if (!text || pending === 'loading') return
 
     const stockName = findStockName(text)
 
@@ -141,7 +141,7 @@ export default function AiPage() {
       },
     ])
     setQuestion('')
-    setNotice(stockName === '' ? STOCK_HINT : '')
+    setNotice(stockName ? '' : STOCK_HINT)
 
     void send(text, stockName)
   }
@@ -226,7 +226,7 @@ export default function AiPage() {
             />
           )}
 
-          {notice !== '' && <p className={styles.notice}>{notice}</p>}
+          {notice && <p className={styles.notice}>{notice}</p>}
 
           <div className={styles.composer}>
             <div className={styles.composerBox}>
@@ -244,7 +244,7 @@ export default function AiPage() {
                 type="button"
                 className={styles.send}
                 onClick={handleSubmit}
-                disabled={pending === 'loading' || question.trim() === ''}
+                disabled={pending === 'loading' || !question.trim()}
               >
                 보내기
               </button>
