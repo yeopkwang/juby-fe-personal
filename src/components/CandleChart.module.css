@@ -49,3 +49,77 @@
     font-size: var(--fs-2xs);
   }
 }
+
+/*
+ * 짚은 봉의 값을 커서 옆에 띄우는 박스.
+ *
+ * left/top은 커서 자리이고, 박스를 그 옆으로 밀어 놓는 건 아래 transform이다.
+ * 커서가 오른쪽 절반에 있으면 왼쪽으로, 아래쪽 절반이면 위로 붙어 차트 밖으로
+ * 나가지 않는다. -100%는 박스 자기 크기라 여백이나 글자를 바꿔도 따라온다
+ * (JS에 크기를 적어 두지 않아도 되는 이유다 — CandleChart.tsx의 CursorSpot 참고).
+ *
+ * ⚠️ pointer-events: none을 빼면 안 된다. 박스가 커서를 가로채면 그 아래 봉의
+ * 크로스헤어가 끊겨서, 박스가 덮은 자리에서 값이 멈춘 채로 남는다.
+ */
+.tooltip {
+  --tip-gap: 14px;
+  --tip-x: var(--tip-gap);
+  --tip-y: var(--tip-gap);
+
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transform: translate(var(--tip-x), var(--tip-y));
+
+  min-width: 132px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 10%);
+  font-size: var(--fs-2xs);
+  /* 자릿수가 달라도 값이 세로로 맞게 선다 */
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip[data-flip-x='true'] {
+  --tip-x: calc(-100% - var(--tip-gap));
+}
+
+.tooltip[data-flip-y='true'] {
+  --tip-y: calc(-100% - var(--tip-gap));
+}
+
+.tooltipHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-divider);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+}
+
+.tooltipRows {
+  margin: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.tooltipRow dt {
+  color: var(--color-text-sub);
+}
+
+.tooltipRow dd {
+  margin: 0;
+  font-weight: var(--fw-medium);
+  color: var(--color-text);
+}

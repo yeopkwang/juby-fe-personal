@@ -7,6 +7,7 @@ import {
   createChart,
 } from 'lightweight-charts'
 import type { IChartApi, ISeriesApi } from 'lightweight-charts'
+import type { PointerEvent } from 'react'
 import type { Candle } from '../types/market'
 import { toDashedYmd, toKoreanDate } from '../utils/date'
 import { formatChangeRate, isFlatRate } from '../utils/format'
@@ -49,6 +50,22 @@ interface Point {
   prevClose: number | null
 }
 
+/** 따라다니는 박스를 놓을 자리. 감싼 div의 왼쪽 위를 원점으로 한 픽셀 좌표다 */
+interface CursorSpot {
+  x: number
+  y: number
+  /**
+   * 커서가 오른쪽(아래) 절반에 있는가. 그러면 박스를 반대쪽에 붙여 차트 밖으로
+   * 삐져나가지 않게 한다.
+   *
+   * 박스 크기를 재서 "넘치는가"를 따지지 않는 이유는, 재려면 그 값을 CSS와 JS
+   * 두 곳에 적어야 하고 여백을 조금만 손봐도 어긋나기 때문이다. 절반을 기준으로
+   * 삼으면 박스가 커져도 규칙이 그대로 맞는다 — 차트 절반보다 넓어질 일은 없다.
+   */
+  flipX: boolean
+  flipY: boolean
+}
+
 export default function CandleChart({ candles }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
@@ -57,6 +74,15 @@ export default function CandleChart({ candles }: Props) {
 
   /** 크로스헤어가 가리키는 봉. 차트 밖으로 나가면 null이 되고 마지막 봉을 대신 보여준다 */
   const [hovered, setHovered] = useState<Point | null>(null)
+
+  /**
+   * 따라다니는 박스를 놓을 자리. 차트 밖으로 나가면 null.
+   *
+   * 차트 라이브러리가 주는 좌표(param.point)를 쓰지 않는다. 아래 거래량 칸이 별도
+   * pane이라 그 안에서는 원점이 달라지는데, 박스는 두 칸에 걸쳐 하나만 떠야 한다.
+   * 감싼 div 기준으로 직접 재면 칸이 몇 개든 상관이 없다.
+   */
+  const [cursor, setCursor] = useState<CursorSpot | null>(null)
 
   /*
    * 크로스헤어 핸들러가 봉을 찾아볼 표. 구독은 한 번만 걸고 데이터가 바뀌면 이 ref만
@@ -166,8 +192,9 @@ export default function CandleChart({ candles }: Props) {
     observer.observe(container)
 
     /*
-     * 봉에 마우스를 올렸을 때 그 날의 시·고·저·종을 위에 띄운다.
-     * 차트 밖으로 나가면 time이 비어 오는데, 그때는 마지막 봉으로 되돌린다.
+     * 마우스가 어느 봉을 짚었는지만 여기서 정한다. 그 값을 어디에 그릴지는
+     * 아래 렌더가 정한다 — 커서 옆 박스이거나, 아무것도 안 짚었으면 위쪽 범례다.
+     * 차트 밖으로 나가면 time이 비어 오는데, 그때는 짚은 봉이 없는 것으로 둔다.
      */
     chart.subscribeCrosshairMove((param) => {
       const time = param.time
@@ -243,16 +270,56 @@ export default function CandleChart({ candles }: Props) {
           prevClose: lastIndex < 1 ? null : candles[lastIndex - 1].close,
         })
 
+  /*
+   * 짚은 봉이 있고 커서 자리도 알면 따라다니는 박스를 띄운다.
+   *
+   * 봉과 자리를 따로 받는다. 어느 봉인지는 차트가 알려주고(크로스헤어),
+   * 어디에 놓을지는 이 div가 안다. 둘 중 하나만 있으면 띄울 수 없다 —
+   * 예를 들어 차트 안이지만 봉이 없는 빈 구간이면 hovered가 null이다.
+   */
+  const tooltip =
+    hovered === null || cursor === null ? null : { point: hovered, cursor }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+
+    setCursor({
+      x,
+      y,
+      flipX: x > rect.width / 2,
+      flipY: y > rect.height / 2,
+    })
+  }
+
   return (
-    <div className={styles.wrap}>
-      {shown !== null && <Legend point={shown} />}
+    <div
+      className={styles.wrap}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={() => setCursor(null)}
+    >
+      {/*
+        범례와 박스는 같은 숫자를 말하므로 동시에 띄우지 않는다.
+        범례는 아무것도 안 짚었을 때의 자리(마지막 봉)를 맡고,
+        짚는 동안은 눈이 가 있는 커서 옆에서 박스가 대신 말한다.
+      */}
+      {shown !== null && tooltip === null && <Legend point={shown} />}
       <div ref={containerRef} className={styles.chart} />
+      {tooltip !== null && (
+        <Tooltip point={tooltip.point} cursor={tooltip.cursor} />
+      )}
     </div>
   )
 }
 
-/** 차트 위에 겹쳐 놓는 그날의 값. 마우스를 가리지 않도록 클릭은 통과시킨다(CSS) */
-function Legend({ point }: { point: Point }) {
+/**
+ * 전날 종가 대비 등락률과 그 색.
+ *
+ * 범례와 따라다니는 박스가 같이 쓴다. 한쪽에만 고치면 같은 봉을 짚었는데 위아래가
+ * 다른 색으로 말하게 된다.
+ */
+function toRate(point: Point): { rate: number | null; color: string | undefined } {
   const { candle, prevClose } = point
 
   const rate =
@@ -260,12 +327,67 @@ function Legend({ point }: { point: Point }) {
       ? null
       : ((candle.close - prevClose) / prevClose) * 100
 
-  const rateColor =
+  const color =
     rate === null || isFlatRate(rate)
       ? undefined
       : rate > 0
         ? UP_COLOR
         : DOWN_COLOR
+
+  return { rate, color }
+}
+
+/**
+ * 짚은 봉의 값을 커서 옆에 띄우는 작은 박스.
+ *
+ * 위쪽 범례가 이미 같은 값을 말하지만 눈이 가 있는 곳은 커서다. 봉 하나를 짚어 놓고
+ * 값을 읽으러 화면 위쪽까지 올라갔다 내려오면 어느 봉이었는지 놓친다.
+ *
+ * pointer-events를 끄는 것이 중요하다(CSS). 박스가 커서를 막으면 그 아래 봉의
+ * 크로스헤어가 끊겨서, 박스가 자기 자신을 가리는 자리에서 값이 멈춘다.
+ */
+function Tooltip({ point, cursor }: { point: Point; cursor: CursorSpot }) {
+  const { candle } = point
+  const { rate, color } = toRate(point)
+
+  const rows: { label: string; value: string; color?: string }[] = [
+    { label: '시가', value: formatPriceTick(candle.open) },
+    { label: '고가', value: formatPriceTick(candle.high) },
+    { label: '저가', value: formatPriceTick(candle.low) },
+    { label: '종가', value: formatPriceTick(candle.close), color },
+    { label: '거래량', value: `${formatVolume(candle.volume)}주` },
+  ]
+
+  return (
+    <div
+      className={styles.tooltip}
+      style={{ left: cursor.x, top: cursor.y }}
+      data-flip-x={cursor.flipX}
+      data-flip-y={cursor.flipY}
+    >
+      <div className={styles.tooltipHead}>
+        <span>{toKoreanDate(candle.date)}</span>
+        {rate !== null && (
+          <b style={{ color }}>{formatChangeRate(rate)}</b>
+        )}
+      </div>
+
+      <dl className={styles.tooltipRows}>
+        {rows.map((row) => (
+          <div key={row.label} className={styles.tooltipRow}>
+            <dt>{row.label}</dt>
+            <dd style={{ color: row.color }}>{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
+}
+
+/** 차트 위에 겹쳐 놓는 그날의 값. 마우스를 가리지 않도록 클릭은 통과시킨다(CSS) */
+function Legend({ point }: { point: Point }) {
+  const { candle } = point
+  const { rate, color: rateColor } = toRate(point)
 
   return (
     <div className={styles.legend}>
