@@ -10,6 +10,20 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
 import ScrollToTop from './components/ScrollToTop'
 import HomePage from './pages/HomePage'
+import {
+  loadAiPage,
+  loadBacktestPage,
+  loadGuidePage,
+  loadLoginPage,
+  loadMypageLayout,
+  loadMypagePersonalityPage,
+  loadMypageProfilePage,
+  loadNotReadyPage,
+  loadOAuthCallbackPage,
+  loadPersonalityResultPage,
+  loadPersonalityTestPage,
+  loadStockChartPage,
+} from './pages/lazy'
 import styles from './App.module.css'
 
 /*
@@ -18,23 +32,22 @@ import styles from './App.module.css'
  * 홈은 첫 화면이라 늦게 받으면 흰 화면이 한 번 더 생긴다.
  * 반면 상세(lightweight-charts)와 AI는 홈에서 쓰지 않는데도 같은 묶음에 들어 있어
  * 홈 첫 로딩을 통째로 늦추고 있었다.
+ *
+ * 받아오는 함수는 pages/lazy.ts에 있다. 홈과 헤더가 미리 받을 때 같은 함수를 써야
+ * 같은 묶음이 되기 때문이다 — 자세한 이유는 그 파일에 적었다.
  */
-const StockChartPage = lazy(() => import('./pages/StockChartPage'))
-const AiPage = lazy(() => import('./pages/AiPage'))
-const LoginPage = lazy(() => import('./pages/LoginPage'))
-const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'))
-const MypageLayout = lazy(() => import('./components/MypageLayout'))
-const MypagePersonalityPage = lazy(
-  () => import('./pages/MypagePersonalityPage'),
-)
-const MypageProfilePage = lazy(() => import('./pages/MypageProfilePage'))
-const GuidePage = lazy(() => import('./pages/GuidePage'))
-const BacktestPage = lazy(() => import('./pages/BacktestPage'))
-const PersonalityTestPage = lazy(() => import('./pages/PersonalityTestPage'))
-const PersonalityResultPage = lazy(
-  () => import('./pages/PersonalityResultPage'),
-)
-const NotReadyPage = lazy(() => import('./pages/NotReadyPage'))
+const StockChartPage = lazy(loadStockChartPage)
+const AiPage = lazy(loadAiPage)
+const LoginPage = lazy(loadLoginPage)
+const OAuthCallbackPage = lazy(loadOAuthCallbackPage)
+const MypageLayout = lazy(loadMypageLayout)
+const MypagePersonalityPage = lazy(loadMypagePersonalityPage)
+const MypageProfilePage = lazy(loadMypageProfilePage)
+const GuidePage = lazy(loadGuidePage)
+const BacktestPage = lazy(loadBacktestPage)
+const PersonalityTestPage = lazy(loadPersonalityTestPage)
+const PersonalityResultPage = lazy(loadPersonalityResultPage)
+const NotReadyPage = lazy(loadNotReadyPage)
 
 /**
  * 로그인 화면은 회색 배경을 가장자리까지 채워야 해서 공통 좌우 여백을 쓰지 않는다.
