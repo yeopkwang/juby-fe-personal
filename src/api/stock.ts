@@ -1,4 +1,4 @@
-import { get } from './client'
+import { FAST_TIMEOUT, get } from './client'
 import { STOCK_LIST } from './stockList'
 import type {
   NewsSort,
@@ -66,6 +66,8 @@ export function getStockDetail(
 ): Promise<StockDetail> {
   return get<StockDetail>(
     `/api/stocks/${encodeURIComponent(stockCode)}?period=${period}`,
+    /* 38~86ms로 재봤다. 아래 뉴스는 창구가 달라 같이 묶지 않는다 */
+    { timeoutMs: FAST_TIMEOUT },
   )
 }
 

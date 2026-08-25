@@ -1,4 +1,4 @@
-import { get, post } from './client'
+import { FAST_TIMEOUT, get, post } from './client'
 import { isLoggedIn } from '../utils/auth'
 import { PERSONALITY_INFO, scoreToPersonality } from '../utils/personality'
 import type {
@@ -44,7 +44,10 @@ function sortByIds(questions: Question[]): Question[] {
 
 /** 문항 조회. 로그인 없이도 된다(SecurityConfig가 /api/**를 permitAll로 연다) */
 export async function getQuestions(): Promise<Question[]> {
-  const { questions } = await get<QuestionListResponse>('/api/personality-tests')
+  const { questions } = await get<QuestionListResponse>(
+    '/api/personality-tests',
+    { timeoutMs: FAST_TIMEOUT },
+  )
 
   /*
    * 빈 목록은 성공이 아니라 실패로 친다.

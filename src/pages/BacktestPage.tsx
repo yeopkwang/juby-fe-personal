@@ -17,17 +17,11 @@ import {
   toPercent,
 } from '../utils/backtest'
 import { getPreset, getPresetOptions } from '../api/backtest'
+import { useSavedPersonality } from '../hooks/useSavedPersonality'
 import { UserFacingError, toUserMessage } from '../utils/error'
 import { useCountUp, useGrown } from '../hooks/useReveal'
 import type { PresetOption } from '../api/backtest'
 import styles from './BacktestPage.module.css'
-
-/**
- * 🧪 원래는 GET /api/members/me/personality로 받는 값인데 고정해 뒀다.
- * 붙일 때 셋을 함께 다뤄야 한다 — 로그인 필요, 토큰 없이 부르면 401이 아니라 500,
- * 로그인해도 검사 안 했으면 비어 있음. 셋 다 "성향 없음"(null)으로 뭉뚱그린다.
- */
-const SAVED_PERSONALITY: PersonalityType | null = '안정형'
 
 /**
  * 종목의 성향을 가릴 때 쓰는 기준 기간. 전략 5개를 견주려면 같은 기간이어야 하는데
@@ -73,6 +67,8 @@ export default function BacktestPage() {
   const [investType, setInvestType] = useState<number | null>(null)
   const [period, setPeriod] = useState<BacktestPeriod | null>(null)
   const [preset, setPreset] = useState<BacktestPreset | null>(null)
+  /* 저장된 내 성향. 로그인 안 했거나 검사 전이면 null이고 화면이 그 경우를 그린다 */
+  const savedPersonality = useSavedPersonality()
   /* 조회 중·실패 문구·다섯 성향 순위. 셋 다 위 preset을 받아오는 과정의 상태다 */
   const [isRunning, setIsRunning] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
@@ -377,7 +373,7 @@ export default function BacktestPage() {
           전략과 이어 붙이지 않는다. 둘을 견주는 일은 결과에서만 한다.
         */}
         <div className={styles.myBanner}>
-          {SAVED_PERSONALITY === null ? (
+          {savedPersonality === null ? (
             <>
               <p className={styles.myText}>
                 투자성향테스트를 아직 안 하셨어요. 먼저 하면 결과에서 종목과
@@ -390,7 +386,7 @@ export default function BacktestPage() {
           ) : (
             <>
               <p className={styles.myText}>
-                내 투자성향은 <b>{SAVED_PERSONALITY}</b>이에요.
+                내 투자성향은 <b>{savedPersonality}</b>이에요.
               </p>
               <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
                 다시 테스트
@@ -727,6 +723,7 @@ export default function BacktestPage() {
               preset={preset}
               stockName={stock.stockName}
               ranking={ranking}
+              savedPersonality={savedPersonality}
               onRetry={clearResult}
             />
           )}
@@ -752,6 +749,8 @@ interface ResultProps {
   stockName: string
   /** 다섯 전략의 적합도를 높은 순으로. 첫 번째가 이 종목의 성향이다 */
   ranking: Ranked[]
+  /** 저장된 내 성향. 없으면 종목 성향만 적고 견주기는 뺀다 */
+  savedPersonality: PersonalityType | null
   onRetry: () => void
 }
 
@@ -759,6 +758,7 @@ function BacktestResult({
   preset,
   stockName,
   ranking,
+  savedPersonality,
   onRetry,
 }: ResultProps) {
   const { result } = preset
@@ -785,7 +785,7 @@ function BacktestResult({
   const axisScores = calculateAxisScores(result)
   const verdict = scoreVerdict(result.finalScore)
   /** 종목이 나와 같은 성향으로 판정됐는가 */
-  const isSame = SAVED_PERSONALITY === bestInfo.personality
+  const isSame = savedPersonality === bestInfo.personality
 
   /*
    * 표로 늘어놓으면 숫자는 보이는데 뜻이 안 보인다("샤프비율 1.69"가 좋은지 나쁜지
@@ -851,14 +851,14 @@ function BacktestResult({
       */}
       <div className={styles.compare}>
         <p className={styles.story}>
-          {SAVED_PERSONALITY === null ? (
+          {savedPersonality === null ? (
             <>
               {withTopicParticle(stockName)} <b>{bestInfo.personality}</b>에게
               가장 잘 맞는 종목이에요.
             </>
           ) : (
             <>
-              나는 <b>{SAVED_PERSONALITY}</b>인데,{' '}
+              나는 <b>{savedPersonality}</b>인데,{' '}
               {withTopicParticle(stockName)}{' '}
               <b className={isSame ? styles.good : styles.bad}>
                 {bestInfo.personality}
@@ -872,7 +872,7 @@ function BacktestResult({
           <div className={styles.matchSide}>
             <span className={styles.matchLabel}>내 투자성향</span>
             <strong className={styles.matchValue}>
-              {SAVED_PERSONALITY ?? '아직 없어요'}
+              {savedPersonality ?? '아직 없어요'}
             </strong>
             <span className={styles.matchFrom}>투자성향테스트 결과</span>
           </div>
@@ -892,7 +892,7 @@ function BacktestResult({
           </div>
         </div>
 
-        {SAVED_PERSONALITY !== null && !isSame && (
+        {savedPersonality !== null && !isSame && (
           <p className={styles.matchText}>
             성향이 서로 달라요. 내 성향대로 간다면 {stockName}보다 더 맞는
             종목이 있을 수 있어요.

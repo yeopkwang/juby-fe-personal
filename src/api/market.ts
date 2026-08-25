@@ -1,17 +1,10 @@
-import { getRaw } from './client'
+import { FAST_TIMEOUT, getRaw } from './client'
 import type { Candle, DailyCandleResponse, PriceResponse } from '../types/market'
 
 /*
  * 여기 있던 getDailyCandles(기간 지정 일봉)는 2026-08-19에 지웠다. 모의투자 서버를
  * 거쳐 건당 1.5~2.4초였는데 유일한 사용처인 상세가 백엔드 DB 쪽으로 옮겨 갔다.
  */
-
-/**
- * 실전 서버로 나가는 요청의 제한 시간.
- * 현재가 56ms, 최근 일봉 30~90ms가 실측값이고 밀려도 1초를 안 넘는다.
- * client.ts의 기본값 12초를 쓰면 서버가 멈췄을 때 재시도까지 36초가 걸린다.
- */
-const FAST_TIMEOUT = 3_500
 
 /**
  * 최근 30거래일 일봉. 기간을 못 고르는 대신 훨씬 빠르다.

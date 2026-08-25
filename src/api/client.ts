@@ -65,10 +65,27 @@ function isAllowed(path: string): boolean {
  * 응답을 이만큼 기다려도 안 오면 실패로 친다.
  *
  * fetch는 기다리는 시간에 제한이 없어서, 백엔드가 응답도 거절도 안 하면 화면이 로딩
- * 자리에 영원히 앉는다(서버가 죽었을 때 실제로 겪었다). 12초는 가장 느린 요청에 맞춘
- * 값이고, 빠른 API를 부르는 쪽은 timeoutMs로 훨씬 짧게 잡는다.
+ * 자리에 영원히 앉는다(서버가 죽었을 때 실제로 겪었다).
+ *
+ * 12초는 '가장 느린 요청에 맞춘 값'이 아니라 **아직 재보지 못한 창구용 그물**이다.
+ * 원래 근거였던 기간 지정 일봉(건당 1.5~2.4초)은 2026-08-19에 지워졌다. 지금 남은 것 중
+ * 재본 것은 전부 FAST_TIMEOUT을 쓰고, 여기 걸리는 건 회원 API처럼 로그인이 막혀 있어
+ * 실측을 못 한 것들뿐이다. 그것들을 재고 나면 이 값도 내릴 수 있다.
  */
 const DEFAULT_TIMEOUT = 12_000
+
+/**
+ * 백엔드가 자기 DB만 읽는 창구용 제한 시간.
+ *
+ * 2026-08-25 실측(개발 프록시 경유): 백테스트 프리셋 16~38ms, 프리셋 옵션 34ms,
+ * 종목 상세 38~86ms(가장 큰 ALL 응답이 45KB), 성향 문항 51ms.
+ * 느린 회선에서 45KB를 받는 시간을 넉넉히 얹어도 1~2초라 3.5초면 오해할 일이 없고,
+ * 서버가 멈췄을 때 12초 대신 3.5초 만에 실패로 돌아선다.
+ *
+ * ⚠️ 재본 창구에만 붙인다. 종목 뉴스는 Pinecone(벡터DB)이라 성격이 다르고 지금 502라
+ * 정상일 때가 얼마인지 모른다 — 그런 자리에 이 값을 붙이면 멀쩡한 응답을 끊게 된다.
+ */
+export const FAST_TIMEOUT = 3_500
 
 /**
  * 서버가 통째로 응답을 멈췄을 때 요청마다 제한 시간을 다 채우지 않게 하는 차단기.
@@ -211,8 +228,11 @@ export function getRaw<T>(path: string, options?: RequestOptions): Promise<T> {
 }
 
 /** 그 외: { isSuccess, result } 래퍼를 벗겨 result만 반환한다 */
-export async function get<T>(path: string): Promise<T> {
-  return unwrap(await requestJson<ApiResponse<T>>(path))
+export async function get<T>(
+  path: string,
+  options?: RequestOptions,
+): Promise<T> {
+  return unwrap(await requestJson<ApiResponse<T>>(path, undefined, options))
 }
 
 /** 서버 자원을 지운다. 본문 없이 경로만 보낸다 */

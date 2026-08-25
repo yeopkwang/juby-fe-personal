@@ -1,4 +1,4 @@
-import { get } from './client'
+import { FAST_TIMEOUT, get } from './client'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 
 /**
@@ -33,6 +33,7 @@ export function getPreset(
   return get<BacktestPreset>(
     `/api/backtest/preset?stockCode=${encodeURIComponent(stockCode)}` +
       `&investType=${investType}&period=${period}`,
+    { timeoutMs: FAST_TIMEOUT },
   )
 }
 
@@ -41,5 +42,7 @@ export function getPreset(
  * utils/backtest.ts의 사본은 화면을 즉시 그리기 위한 것이고 이쪽이 진짜다.
  */
 export function getPresetOptions(): Promise<PresetOption[]> {
-  return get<PresetOption[]>('/api/backtest/preset/options')
+  return get<PresetOption[]>('/api/backtest/preset/options', {
+    timeoutMs: FAST_TIMEOUT,
+  })
 }

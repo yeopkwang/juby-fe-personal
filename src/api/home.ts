@@ -5,7 +5,7 @@ import { STOCK_LIST } from './stockList'
 import { toYmd } from '../utils/date'
 import { delay, settleInChunks, withRetry } from '../utils/async'
 import { readCache, writeCache } from '../utils/cache'
-import { UserFacingError } from '../utils/error'
+import { BlockedPathError, UserFacingError } from '../utils/error'
 import type { Candle } from '../types/market'
 import type {
   Quote,
@@ -72,6 +72,8 @@ export async function loadTopStocks(
     } catch (error: unknown) {
       console.warn(`${theme.stockName} 카드 조회 실패`, error)
       lastError = error
+      // 경로가 막힌 것이면 남은 카드도 같은 창구라 결과가 같다. 간격만 태우지 않는다
+      if (error instanceof BlockedPathError) break
     }
   }
 
