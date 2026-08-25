@@ -7,7 +7,7 @@ import {
   loadBacktestPage,
   loadGuidePage,
   loadLoginPage,
-  loadMypageLayout,
+  loadMypageEntry,
 } from '../pages/lazy'
 import styles from './Header.module.css'
 
@@ -84,7 +84,7 @@ export default function Header() {
           사용설명서
         </NavItem>
         {loggedIn ? (
-          <NavItem to="/mypage" prefetch={loadMypageLayout}>
+          <NavItem to="/mypage" prefetch={loadMypageEntry}>
             마이페이지
           </NavItem>
         ) : (

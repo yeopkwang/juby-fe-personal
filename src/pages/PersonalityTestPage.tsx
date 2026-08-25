@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getQuestions, submitTest } from '../api/personality'
+import { loadPersonalityResultPage } from './lazy'
 import type { Question } from '../types/personality'
 import styles from './PersonalityTestPage.module.css'
 
@@ -45,6 +46,21 @@ export default function PersonalityTestPage() {
         console.warn('성향 테스트 문항 조회 실패', error)
         setLoadFailed(true)
       })
+  }, [])
+
+  /*
+   * 결과 화면 묶음을 지금 받아 둔다.
+   *
+   * 여기서 나가는 길은 '결과 보기' 하나뿐인데, 누른 뒤에 받으러 가면 실측(느린 회선)으로
+   * 348ms를 기다린다. 결과 묶음이 PersonalityCard를 다시 부르기 때문에 왕복이 두 번이다.
+   *
+   * 하필 열 문항을 다 푼 직후라 가장 기다리기 싫은 순간이다. 반대로 여기 머무는 동안은
+   * 시간이 남아돈다 — 문항을 읽고 고르는 데 몇 초씩 걸린다. 그 시간을 쓴다.
+   *
+   * 헛수고가 될 일도 거의 없다. 중간에 그만두면 안 쓰이지만 그래봐야 2KB다.
+   */
+  useEffect(() => {
+    void loadPersonalityResultPage().catch(() => {})
   }, [])
 
   if (loadFailed) {

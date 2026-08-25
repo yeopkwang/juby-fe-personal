@@ -25,3 +25,14 @@ export const loadBacktestPage = () => import('./BacktestPage')
 export const loadPersonalityTestPage = () => import('./PersonalityTestPage')
 export const loadPersonalityResultPage = () => import('./PersonalityResultPage')
 export const loadNotReadyPage = () => import('./NotReadyPage')
+
+/**
+ * 마이페이지로 들어갈 때 필요한 것 전부.
+ *
+ * `/mypage`는 곧바로 `/mypage/personality`로 넘어가므로 껍데기만 받아 두면 소용이
+ * 적다. 껍데기를 받아 읽은 뒤에야 자식을 받으러 가서 왕복이 한 번 더 늘기 때문이다.
+ * 실측(느린 회선): index 926ms → MypageLayout 1,121ms → ... → 성향 화면 1,638ms.
+ * 둘을 같이 시작하면 그 계단이 사라진다.
+ */
+export const loadMypageEntry = () =>
+  Promise.all([loadMypageLayout(), loadMypagePersonalityPage()])

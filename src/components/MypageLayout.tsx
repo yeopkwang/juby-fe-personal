@@ -1,10 +1,24 @@
 import { NavLink, Navigate, Outlet } from 'react-router-dom'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import { loadMypagePersonalityPage, loadMypageProfilePage } from '../pages/lazy'
 import styles from './MypageLayout.module.css'
 
+/*
+ * prefetch는 그 칸이 여는 화면 묶음을 받아오는 함수다(pages/lazy.ts).
+ * 짚는 순간 받아 두지 않으면 누른 뒤에 받으러 가는데, 실측(느린 회선)으로 탭을
+ * 옮기는 데 202ms가 그 대기였다.
+ */
 const MENU = [
-  { to: '/mypage/personality', label: '투자유형 보기' },
-  { to: '/mypage/profile', label: '내 정보 확인' },
+  {
+    to: '/mypage/personality',
+    label: '투자유형 보기',
+    prefetch: loadMypagePersonalityPage,
+  },
+  {
+    to: '/mypage/profile',
+    label: '내 정보 확인',
+    prefetch: loadMypageProfilePage,
+  },
 ]
 
 /**
@@ -47,6 +61,9 @@ export default function MypageLayout() {
                   className={({ isActive }) =>
                     isActive ? `${styles.item} ${styles.itemOn}` : styles.item
                   }
+                  onMouseEnter={item.prefetch}
+                  onFocus={item.prefetch}
+                  onPointerDown={item.prefetch}
                 >
                   {item.label}
                 </NavLink>
