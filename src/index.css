@@ -141,3 +141,53 @@ button {
   outline: 2px solid var(--color-brand-deep);
   outline-offset: 2px;
 }
+
+/*
+ * React가 뜨기 전에 잠깐 서 있는 자리 (index.html의 #root 안).
+ *
+ * 이 파일이 index.js보다 500ms 먼저 도착하기 때문에 성립한다 — 스타일이 있는데
+ * 그릴 것이 없어서 흰 화면이던 구간을 이걸로 메운다. 첫 렌더 때 React가 지운다.
+ *
+ * 150ms 늦게 나타난다. 빠른 회선에서는 그 전에 React가 떠서 아예 안 보이는데,
+ * 그게 맞다. 0.1초 깜빡이고 사라지는 표시는 없느니만 못하다.
+ *
+ * 무슨 일이 일어나는지만 말하고 결과를 예고하지 않는다. 표 모양을 흉내 내면
+ * "값이 곧 옵니다"라고 말하는 셈인데, 지금 홈 시세는 실제로 안 온다.
+ */
+.boot {
+  width: 28px;
+  height: 28px;
+  margin: 25vh auto 0;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-brand-deep);
+  border-radius: 50%;
+  animation: boot-in 200ms ease 150ms both, boot-spin 900ms linear 150ms infinite;
+}
+
+@keyframes boot-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes boot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 돌아가는 것을 불편해하는 사용자에게는 돌리지 않고 밝기만 바꾼다 */
+@media (prefers-reduced-motion: reduce) {
+  .boot {
+    animation: boot-in 200ms ease 150ms both, boot-fade 1.4s ease-in-out 150ms infinite;
+  }
+
+  @keyframes boot-fade {
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
