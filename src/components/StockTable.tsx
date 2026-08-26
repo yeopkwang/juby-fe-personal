@@ -100,7 +100,8 @@ export default function StockTable({
     <div className={styles.table}>
       <div className={styles.head}>
         <span />
-        <span className={styles.colCode}>번호</span>
+        {/* '번호'라고 적혀 있었는데 아래 칸에는 005930이 온다. 1·2·3을 기대하게 된다 */}
+        <span className={styles.colCode}>종목코드</span>
 
         {SORTABLE_COLUMNS.map((column) => {
           const direction =
