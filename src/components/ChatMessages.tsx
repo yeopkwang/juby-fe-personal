@@ -2,16 +2,27 @@ import { useEffect, useRef } from 'react'
 import type { ChatMessage } from '../types/ai'
 import styles from './ChatMessages.module.css'
 
-/** 답변을 기다리는 중인지, 실패해서 재시도를 기다리는지. 끝났으면 null */
-export type PendingState = 'loading' | 'error' | null
+/** 답변을 기다리는 중인지. 끝났으면 null */
+export type PendingState = 'loading' | null
 
 interface Props {
   messages: ChatMessage[]
   pending: PendingState
-  onRetry: () => void
+  /** 못 받았을 때 적을 한 문장. 성공했으면 null. utils/error.ts의 toUserMessage가 만든다 */
+  errorMessage: string | null
+  /**
+   * 다시 부를 방법. 없으면 버튼을 그리지 않는다.
+   * 눌러도 결과가 같은 실패가 있어서다. utils/error.ts의 isRetryable이 판단한다.
+   */
+  onRetry?: () => void
 }
 
-export default function ChatMessages({ messages, pending, onRetry }: Props) {
+export default function ChatMessages({
+  messages,
+  pending,
+  errorMessage,
+  onRetry,
+}: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   /*
@@ -23,7 +34,7 @@ export default function ChatMessages({ messages, pending, onRetry }: Props) {
     const element = scrollRef.current
     if (element === null) return
     element.scrollTop = element.scrollHeight
-  }, [messages, pending])
+  }, [messages, pending, errorMessage])
 
   return (
     <div className={styles.scroll} ref={scrollRef}>
@@ -64,13 +75,15 @@ export default function ChatMessages({ messages, pending, onRetry }: Props) {
         </div>
       )}
 
-      {pending === 'error' && (
+      {errorMessage !== null && (
         <div className={styles.row}>
           <p className={`${styles.bubble} ${styles.error}`}>
-            답변을 가져오지 못했어요.
-            <button type="button" className={styles.retry} onClick={onRetry}>
-              다시 시도
-            </button>
+            {errorMessage}
+            {onRetry !== undefined && (
+              <button type="button" className={styles.retry} onClick={onRetry}>
+                다시 시도
+              </button>
+            )}
           </p>
         </div>
       )}

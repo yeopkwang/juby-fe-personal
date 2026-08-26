@@ -7,6 +7,7 @@ import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import SessionSidebar from '../components/SessionSidebar'
 import Skeleton from '../components/Skeleton'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import { isRetryable, toUserMessage } from '../utils/error'
 import { findStockName } from '../utils/stockName'
 import type { ChatMessage, ChatSession } from '../types/ai'
 import type { PersonalityType } from '../types/personality'
@@ -27,8 +28,15 @@ export default function AiPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [detailState, setDetailState] = useState<DetailState>('idle')
 
+  /** 대화를 못 불러왔을 때 적을 한 문장과, 다시 눌러 볼 만한지 */
+  const [detailError, setDetailError] = useState('')
+  const [canRetryDetail, setCanRetryDetail] = useState(false)
+
   const [question, setQuestion] = useState('')
   const [pending, setPending] = useState<PendingState>(null)
+  /** 답변을 못 받았을 때 적을 한 문장과, 다시 눌러 볼 만한지. 성공했으면 null */
+  const [askError, setAskError] = useState<string | null>(null)
+  const [canRetryAsk, setCanRetryAsk] = useState(false)
   const [notice, setNotice] = useState('')
   const [personality, setPersonality] = useState<PersonalityType | null>(null)
 
@@ -68,6 +76,7 @@ export default function AiPage() {
     setMessages([])
     setDetailState('idle')
     setPending(null)
+    setAskError(null)
     setNotice('')
   }
 
@@ -77,6 +86,7 @@ export default function AiPage() {
 
     setSessionId(selectedId)
     setPending(null)
+    setAskError(null)
     setNotice('')
     setDetailState('loading')
 
@@ -87,6 +97,8 @@ export default function AiPage() {
       })
       .catch((error: unknown) => {
         console.warn('AI 대화 조회 실패', error)
+        setDetailError(toUserMessage(error, '대화를 불러오지 못했습니다'))
+        setCanRetryDetail(isRetryable(error))
         setDetailState('error')
       })
   }
@@ -94,6 +106,7 @@ export default function AiPage() {
   async function send(text: string, stockName: string) {
     lastAskRef.current = { text, stockName }
     setPending('loading')
+    setAskError(null)
 
     try {
       const result = await ask(text, stockName, sessionId ?? undefined)
@@ -119,7 +132,9 @@ export default function AiPage() {
       }
     } catch (error: unknown) {
       console.warn('AI 질문 전송 실패', error)
-      setPending('error')
+      setAskError(toUserMessage(error))
+      setCanRetryAsk(isRetryable(error))
+      setPending(null)
     }
   }
 
@@ -161,7 +176,7 @@ export default function AiPage() {
     handleSubmit()
   }
 
-  const isEmpty = messages.length === 0 && pending === null
+  const isEmpty = messages.length === 0 && pending === null && askError === null
 
   return (
     <>
@@ -187,16 +202,18 @@ export default function AiPage() {
             </div>
           ) : detailState === 'error' ? (
             <div className={styles.centerArea}>
-              <p className={styles.errorText}>대화를 불러오지 못했습니다.</p>
-              <button
-                type="button"
-                className={styles.darkButton}
-                onClick={() => {
-                  if (sessionId !== null) handleSelect(sessionId)
-                }}
-              >
-                다시 시도
-              </button>
+              <p className={styles.errorText}>{detailError}</p>
+              {canRetryDetail && (
+                <button
+                  type="button"
+                  className={styles.darkButton}
+                  onClick={() => {
+                    if (sessionId !== null) handleSelect(sessionId)
+                  }}
+                >
+                  다시 시도
+                </button>
+              )}
             </div>
           ) : isEmpty ? (
             <div className={styles.centerArea}>
@@ -222,7 +239,8 @@ export default function AiPage() {
             <ChatMessages
               messages={messages}
               pending={pending}
-              onRetry={handleRetry}
+              errorMessage={askError}
+              onRetry={canRetryAsk ? handleRetry : undefined}
             />
           )}
 
