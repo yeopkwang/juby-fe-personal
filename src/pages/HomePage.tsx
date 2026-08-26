@@ -259,6 +259,15 @@ export default function HomePage() {
 
   const sortedStocks = sort === null ? stocks : sortStocks(stocks, sort)
 
+  /*
+   * 시세를 한 건도 못 받았는가. **오는 중과 구분해야 한다** — 오는 중이면 표에
+   * 회색 판이 돌고 있어서 아무 말도 필요 없다. 다 끝났는데도 전부 비었을 때만이다.
+   */
+  const hasNoQuotes =
+    isQuotesReady &&
+    stocks.length > 0 &&
+    stocks.every((stock) => stock.currentPrice === null)
+
   return (
     <>
       <SearchBar />
@@ -268,25 +277,38 @@ export default function HomePage() {
         {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
         <h1 className={styles.heading}>테마별 대표 종목</h1>
 
-        {/* 한 장도 못 받았을 때만 에러로 대체한다. 일부라도 왔으면 그건 보여주는 편이 낫다 */}
-        {topErrorMessage !== null &&
-        topStocks.every((stock) => stock === null) ? (
+        {/*
+          못 받았어도 **카드는 지우지 않는다.** 예전에는 한 장도 못 받으면 카드 세 장을
+          통째로 걷어내고 에러 한 줄만 남겼는데, 두 가지가 잘못이었다.
+
+          ① 지운 것 중에 맞는 정보가 있었다. 카드가 들고 있는 테마('기술주 대장')와
+             종목명은 프론트에 박혀 있는 값이라 시세와 무관하게 언제나 맞다.
+             못 받는 건 그래프와 등락률뿐인데 멀쩡한 것까지 같이 지웠다.
+          ② 아래 표는 같은 실패를 다르게 다룬다. 표는 행을 남기고 값 자리에 "-"를
+             넣는다. 한 화면에서 같은 실패가 두 모습이면 사용자는 규칙을 못 읽는다.
+          ③ 실측: 카드가 떴다가(390px) 200ms 만에 에러 한 줄로(131px) 접히면서
+             레이아웃 밀림 0.086이 났다. 남겨 두면 그것도 같이 사라진다.
+
+          그래서 LoadFailure는 자리를 '대신 채우는' 것이 아니라 카드 위에서 왜 값이
+          비었는지 **설명하는** 역할로 쓴다. 다시 눌러 볼 만한 실패면 버튼도 그대로다.
+        */}
+        {topErrorMessage !== null && (
           <LoadFailure
             message={topErrorMessage}
             onRetry={canRetryTop ? handleTopRetry : undefined}
             isRetrying={isRetryingTop}
           />
-        ) : (
-          <div className={styles.cards}>
-            {TOP_THEMES.map((theme, index) => (
-              <TopStockCard
-                key={theme.stockCode}
-                theme={theme}
-                stock={topStocks[index]}
-              />
-            ))}
-          </div>
         )}
+
+        <div className={styles.cards}>
+          {TOP_THEMES.map((theme, index) => (
+            <TopStockCard
+              key={theme.stockCode}
+              theme={theme}
+              stock={topStocks[index]}
+            />
+          ))}
+        </div>
       </section>
 
       <section className={styles.section}>
@@ -302,6 +324,18 @@ export default function HomePage() {
             <span className={styles.note}>전체 시세를 불러오는 중입니다</span>
           )}
         </div>
+
+        {/*
+          표 전체가 "-"인 채로 아무 말이 없으면 사용자는 자기 인터넷이나 앱을 의심한다.
+          그리고 여기서 못 보여주는 값을 **종목 상세에서는 보여준다**(창구가 다르다).
+          "없다"만 말하고 끝내지 않고 갈 곳을 함께 적는 이유다.
+        */}
+        {hasNoQuotes && (
+          <p className={styles.quoteNote}>
+            지금은 시세를 받아올 수 없어요. 종목명을 누르면 그 종목의 시세와 차트를
+            볼 수 있어요.
+          </p>
+        )}
 
         <StockTable
           stocks={sortedStocks.slice(0, visibleCount)}
