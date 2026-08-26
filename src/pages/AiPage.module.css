@@ -57,6 +57,54 @@
   color: var(--color-text-sub);
 }
 
+/*
+ * 눌러 볼 예시. 워터마크 아래, 성향 안내 위에 둔다 — 성향은 사용자에 대한 정보이고
+ * 이쪽은 지금 할 일이라, 할 일이 먼저 눈에 들어와야 한다.
+ */
+.examples {
+  margin-top: 28px;
+}
+
+.examplesLabel {
+  margin: 0 0 12px;
+  font-size: var(--fs-sm);
+  color: var(--color-text-mute);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 460px;
+}
+
+/*
+ * 이 앱에서 누르는 것들과 같은 알약이다(홈으로 돌아가기·뉴스 정렬 탭·다시 시도).
+ * 채우지 않고 테두리만 두른다 — 아래 '보내기'가 이 화면의 주인공이라,
+ * 예시가 그보다 진하면 눌러야 할 것이 둘로 보인다.
+ */
+.chip {
+  padding: 9px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: var(--fs-sm);
+  color: var(--color-text-sub);
+  text-align: left;
+}
+
+.chip:hover {
+  border-color: var(--color-text-sub);
+  color: var(--color-text);
+}
+
+@media (max-width: 600px) {
+  .examples {
+    margin-top: 20px;
+  }
+}
+
 .personality {
   margin-top: 44px;
 }

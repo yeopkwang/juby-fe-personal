@@ -19,6 +19,17 @@ const PERSONALITY_TEST_URL = '/personality-test?from=ai'
 
 const STOCK_HINT = '종목명을 함께 입력하면 더 정확한 분석을 받을 수 있어요.'
 
+/*
+ * 빈 화면에 눌러 볼 예시. 초보용 앱에서 제일 막히는 곳이 '무엇을 물어야 하는가'다.
+ * 비슷한 문장 셋이 아니라 **묻는 방식이 서로 다른 셋**을 골랐다 — 지금 상태를 묻기,
+ * 기간을 잘라 묻기, 용어를 묻기. 그래야 이 도우미가 어디까지 하는지가 보인다.
+ */
+const EXAMPLE_QUESTIONS = [
+  '삼성전자의 주가 현황을 알려줘',
+  '현대차의 최근 3개월 흐름을 설명해줘',
+  'PER이 뭔지 쉽게 알려줘',
+]
+
 type DetailState = 'idle' | 'loading' | 'error'
 
 export default function AiPage() {
@@ -36,6 +47,7 @@ export default function AiPage() {
   const [canRetryDetail, setCanRetryDetail] = useState(false)
 
   const [question, setQuestion] = useState('')
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const [pending, setPending] = useState<PendingState>(null)
   /** 답변을 못 받았을 때 적을 한 문장과, 다시 눌러 볼 만한지. 성공했으면 null */
   const [askError, setAskError] = useState<string | null>(null)
@@ -170,6 +182,18 @@ export default function AiPage() {
     void send(last.text, last.stockName)
   }
 
+  /*
+   * 예시를 눌러도 **곧바로 보내지 않는다.** 입력칸에 넣고 커서만 옮긴다.
+   *
+   * 예시마다 종목이 박혀 있어서(삼성전자·현대차) 그대로 보내면 사용자가 고르지도
+   * 않은 종목의 답이 온다. 이 화면에서 배우기 어려운 것은 '무엇을 묻는가'이지
+   * '보내기를 누르는 법'이 아니므로, 문장을 손에 쥐여 주고 종목만 바꿔 쓰게 한다.
+   */
+  function handleExample(text: string) {
+    setQuestion(text)
+    inputRef.current?.focus()
+  }
+
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     // Shift+Enter는 줄바꿈으로 둔다. 조합 중인 한글이 확정되는 엔터도 보내면 안 된다
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
@@ -223,6 +247,26 @@ export default function AiPage() {
               <LogoWord className={styles.watermark} />
               <p className={styles.watermarkSub}>AI 도우미</p>
 
+              {/*
+                빈 화면에 워터마크만 있으면 "뭘 물어보지"에서 멈춘다. 입력칸
+                placeholder에도 예시가 하나 있지만, 그건 글자를 치기 시작하면 사라진다.
+              */}
+              <div className={styles.examples}>
+                <p className={styles.examplesLabel}>이렇게 물어보세요</p>
+                <div className={styles.chips}>
+                  {EXAMPLE_QUESTIONS.map((text) => (
+                    <button
+                      key={text}
+                      type="button"
+                      className={styles.chip}
+                      onClick={() => handleExample(text)}
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* 성향을 모르면 이 영역 자체를 숨긴다. 지어낸 값을 보여줄 수는 없다 */}
               {personality !== null && (
                 <div className={styles.personality}>
@@ -253,6 +297,7 @@ export default function AiPage() {
             <div className={styles.composerBox}>
               <textarea
                 className={styles.input}
+                ref={inputRef}
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
                 onKeyDown={handleKeyDown}
