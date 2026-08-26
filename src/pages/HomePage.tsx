@@ -16,13 +16,57 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { delay } from '../utils/async'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
-import { isRetryable, toUserMessage } from '../utils/error'
+import {
+  ApiError,
+  BlockedPathError,
+  NoResponseError,
+  UserFacingError,
+  isRetryable,
+} from '../utils/error'
 import { nextSort, sortStocks } from '../utils/sort'
 import { loadStockChartPage } from './lazy'
 import type { SortKey, SortState, Stock, TopStock } from '../types/stock'
 import styles from './HomePage.module.css'
 
 const PAGE_SIZE = 20
+
+/**
+ * 왜 못 받았는지 한 문장.
+ *
+ * utils/error.ts의 `toUserMessage`를 쓰지 않는다. 그쪽은 **화면 전체가 죽었을 때** 쓰라고
+ * 만든 문구라 '아직 준비되지 않은 기능입니다'처럼 판정을 내린다. 홈은 다르다 —
+ * 카드도 표도 멀쩡히 떠 있고 비어 있는 것은 값뿐이라, 그 자리에서 그 문장을 읽으면
+ * "준비 안 됐다는데 카드는 있네?"가 된다.
+ *
+ * 그래서 판정 대신 **원인**을 적는다. 사용자가 다음에 무엇을 할지 정하려면 그게
+ * 필요하기 때문이다 — 잠시 뒤 다시 오면 되는 일인지, 원래 안 되는 일인지.
+ *
+ * 종류를 가르는 기준은 error.ts와 같다. 문구를 뜯어보는 방식(`message.includes`)은
+ * 문구를 고치는 순간 조용히 어긋나므로 쓰지 않는다.
+ */
+function toReason(error: unknown): string {
+  /* 서버가 준 한국어 완성문이다. 덮으면 오히려 아는 것이 줄어든다 */
+  if (error instanceof UserFacingError) return error.message
+
+  /*
+   * 이 앱이 스스로 막은 경로다(client.ts의 허용 목록). 홈이 102종목을 몰아쳐 증권사
+   * 계정 경고를 받은 것이 그 이유라, 사용자에게도 그대로 말해도 되는 사정이다.
+   */
+  if (error instanceof BlockedPathError) {
+    return '시세를 한꺼번에 많이 불러오는 길이 막혀 있어요.'
+  }
+
+  if (error instanceof NoResponseError) return '서버가 응답하지 않았어요.'
+
+  if (error instanceof ApiError) {
+    if (error.status >= 500) return '서버에 문제가 생겼어요.'
+    if (error.status === 404) return '자료를 찾지 못했어요.'
+    return `요청이 처리되지 않았어요. (오류 ${error.status})`
+  }
+
+  /* 넷에 안 걸리면 코드 버그일 가능성이 크다. 지어낸 설명보다 모른다고 하는 편이 낫다 */
+  return '원인을 알 수 없어요.'
+}
 
 /**
  * 시세 루프가 카드를 기다려 주는 최대 시간. 카드 세 건이 정상이면 0.5초 안에 끝나고,
@@ -53,6 +97,8 @@ export default function HomePage() {
   const [favoriteCodes, setFavoriteCodes] = useState<Set<string>>(new Set())
   /** 장 시작 전이라 지난 장 값을 보여주는 중이면 그 날짜. 표 옆에 기준일을 적는다 */
   const [frozenDate, setFrozenDate] = useState<string | null>(null)
+  /** 시세를 한 건도 못 받았을 때 그 원인. 받았으면 null */
+  const [quoteFailure, setQuoteFailure] = useState<unknown>(null)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
 
   /** 이미 시세를 요청한 종목코드. 실패한 종목을 무한히 다시 부르는 걸 막는다 */
@@ -96,7 +142,7 @@ export default function HomePage() {
     })
       .catch((error: unknown) => {
         console.warn('테마별 대표 종목 조회 실패', error)
-        setTopErrorMessage(toUserMessage(error, '대표 종목을 찾지 못했습니다'))
+        setTopErrorMessage(`등락률과 그래프를 받지 못했어요. ${toReason(error)}`)
         setCanRetryTop(isRetryable(error))
       })
       .finally(() => {
@@ -165,12 +211,18 @@ export default function HomePage() {
     if (fresh.length === 0) return
 
     fresh.forEach((stock) => requestedCodes.current.add(stock.stockCode))
-    const { quotes, frozenDate: frozen } = await getQuotes(
+    const { quotes, frozenDate: frozen, failure } = await getQuotes(
       fresh,
       () => hasLeft.current,
     )
 
     setFrozenDate(frozen)
+    /*
+     * 한 건도 못 받았을 때만 원인이 실려 온다. 표 위에 왜 비었는지 적는 데 쓴다.
+     * 이 함수는 한 화면에서 두 번 돈다(보이는 20개 → 나머지). 뒤엣것이 성공하면
+     * null로 덮여 안내가 사라지는데, 값이 실제로 채워지므로 그게 맞다.
+     */
+    setQuoteFailure(failure)
     setStocks((previous) =>
       previous.map((stock) => {
         const quote = quotes.get(stock.stockCode)
@@ -332,8 +384,8 @@ export default function HomePage() {
         */}
         {hasNoQuotes && (
           <p className={styles.quoteNote}>
-            지금은 시세를 받아올 수 없어요. 종목명을 누르면 그 종목의 시세와 차트를
-            볼 수 있어요.
+            목록에 시세를 채우지 못했어요. {toReason(quoteFailure)} 종목명을 누르면
+            그 종목의 시세와 차트를 볼 수 있어요.
           </p>
         )}
 

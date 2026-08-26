@@ -138,6 +138,23 @@ export interface QuoteResult {
   quotes: Map<string, Quote>
   /** 지난 장 값을 대신 쓴 경우 그 장의 날짜(YYYYMMDD). 오늘 장 값이면 null */
   frozenDate: string | null
+  /**
+   * 한 건도 못 받았을 때 그 원인. 하나라도 받았으면 null.
+   *
+   * 예전에는 종목별 실패를 console.warn으로 흘리고 끝냈다. 표는 "-"로 채워지지만
+   * **화면이 왜 비었는지 말할 근거가 없어서** 그냥 비워 뒀고, 사용자는 자기 인터넷을
+   * 의심했다. 종류를 그대로 들고 와야 utils/error.ts가 원인을 문장으로 옮길 수 있다.
+   *
+   * 처음 걸린 것 하나만 든다 — 102개가 같은 이유로 실패해도 사용자에게는 한 문장이면
+   * 되고, 서로 다른 이유로 실패했다면 그중 무엇을 골라도 대표성은 비슷하다.
+   */
+  failure: unknown
+}
+
+/** settleInChunks 결과에서 처음 실패한 이유 하나. 전부 성공했으면 null */
+function firstFailure(results: PromiseSettledResult<unknown>[]): unknown {
+  const rejected = results.find((result) => result.status === 'rejected')
+  return rejected === undefined ? null : rejected.reason
 }
 
 /**
@@ -232,7 +249,11 @@ async function getQuotesFromDaily(
    */
   if (latestDate !== null) saveQuoteSnapshot(latestDate, quotes)
 
-  return { quotes, frozenDate: latestDate }
+  return {
+    quotes,
+    frozenDate: latestDate,
+    failure: quotes.size > 0 ? null : firstFailure(results),
+  }
 }
 
 /**
@@ -246,12 +267,13 @@ export async function getQuotes(
   stocks: StockInfo[],
   shouldStop?: () => boolean,
 ): Promise<QuoteResult> {
-  if (stocks.length === 0) return { quotes: new Map(), frozenDate: null }
+  if (stocks.length === 0)
+    return { quotes: new Map(), frozenDate: null, failure: null }
 
   /* 닫힌 장에 102종목 현재가를 부르는 건 전부 0을 받으려고 기다리는 것과 같다 */
   if (!(await isSessionOpen(stocks))) {
     const daily = await getQuotesFromDaily(stocks, shouldStop)
-    return daily.quotes.size > 0 ? daily : fromSnapshot(stocks)
+    return daily.quotes.size > 0 ? daily : fromSnapshot(stocks, daily.failure)
   }
 
   /*
@@ -293,7 +315,7 @@ export async function getQuotes(
 
   if (hasToday) {
     saveQuoteSnapshot(toYmd(new Date()), quotes)
-    return { quotes, frozenDate: null }
+    return { quotes, frozenDate: null, failure: null }
   }
 
   /*
@@ -301,22 +323,29 @@ export async function getQuotes(
    * 확정값 쪽으로 한 번 더 시도하고, 그마저 비면 저장해 둔 지난 값을 꺼낸다.
    */
   const daily = await getQuotesFromDaily(stocks, shouldStop)
-  return daily.quotes.size > 0 ? daily : fromSnapshot(stocks)
+  if (daily.quotes.size > 0) return daily
+
+  /* 현재가 쪽 실패가 더 뿌리에 가깝다. 그게 없을 때만(=장이 그냥 닫힌 경우) 일봉 쪽을 쓴다 */
+  return fromSnapshot(stocks, firstFailure(results) ?? daily.failure)
 }
 
 /**
  * 마지막 수단. 지난 방문에서 저장해 둔 장 값을 꺼낸다.
  * 저장해 둔 게 없으면 빈 채로 둔다 — 지어낼 값이 없다.
  */
-function fromSnapshot(stocks: StockInfo[]): QuoteResult {
+function fromSnapshot(stocks: StockInfo[], failure: unknown): QuoteResult {
   const quotes = new Map<string, Quote>()
   const snapshot = readQuoteSnapshot()
-  if (snapshot === null) return { quotes, frozenDate: null }
+  if (snapshot === null) return { quotes, frozenDate: null, failure }
 
   stocks.forEach((stock) => {
     const saved = snapshot.quotes[stock.stockCode]
     if (saved !== undefined) quotes.set(stock.stockCode, saved)
   })
 
-  return { quotes, frozenDate: snapshot.date }
+  return {
+    quotes,
+    frozenDate: snapshot.date,
+    failure: quotes.size > 0 ? null : failure,
+  }
 }
