@@ -27,6 +27,11 @@ interface Props {
    * 차트가 통째로 새로 만들어져 깜빡이기 때문이다.
    */
   resetKey?: string
+  /**
+   * 접혔을 때 대신 그릴 것. 화면 한 칸만 감싼 경계는 앱 전체가 멈춘 것처럼
+   * 말하면 안 되므로 그 칸에 맞는 안내를 넘긴다. 없으면 아래 기본 화면을 쓴다.
+   */
+  fallback?: ReactNode
 }
 
 interface State {
@@ -69,6 +74,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.error === null) return this.props.children
+    if (this.props.fallback !== undefined) return this.props.fallback
 
     return (
       <div className={styles.wrap} role="alert">

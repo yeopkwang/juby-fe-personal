@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import LoadFailure from './LoadFailure'
 import { getStockNews } from '../api/stock'
-import { isRetryable, toUserMessage } from '../utils/error'
+import { UserFacingError, isRetryable, toUserMessage } from '../utils/error'
 import type { NewsSort, StockNewsItem } from '../types/stock'
 import styles from './NewsList.module.css'
 
@@ -54,9 +54,17 @@ export default function NewsList({ stockCode }: Props) {
     getStockNews(stockCode, sort, page)
       .then((result) => {
         if (isStale) return
+
+        /* 모양이 깨진 응답은 빈 목록이 아니라 실패다. 뭉개면 실패가 조용해진다 */
+        if (result === null || !Array.isArray(result.newsList)) {
+          throw new UserFacingError('뉴스를 불러오지 못했습니다.')
+        }
+
+        // setState 콜백 안의 예외는 아래 catch로 안 온다. 응답은 밖에서 꺼내 둔다
+        const received = result.newsList
         // 첫 장은 갈아끼우고, '더 보기'로 받은 장은 뒤에 잇는다
         setItems((previous) =>
-          page === 0 ? result.newsList : [...previous, ...result.newsList],
+          page === 0 ? received : [...previous, ...received],
         )
         setTotalCount(result.totalCount)
       })

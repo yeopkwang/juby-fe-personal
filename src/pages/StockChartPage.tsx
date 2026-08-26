@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
+import ErrorBoundary from '../components/ErrorBoundary'
 import LoadFailure from '../components/LoadFailure'
 import NewsList from '../components/NewsList'
 import Skeleton from '../components/Skeleton'
@@ -291,8 +292,14 @@ export default function StockChartPage() {
       </section>
 
       <section className={styles.section}>
-        {/* 종목이 바뀌면 정렬·페이지를 처음부터 다시 잡게 통째로 새로 그린다 */}
-        <NewsList key={stockCode} stockCode={stockCode} />
+        {/* 뉴스가 그리다 터져도 이 칸만 비운다. 차트·시세까지 함께 사라지면 안 된다 */}
+        <ErrorBoundary
+          resetKey={stockCode}
+          fallback={<LoadFailure message="뉴스를 불러오지 못했습니다." />}
+        >
+          {/* 종목이 바뀌면 정렬·페이지를 처음부터 다시 잡게 통째로 새로 그린다 */}
+          <NewsList key={stockCode} stockCode={stockCode} />
+        </ErrorBoundary>
       </section>
     </>
   )
