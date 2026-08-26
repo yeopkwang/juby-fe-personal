@@ -1,7 +1,10 @@
 import ComingSoon from '../components/ComingSoon'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 /** App.tsx의 path="*". 아직 만들지 않은 주소가 전부 여기로 온다 */
 export default function NotReadyPage() {
+  useDocumentTitle('준비 중인 기능')
+
   return (
     <ComingSoon
       title="기능 준비중입니다"

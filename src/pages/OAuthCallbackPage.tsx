@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { saveTokens } from '../utils/auth'
 import styles from './OAuthCallbackPage.module.css'
 
@@ -8,6 +9,8 @@ import styles from './OAuthCallbackPage.module.css'
  * 사용자에게 보여줄 화면이 아니라 토큰을 옮겨 담고 바로 떠나는 중간 지점이다.
  */
 export default function OAuthCallbackPage() {
+  useDocumentTitle('로그인 중')
+
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 

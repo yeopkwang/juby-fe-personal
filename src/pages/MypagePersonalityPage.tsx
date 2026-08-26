@@ -8,6 +8,7 @@ import {
   PERSONALITY_INFO,
   PERSONALITY_ORDER,
 } from '../utils/personality'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { PersonalityInfo } from '../types/member'
 import type { PersonalityType } from '../types/personality'
 import styles from './MypagePersonalityPage.module.css'
@@ -38,6 +39,8 @@ type Change =
   | { kind: 'failed' }
 
 export default function MypagePersonalityPage() {
+  useDocumentTitle('내 투자유형')
+
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [change, setChange] = useState<Change>({ kind: 'idle' })
 

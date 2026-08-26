@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getQuestions, submitTest } from '../api/personality'
 import { loadPersonalityResultPage } from './lazy'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { Question } from '../types/personality'
 import styles from './PersonalityTestPage.module.css'
 
@@ -16,6 +17,8 @@ function toScores(questions: Question[], answers: (number | null)[]): number[] {
 }
 
 export default function PersonalityTestPage() {
+  useDocumentTitle('투자성향 테스트')
+
   const navigate = useNavigate()
   /* 어디서 들어왔는지(?from=mypage)를 결과 화면까지 그대로 넘긴다 */
   const { search } = useLocation()

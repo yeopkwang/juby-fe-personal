@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import styles from './LoginPage.module.css'
 
 /**
@@ -30,6 +31,8 @@ const PROVIDERS = [
 ]
 
 export default function LoginPage() {
+  useDocumentTitle('로그인')
+
   /*
    * 콜백 페이지가 토큰을 못 받으면 이 state를 달아 되돌려보낸다.
    * 주소에 안 붙으므로 헤더의 '로그인'으로 새로 들어오면 안내가 따라오지 않는다.

@@ -12,6 +12,7 @@ import {
   loadTopStocks,
   readCachedTopStocks,
 } from '../api/home'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { delay } from '../utils/async'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
@@ -30,6 +31,8 @@ const PAGE_SIZE = 20
 const CARD_HEAD_START = 1200
 
 export default function HomePage() {
+  useDocumentTitle(null)
+
   /*
    * 지난 방문에서 받아둔 카드가 있으면 그걸로 시작한다. 없으면 자리만 잡아 둔다.
    * 어느 쪽이든 아래 effect가 최신 값을 받아 같은 자리에 갈아끼운다.

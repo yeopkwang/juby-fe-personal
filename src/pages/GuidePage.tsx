@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import Skeleton from '../components/Skeleton'
 import { getGuideSections } from '../api/guide'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { GuideSection } from '../types/guide'
 import styles from './GuidePage.module.css'
 
 export default function GuidePage() {
+  useDocumentTitle('사용설명서')
+
   const [sections, setSections] = useState<GuideSection[] | null>(null)
 
   useEffect(() => {

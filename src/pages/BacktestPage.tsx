@@ -17,6 +17,7 @@ import {
   toPercent,
 } from '../utils/backtest'
 import { getPreset, getPresetOptions } from '../api/backtest'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useSavedPersonality } from '../hooks/useSavedPersonality'
 import { UserFacingError, toUserMessage } from '../utils/error'
 import { useCountUp, useGrown } from '../hooks/useReveal'
@@ -47,6 +48,8 @@ function withTopicParticle(word: string): string {
 const PERSONALITY_TEST_URL = '/personality-test'
 
 export default function BacktestPage() {
+  useDocumentTitle('주식 백테스트')
+
   const [query, setQuery] = useState('')
   const [stock, setStock] = useState<StockInfo | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)

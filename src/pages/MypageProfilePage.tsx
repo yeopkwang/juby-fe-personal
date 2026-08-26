@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Modal from '../components/Modal'
 import Skeleton from '../components/Skeleton'
 import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { clearTokens } from '../utils/auth'
 import { formatBirth } from '../utils/format'
 import { toDashedYmd, toYmd } from '../utils/date'
@@ -41,6 +42,8 @@ function DefaultAvatar() {
 }
 
 export default function MypageProfilePage() {
+  useDocumentTitle('내 정보')
+
   const navigate = useNavigate()
 
   const [state, setState] = useState<State>({ kind: 'loading' })
