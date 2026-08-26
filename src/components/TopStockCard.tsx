@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react'
 import { Link } from 'react-router-dom'
 import Skeleton from './Skeleton'
+import { warmOnPress } from '../api/warmup'
 import type { TopStock, TopTheme } from '../types/stock'
 import styles from './TopStockCard.module.css'
 
@@ -28,6 +29,8 @@ export default function TopStockCard({ theme, stock }: Props) {
     <Link
       to={`/stocks/${theme.stockCode}`}
       className={styles.card}
+      /* 누르는 순간 데이터도 부르러 보낸다 — 이유는 api/warmup.ts */
+      onPointerDown={(event) => warmOnPress(event, theme.stockCode)}
     >
       <p className={styles.theme}>{theme.theme}</p>
       <p className={styles.name}>{theme.stockName}</p>

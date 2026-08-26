@@ -5,7 +5,9 @@ import ErrorBoundary from '../components/ErrorBoundary'
 import LoadFailure from '../components/LoadFailure'
 import NewsList from '../components/NewsList'
 import Skeleton from '../components/Skeleton'
-import { findStock, getStockDetail } from '../api/stock'
+import { DETAIL_PERIOD, findStock, getStockDetail } from '../api/stock'
+import { takeWarmStockDetail } from '../api/warmup'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { toKoreanDate, toPlainYmd } from '../utils/date'
 import { isRetryable, toUserMessage } from '../utils/error'
 import {
@@ -15,7 +17,7 @@ import {
   isFlatRate,
 } from '../utils/format'
 import type { Candle } from '../types/market'
-import type { DailyPrice, StockDetail, StockPeriod } from '../types/stock'
+import type { DailyPrice, StockDetail } from '../types/stock'
 import styles from './StockChartPage.module.css'
 
 /*
@@ -24,10 +26,9 @@ import styles from './StockChartPage.module.css'
  * 예전에는 7개 버튼으로 기간을 골랐는데 봉이 한 종류뿐인 화면에서 '3개월'은
  * "3개월짜리 봉"으로 읽힌다. 지금은 전부 받아 두고 처음엔 최근 30봉만 열어 둔다.
  *
- * ⚠️ 손볼 일이 생기면 StockPeriod의 주석을 먼저 읽는다. 백테스트 쪽과 열거값이
- * 갈려 있어서(단수 THREE_MONTH vs 복수 THREE_MONTHS) 복사하면 400이 온다.
+ * 기간 값(DETAIL_PERIOD)은 api/stock.ts에 있다. 이 화면 말고 **미리 부르는 쪽**도
+ * 같은 값을 써야 해서다 — 이유는 그 상수의 주석에 적었다.
  */
-const CHART_PERIOD: StockPeriod = 'ALL'
 
 /** 백엔드 daily_price 한 줄 → 차트가 읽는 형태. 날짜만 YYYYMMDD로 맞추면 된다 */
 function toCandle(daily: DailyPrice): Candle {
@@ -39,6 +40,20 @@ function toCandle(daily: DailyPrice): Candle {
     close: daily.closePrice,
     volume: daily.volume,
   }
+}
+
+/**
+ * 브라우저 탭에 적을 이름.
+ *
+ * 이름을 모르는 동안 코드만 적는다. `005930 (005930)`은 같은 말을 두 번 하는 것이라
+ * 탭에서 잘리면 더 알아보기 어렵다.
+ */
+function toTabTitle(
+  stockCode: string | undefined,
+  name: string | null,
+): string | null {
+  if (stockCode === undefined) return null
+  return name === null ? stockCode : `${name} (${stockCode})`
 }
 
 function toRateClassName(rate: number | null): string | undefined {
@@ -75,7 +90,14 @@ export default function StockChartPage() {
     setIsLoading(true)
     setErrorMessage(null)
 
-    getStockDetail(stockCode, CHART_PERIOD)
+    /*
+     * 누군가 미리 불러 뒀으면 그것을 쓴다(api/warmup.ts). 주소를 직접 치고 들어왔거나
+     * 홈에서 종목을 누른 순간이 그렇다. 없으면 여기서 부른다 — 어느 쪽이든 요청은 1건이다.
+     */
+    const request =
+      takeWarmStockDetail(stockCode) ?? getStockDetail(stockCode, DETAIL_PERIOD)
+
+    request
       .then((result) => {
         if (!isStale) setDetail(result)
       })
@@ -110,6 +132,22 @@ export default function StockChartPage() {
     detail === null || detail.dailyPrices.length === 0
       ? null
       : detail.dailyPrices[detail.dailyPrices.length - 1]
+
+  /*
+   * 이름을 아직 모를 수 있다. 목록(102종목)에 없는 종목이면 응답이 오기 전까지,
+   * 없는 종목코드면 끝까지 모른다.
+   */
+  const knownName = detail?.stockName ?? hint?.stockName ?? null
+  const stockName = knownName ?? stockCode
+
+  /*
+   * 탭 제목에 종목을 적는다. 여러 종목을 탭으로 벌려 놓고 비교하는 화면이라
+   * 여기가 제목이 가장 필요한 자리다.
+   *
+   * 선언이 이 위치인 이유: 훅은 아래 조건부 return들보다 앞에 있어야 한다.
+   * 원래 stockName은 그 아래에 있었는데 같이 끌어올렸다.
+   */
+  useDocumentTitle(toTabTitle(stockCode, knownName))
 
   /** 다시 시도. 값만 올리면 위 effect가 같은 길로 한 번 더 돈다 */
   function handleRetry() {
@@ -158,7 +196,6 @@ export default function StockChartPage() {
     )
   }
 
-  const stockName = detail?.stockName ?? hint?.stockName ?? stockCode
   const changeRate = detail?.comparePrev ?? null
 
   return (

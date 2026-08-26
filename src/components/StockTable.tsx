@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { MouseEvent } from 'react'
 import Skeleton from './Skeleton'
+import { warmOnPress } from '../api/warmup'
 import type { SortDirection, SortKey, SortState, Stock } from '../types/stock'
 import {
   formatChangeRate,
@@ -167,7 +168,19 @@ export default function StockTable({
                 하트는 z-index로 덮개 위에 띄워 두어 따로 눌린다.
               */}
               <span className={styles.name}>
-                <Link to={`/stocks/${stock.stockCode}`} className={styles.nameLink}>
+                <Link
+                  to={`/stocks/${stock.stockCode}`}
+                  className={styles.nameLink}
+                  /*
+                    누르는 순간 데이터도 부르러 보낸다. 화면이 그려진 뒤에 부르면
+                    그만큼 늦다 — 자세한 이유는 api/warmup.ts.
+
+                    ⚠️ 마우스를 올릴 때(hover) 부르면 안 된다. 표를 훑기만 해도
+                    수십 종목이 나가고 그게 전부 KIS 호출이다. 누르기는 실제로
+                    옮겨 가는 1회당 1건이라 낭비가 없다.
+                  */
+                  onPointerDown={(event) => warmOnPress(event, stock.stockCode)}
+                >
                   {stock.stockName}
                 </Link>
               </span>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { searchStocks } from '../api/stock'
+import { warmOnPress } from '../api/warmup'
 import type { StockInfo } from '../types/stock'
 import styles from './SearchBar.module.css'
 
@@ -138,8 +139,16 @@ export default function SearchBar() {
                     ? `${styles.option} ${styles.optionActive}`
                     : styles.option
                 }
-                // 눌리기 전에 input이 포커스를 잃으면 목록이 먼저 닫혀 클릭이 사라진다
-                onMouseDown={(event) => event.preventDefault()}
+                /*
+                  눌리기 전에 input이 포커스를 잃으면 목록이 먼저 닫혀 클릭이 사라진다.
+                  같은 자리에서 데이터도 부르러 보낸다 — 이유는 api/warmup.ts.
+                  여기는 pointerdown이 아니라 mousedown인데, 이미 이 이유로 달려 있던
+                  자리라 그대로 쓴다. 누르는 순간이라는 점은 같다.
+                */
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                  warmOnPress(event, stock.stockCode)
+                }}
                 onClick={() => goTo(stock)}
               >
                 <span className={styles.optionName}>{stock.stockName}</span>

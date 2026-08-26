@@ -56,6 +56,19 @@ export function findStock(stockCode: string): StockInfo | null {
  */
 
 /**
+ * 상세 화면이 받아 가는 기간.
+ *
+ * 화면 파일이 아니라 여기 있는 이유: 상세 요청을 **화면보다 먼저** 시작하는 자리가
+ * 있다(`api/warmup.ts`). 그쪽이 같은 기간으로 불러야 화면이 그 결과를 그대로 받아 쓴다.
+ * 값이 갈리면 미리 부른 것이 버려지고 조용히 두 번 부르게 되는데, 이 창구는 백엔드에서
+ * KIS를 1건 부르므로 그 낭비가 곧 KIS 호출 2건이다.
+ *
+ * ⚠️ 바꾸기 전에 `StockPeriod`의 주석을 읽는다. 백테스트 쪽과 열거값이 갈려 있어
+ * 복사해 쓰면 400이 온다(단수 `THREE_MONTH` vs 복수 `THREE_MONTHS`).
+ */
+export const DETAIL_PERIOD: StockPeriod = 'ALL'
+
+/**
  * 종목 상세. 기간의 OHLCV + 현재가 + 전일 대비.
  * period를 안 보내면 기본값이 ALL(2025-01-02부터)이라 400건 가까이 온다. 반드시 명시한다.
  * 없는 종목코드면 STOCK_NOT_FOUND로 실패한다.
