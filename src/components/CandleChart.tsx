@@ -103,6 +103,15 @@ export default function CandleChart({ candles }: Props) {
         fontFamily: "'Pretendard', -apple-system, system-ui, sans-serif",
         fontSize: 12,
         panes: { separatorColor: '#e5e8eb', enableResize: false },
+        /*
+         * 라이브러리가 왼쪽 아래에 붙이는 TradingView 배지를 끈다.
+         * 그 자리가 하필 거래량 막대의 첫 두세 개 위라 값을 가린다(좁은 화면에서 특히).
+         *
+         * 끄는 대신 표시는 차트 아래에 글자로 남긴다 — StockChartPage의 credit.
+         * 라이선스가 Apache-2.0이라 배지 자체가 의무는 아니지만, 남의 것을 쓰면서
+         * 이름을 지우는 것은 다른 문제다.
+         */
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: '#f4f5f7' },

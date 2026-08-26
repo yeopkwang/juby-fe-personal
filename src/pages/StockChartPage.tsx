@@ -325,6 +325,16 @@ export default function StockChartPage() {
               <CandleChart candles={candles} />
             )}
           </div>
+
+          {/*
+            차트 안 왼쪽 아래에 붙던 TradingView 배지를 껐다 — 거래량 막대를 가려서다.
+            대신 이름은 여기 남긴다(CandleChart의 attributionLogo 주석 참고).
+          */}
+          {errorMessage === null && candles.length > 0 && (
+            <p className={styles.credit}>
+              차트 · TradingView Lightweight Charts
+            </p>
+          )}
         </div>
       </section>
 

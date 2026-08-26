@@ -393,3 +393,14 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/*
+ * 차트 라이브러리 표시. 차트 안에 배지로 있던 것을 밖으로 뺐다(거래량을 가렸다).
+ * 읽을 것이 아니라 밝혀 둘 것이라 가장 흐리게 둔다.
+ */
+.credit {
+  margin: 10px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--color-text-mute);
+  text-align: right;
+}
