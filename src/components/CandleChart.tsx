@@ -100,7 +100,9 @@ export default function CandleChart({ candles }: Props) {
       layout: {
         background: { type: ColorType.Solid, color: '#fff' },
         textColor: '#8b95a1',
-        fontFamily: "'Pretendard', -apple-system, system-ui, sans-serif",
+        /* index.css의 body와 같은 순서로 둔다. 다르면 축 눈금만 다른 글꼴이 된다 */
+        fontFamily:
+          "'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif",
         fontSize: 12,
         panes: { separatorColor: '#e5e8eb', enableResize: false },
         /*

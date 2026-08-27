@@ -109,8 +109,13 @@ body {
   margin: 0;
   background: var(--color-page-bg);
   color: var(--color-text);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic',
-    system-ui, sans-serif;
+  /*
+   * 'Pretendard Variable'이 먼저다 — index.html이 받아오는 것이 그쪽이다.
+   * 뒤의 'Pretendard'는 그 글꼴을 기기에 직접 깔아 둔 사람용이다. 그 경우
+   * 내려받지 않고 곧바로 쓴다.
+   */
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system,
+    BlinkMacSystemFont, 'Malgun Gothic', system-ui, sans-serif;
   font-size: var(--fs-md);
 }
 
