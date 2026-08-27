@@ -142,7 +142,13 @@ export default function HomePage() {
     })
       .catch((error: unknown) => {
         console.warn('테마별 대표 종목 조회 실패', error)
-        setTopErrorMessage(`등락률과 그래프를 받지 못했어요. ${toReason(error)}`)
+        /*
+         * 여기는 원인을 적지 않는다. 카드 세 장 바로 위 한 줄이라, 이 자리에서
+         * 필요한 것은 **무엇이 비었는지**까지다. 왜 그런지와 어디로 가면 되는지는
+         * 아래 표 위에 한 번 적혀 있고, 같은 화면에서 두 번 말하면 길이만 늘고
+         * 읽히지는 않는다.
+         */
+        setTopErrorMessage('등락률과 그래프를 받지 못했어요.')
         setCanRetryTop(isRetryable(error))
       })
       .finally(() => {
