@@ -894,8 +894,19 @@
     transform: rotate(90deg);
   }
 
+  /* '적극투자형' + '최고' 배지가 한 줄에 들어가야 한다. 좁으면 이름이 두 줄로 쪼개진다 */
   .rank {
-    grid-template-columns: 88px minmax(0, 1fr) 40px;
+    grid-template-columns: 100px minmax(0, 1fr) 38px;
     gap: 8px;
+  }
+
+  .rankName {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .crown {
+    padding: 1px 4px;
+    font-size: 9px;
   }
 }

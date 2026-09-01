@@ -340,7 +340,7 @@ export default function BacktestPage() {
                   periodChoices.includes(item.period),
                 ).map((item) => (
                   <option key={item.period} value={item.period}>
-                    {item.label} ({item.months}개월)
+                    {periodLabel(item.period)}
                   </option>
                 ))}
               </select>

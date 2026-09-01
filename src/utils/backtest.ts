@@ -146,9 +146,18 @@ export function supportedPeriods(investType: number): BacktestPeriod[] {
   return PERIODS.slice(minIndex).map((item) => item.period)
 }
 
+/**
+ * 화면에 적는 기간 이름.
+ *
+ * '1년'만 몇 개월인지 덧붙인다. 나머지는 이름 자체가 이미 개월 수라
+ * 그대로 붙이면 "3개월 (3개월)"처럼 같은 말이 두 번 나온다.
+ */
 export function periodLabel(period: BacktestPeriod): string {
   const found = PERIODS.find((item) => item.period === period)
-  return found === undefined ? '' : `${found.label} (${found.months}개월)`
+  if (found === undefined) return ''
+  return found.label === `${found.months}개월`
+    ? found.label
+    : `${found.label} (${found.months}개월)`
 }
 
 /**
