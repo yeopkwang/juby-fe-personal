@@ -178,3 +178,65 @@
     padding: 8px;
   }
 }
+
+/* ── 기간 탭 ──────────────────────────────────────────────────────── */
+
+.periodTabs {
+  display: flex;
+  gap: 4px;
+  margin: 16px 0 12px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--color-bg-sub);
+  /* 좁은 화면에서 일곱 개가 한 줄에 안 들어가면 옆으로 민다 */
+  overflow-x: auto;
+}
+
+.periodTab {
+  flex: 1 0 auto;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
+
+.periodTab:hover {
+  color: var(--color-text);
+}
+
+.periodTabActive {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+}
+
+.summaryDate {
+  margin: 20px 0 6px;
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.retryButton {
+  padding: 9px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.retryButton:hover {
+  border-color: var(--color-text-sub);
+}

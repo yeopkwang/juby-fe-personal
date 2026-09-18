@@ -41,6 +41,23 @@ export function formatVolume(volume: number | null): string {
 }
 
 /**
+ * 거래대금(원). 35,676,835,800 → "357억", 1,234,567,890,123 → "1.2조"
+ *
+ * 홈 표는 거래량이 아니라 거래대금을 받는다(백엔드 daily_price.trading_value).
+ * 억 단위가 대부분이라 억으로 줄이고, 조를 넘는 대형주는 소수 한 자리로 적는다.
+ */
+export function formatTradingValue(value: number | null): string {
+  if (value === null) return EMPTY
+  if (value >= 1_000_000_000_000) {
+    return `${(value / 1_000_000_000_000).toFixed(1)}조`
+  }
+  if (value >= 100_000_000) {
+    return `${Math.round(value / 100_000_000).toLocaleString('ko-KR')}억`
+  }
+  return `${Math.round(value / 10_000).toLocaleString('ko-KR')}만원`
+}
+
+/**
  * "2002-05-07" → "2002년 05월 07일"
  *
  * 생년월일은 없을 수 있다. 백엔드 parseBirth()가 소셜에서 못 받으면 null을 저장하는데,
@@ -55,17 +72,4 @@ export function formatBirth(birth: string | null): string | null {
   if (year === undefined || month === undefined || day === undefined) return null
 
   return `${year}년 ${month}월 ${day}일`
-}
-
-/** 뉴스 발행 시각. 하루가 넘으면 "8월 5일"처럼 날짜로 보여준다 */
-export function formatRelativeTime(date: Date, now: Date = new Date()): string {
-  const minutes = Math.floor((now.getTime() - date.getTime()) / 60_000)
-
-  if (minutes < 1) return '방금 전'
-  if (minutes < 60) return `${minutes}분 전`
-
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}시간 전`
-
-  return `${date.getMonth() + 1}월 ${date.getDate()}일`
 }

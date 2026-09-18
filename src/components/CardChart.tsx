@@ -45,8 +45,8 @@ export default function CardChart({ stock }: { stock: TopStock }) {
         <span className={styles.rate} style={{ color: rateColor }}>
           {formatChangeRate(stock.changeRate, 1)}
         </span>
-        {/* 받아오는 게 30거래일이라 달력으로 약 6주다. home.ts의 loadTopStocks 참고 */}
-        <span className={styles.caption}>6주 전 대비</span>
+        {/* 상세 API에 period=ONE_MONTH 로 받는다. home.ts의 loadTopStocks 참고 */}
+        <span className={styles.caption}>한 달 전 대비</span>
       </p>
 
       <div className={styles.chart}>

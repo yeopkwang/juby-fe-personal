@@ -7,7 +7,7 @@ import {
   createChart,
 } from 'lightweight-charts'
 import type { IChartApi, ISeriesApi } from 'lightweight-charts'
-import type { Candle } from '../types/market'
+import type { Candle } from '../types/stock'
 import { toDashedYmd, toKoreanDate } from '../utils/date'
 import { formatChangeRate, isFlatRate } from '../utils/format'
 import styles from './CandleChart.module.css'
@@ -17,9 +17,6 @@ const UP_COLOR = '#f04452'
 const DOWN_COLOR = '#3182f6'
 const UP_VOLUME_COLOR = 'rgba(240, 68, 82, 0.35)'
 const DOWN_VOLUME_COLOR = 'rgba(49, 130, 246, 0.35)'
-
-/** 처음에 보여줄 봉 개수. 나머지 과거 일봉은 옆으로 밀거나 축소해서 본다 */
-const INITIAL_VISIBLE_BARS = 30
 
 /** 아래 거래량 칸이 차지할 높이 비율 */
 const VOLUME_PANE_RATIO = 0.26
@@ -209,12 +206,12 @@ export default function CandleChart({ candles }: Props) {
       })),
     )
 
-    // 1년치를 다 받아 두고 최근 30봉만 열어 둔다. 나머지는 밀어서 꺼내 본다
+    /*
+     * 넘겨받은 봉을 전부 화면에 맞춘다. 기간은 상세 화면의 탭이 이미 잘라서 주므로
+     * 여기서 다시 최근 몇 봉만 열어 둘 이유가 없다 — 탭이 곧 확대·축소다.
+     */
     if (candles.length > 0) {
-      chartRef.current?.timeScale().setVisibleLogicalRange({
-        from: Math.max(0, candles.length - INITIAL_VISIBLE_BARS),
-        to: candles.length - 1,
-      })
+      chartRef.current?.timeScale().fitContent()
     }
   }, [candles])
 

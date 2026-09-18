@@ -1,48 +1,88 @@
-import { useState } from 'react'
-import type { NewsItem } from '../types/market'
-import { formatRelativeTime } from '../utils/format'
+import { useEffect, useState } from 'react'
+import { NEWS_LAST_PAGE, getStockNews } from '../api/stock'
+import type { NewsItem, NewsSort } from '../types/news'
 import styles from './NewsList.module.css'
 
-/**
- * 최신순은 화면에서 직접 정렬하고, 관련도순은 백엔드가 준 순서를 그대로 쓴다.
- * 다만 `/api/news`가 sort 파라미터를 무시하고 늘 최신순 20건만 주고 있어서
- * 지금은 두 순서가 같게 나온다. 백엔드가 sort를 받기 시작하면 그때 갈린다.
- */
-type SortKey = 'date' | 'sim'
-
-const TABS: { key: SortKey; label: string }[] = [
-  { key: 'date', label: '최신순' },
-  { key: 'sim', label: '관련도순' },
+const TABS: { key: NewsSort; label: string }[] = [
+  { key: 'LATEST', label: '최신순' },
+  { key: 'RELEVANCE', label: '관련도순' },
 ]
 
 interface Props {
-  news: NewsItem[]
+  stockCode: string
 }
 
-export default function NewsList({ news }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>('date')
-  const [notice, setNotice] = useState('')
+type State =
+  | { kind: 'loading' }
+  | { kind: 'ready'; items: NewsItem[]; page: number; totalCount: number }
+  | { kind: 'error' }
 
-  /*
-   * 관련도순은 아직 고를 수 없다. 백엔드가 sort를 무시해 최신순과 결과가 똑같이 나오는데,
-   * 그대로 두면 눌러도 목록이 그대로라 고장으로 보인다. 바꾼 척하느니 준비 중이라고 밝힌다.
-   * 백엔드가 sort를 받기 시작하면 아래 분기만 지우면 된다.
-   */
-  function handleTabClick(key: SortKey) {
-    if (key === 'sim') {
-      setNotice('준비중입니다')
-      return
+/**
+ * 종목 뉴스. 정렬과 더 보기를 이 안에서 처리한다.
+ *
+ * 정렬은 서버가 한다(`GET /api/stocks/{code}/news?sort=`). 최신순은 발행일 순,
+ * 관련도순은 벡터 검색이 매긴 순서라 화면에서 흉내 낼 수 없어 탭을 바꾸면 다시 받는다.
+ * 10건씩 오고 page는 0~9까지라 최대 100건이다.
+ */
+export default function NewsList({ stockCode }: Props) {
+  const [sort, setSort] = useState<NewsSort>('LATEST')
+  const [state, setState] = useState<State>({ kind: 'loading' })
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  // 종목이나 정렬이 바뀌면 첫 페이지부터 다시
+  useEffect(() => {
+    let isStale = false
+    setState({ kind: 'loading' })
+
+    getStockNews(stockCode, sort, 0)
+      .then((result) => {
+        if (isStale) return
+        setState({
+          kind: 'ready',
+          items: result.items,
+          page: 0,
+          totalCount: result.totalCount,
+        })
+      })
+      .catch((error: unknown) => {
+        if (isStale) return
+        console.warn('뉴스 조회 실패', error)
+        setState({ kind: 'error' })
+      })
+
+    return () => {
+      isStale = true
     }
-    setNotice('')
-    setSortKey(key)
+  }, [stockCode, sort])
+
+  async function loadMore() {
+    if (state.kind !== 'ready' || isLoadingMore) return
+    const nextPage = state.page + 1
+
+    setIsLoadingMore(true)
+    try {
+      const result = await getStockNews(stockCode, sort, nextPage)
+      setState((current) =>
+        // 받는 사이 종목이나 정렬이 바뀌었으면 이 페이지는 다른 목록의 것이다
+        current.kind === 'ready' && current.page === state.page
+          ? {
+              ...current,
+              items: [...current.items, ...result.items],
+              page: nextPage,
+            }
+          : current,
+      )
+    } catch (error: unknown) {
+      console.warn('뉴스 더 보기 실패', error)
+    } finally {
+      setIsLoadingMore(false)
+    }
   }
 
-  const sorted =
-    sortKey === 'sim'
-      ? news
-      : [...news].sort(
-          (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime(),
-        )
+  const hasMore =
+    state.kind === 'ready' &&
+    state.items.length < state.totalCount &&
+    state.page < NEWS_LAST_PAGE
 
   return (
     <>
@@ -50,23 +90,15 @@ export default function NewsList({ news }: Props) {
         <h2 className={styles.heading}>뉴스 모아보기</h2>
 
         <div className={styles.tabs}>
-          {notice !== '' && (
-            <span className={styles.notice} role="status">
-              {notice}
-            </span>
-          )}
-
           {TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"
               className={
-                sortKey === tab.key
-                  ? `${styles.tab} ${styles.tabActive}`
-                  : styles.tab
+                sort === tab.key ? `${styles.tab} ${styles.tabActive}` : styles.tab
               }
-              onClick={() => handleTabClick(tab.key)}
-              aria-pressed={sortKey === tab.key}
+              onClick={() => setSort(tab.key)}
+              aria-pressed={sort === tab.key}
             >
               {tab.label}
             </button>
@@ -74,30 +106,52 @@ export default function NewsList({ news }: Props) {
         </div>
       </div>
 
-      {sorted.length === 0 && (
+      {state.kind === 'loading' && (
+        <p className={styles.status}>불러오는 중…</p>
+      )}
+
+      {state.kind === 'error' && (
+        <p className={styles.status}>뉴스를 불러오지 못했습니다.</p>
+      )}
+
+      {state.kind === 'ready' && state.items.length === 0 && (
         <p className={styles.empty}>관련 뉴스를 찾지 못했습니다.</p>
       )}
 
-      <ul className={styles.list}>
-        {sorted.map((item) => (
-          <li key={item.link}>
-            <a
-              className={styles.card}
-              href={item.link}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <p className={styles.meta}>
-                {item.source}
-                <span className={styles.dot}>·</span>
-                {formatRelativeTime(item.publishedAt)}
-              </p>
-              <p className={styles.title}>{item.title}</p>
-              <p className={styles.description}>{item.description}</p>
-            </a>
-          </li>
-        ))}
-      </ul>
+      {state.kind === 'ready' && (
+        <ul className={styles.list}>
+          {state.items.map((item, index) => (
+            // 같은 기사가 두 페이지에 걸쳐 올 수 있어 링크만으로는 키가 겹친다
+            <li key={`${index}-${item.link}`}>
+              <a
+                className={styles.card}
+                href={item.link}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <p className={styles.meta}>
+                  {item.source}
+                  <span className={styles.dot}>·</span>
+                  {item.timeAgo}
+                </p>
+                <p className={styles.title}>{item.title}</p>
+                <p className={styles.description}>{item.description}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {hasMore && (
+        <button
+          type="button"
+          className={styles.more}
+          onClick={() => void loadMore()}
+          disabled={isLoadingMore}
+        >
+          {isLoadingMore ? '불러오는 중…' : '뉴스 더 보기'}
+        </button>
+      )}
     </>
   )
 }

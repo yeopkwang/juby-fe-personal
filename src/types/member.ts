@@ -1,4 +1,5 @@
 import type { PersonalityType } from './personality'
+import type { StockInfo } from './stock'
 
 /** 가입 경로. 백엔드 Member.socialType과 같은 값이다 */
 export type SocialType = 'NAVER' | 'KAKAO' | 'GOOGLE'
@@ -15,11 +16,34 @@ export interface MemberInfo {
   socialType: SocialType
 }
 
+/** PATCH /api/members/me 본문. 이름은 2~4자, 생일은 오늘 이전이어야 한다(서버 검증) */
+export interface MemberUpdate {
+  name: string
+  /** "YYYY-MM-DD" 또는 null(지움) */
+  birth: string | null
+}
+
 export interface PersonalityInfo {
   investPersonality: PersonalityType
   description: string
   /** 서버가 가진 이미지 주소. 비어 있으면 화면이 로컬 PNG로 대신한다 */
   personalityImg: string | null
+}
+
+/** GET /api/members/me/like-stocks 한 줄. 시세는 baseDate 기준 종가다 */
+export interface LikeStock extends StockInfo {
+  closePrice: number
+  fluctuate: number
+  tradingValue: number
+  /** ISO 날짜시각 */
+  likedAt: string
+}
+
+export interface LikeStockList {
+  /** YYYY-MM-DD */
+  baseDate: string
+  totalCount: number
+  likeStockList: LikeStock[]
 }
 
 /**

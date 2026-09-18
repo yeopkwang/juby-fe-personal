@@ -1,6 +1,5 @@
 import { Suspense, lazy } from 'react'
 import { Link } from 'react-router-dom'
-import { prefetchCandles } from '../api/candles'
 import type { TopStock, TopTheme } from '../types/stock'
 import styles from './TopStockCard.module.css'
 
@@ -23,11 +22,7 @@ interface Props {
  */
 export default function TopStockCard({ theme, stock }: Props) {
   return (
-    <Link
-      to={`/stocks/${theme.stockCode}`}
-      className={styles.card}
-      onMouseEnter={() => prefetchCandles(theme.stockCode)}
-    >
+    <Link to={`/stocks/${theme.stockCode}`} className={styles.card}>
       <p className={styles.theme}>{theme.theme}</p>
       <p className={styles.name}>{theme.stockName}</p>
 
@@ -49,7 +44,7 @@ function CardPlaceholder() {
     <>
       <p className={styles.rateRow}>
         <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
-        <span className={styles.caption}>6주 전 대비</span>
+        <span className={styles.caption}>한 달 전 대비</span>
       </p>
       <div className={`${styles.chart} ${styles.chartEmpty}`} />
     </>

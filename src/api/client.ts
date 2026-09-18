@@ -3,6 +3,9 @@ import { clearTokens, getAccessToken, isLoggedIn } from '../utils/auth'
 /**
  * 공통 fetch 래퍼. baseURL과 토큰 헤더를 여기서만 관리한다.
  * 개발 중에는 빈 문자열 → vite.config.ts의 프록시가 백엔드로 넘긴다(CORS 우회).
+ *
+ * 인증이 필요한 API(/api/members/**, /api/open-ai/**)는 토큰이 없거나 만료되면
+ * 서버가 401 JSON을 준다. 여기서 한 번에 처리해 로그인 화면으로 보낸다.
  */
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
 
@@ -19,24 +22,17 @@ function authHeaders(): Record<string, string> {
 }
 
 /**
- * ⛔ 백엔드 호출 전면 차단 스위치.
+ * 백엔드 호출 차단 스위치. **지금은 꺼져 있다.**
  *
- * 백엔드가 한국투자증권(KIS) API를 중계하는 구조라, 프론트가 화면을 열 때마다
- * 그쪽으로 요청이 흘러간다. 홈 한 번이 100건이 넘어서 증권사 계정이 정지될 수 있다는
- * 경고를 받아 전부 막아 둔다.
+ * 2026-08~09에 켜 뒀던 이유: 홈 한 번에 증권사(KIS) 중계 요청이 108건 나가
+ * 계정이 정지될 수 있다는 경고를 받았다. 2026-09-18에 홈을 `GET /api/stocks`
+ * (DB만 읽음, 1건)로 갈아타면서 그 원인이 사라져 다시 열었다.
+ * 남은 KIS 호출은 종목 상세의 현재가 1회, 홈 카드 3장의 현재가 3회뿐이다.
  *
- * **여기 한 곳만 막으면 된다.** 이 파일의 fetch가 앱 전체에서 유일한 통신 창구다.
- * 화면·API 모듈은 전부 이 아래를 거치므로 호출부를 하나씩 주석 처리할 필요가 없고,
- * 그렇게 해야 새로 추가되는 코드까지 자동으로 막힌다(빠뜨릴 곳이 없다).
- *
- * 막힌 요청은 '실패'로 떨어진다. 화면들은 이미 실패를 다루게 되어 있어서
- * 홈은 저장해 둔 지난 시세로, 나머지는 각자의 에러 안내로 넘어간다.
- *
- * 다시 켜려면 이 값을 false로 바꾼다. 함께 막아 둔 두 곳도 같이 되돌려야 한다.
- *   1. src/pages/LoginPage.tsx  — 소셜 로그인 이동(백엔드로 주소창을 옮긴다)
- *   2. vite.config.ts           — server.proxy(개발 중 /api를 백엔드로 넘긴다)
+ * 다시 켜야 할 일이 생기면 여기 한 곳만 true로 바꾸면 된다. 이 파일의 fetch가
+ * 앱 전체에서 유일한 통신 창구라 호출부를 하나씩 막을 필요가 없다.
  */
-const API_DISABLED = true
+const API_DISABLED = false
 
 /**
  * 응답을 이만큼 기다려도 안 오면 실패로 친다.
@@ -86,6 +82,26 @@ function tripBreaker(): void {
 function resetBreaker(): void {
   deadStreak = 0
   breakerUntil = 0
+}
+
+/**
+ * 서버가 실패를 알려온 경우.
+ *
+ * 상태코드와 서버 코드("STOCK404_1")를 함께 실어, 부르는 쪽이 "없는 종목"과
+ * "서버 오류"를 가려 다른 화면을 보여줄 수 있게 한다.
+ * 네트워크 단절·시간 초과처럼 서버에 닿지 못한 경우는 이 타입이 아니라 그냥 Error다.
+ */
+export class ApiError extends Error {
+  readonly status: number
+  /** 서버 에러 코드. 본문이 없거나 JSON이 아니면 null */
+  readonly code: string | null
+
+  constructor(message: string, status: number, code: string | null) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
+  }
 }
 
 interface RequestOptions {
@@ -165,28 +181,65 @@ async function requestJson<T>(
   if (response.status === 401 && options?.ignoreUnauthorized !== true) {
     redirectToLogin()
   }
-  if (!response.ok) {
-    throw new Error(`요청 실패 (${response.status}) ${path}`)
+
+  /*
+   * 본문은 한 번만 읽을 수 있으니 문자열로 받아 둔다.
+   *
+   * 실패 응답에도 서버가 { isSuccess: false, message } 를 담아 준다
+   * (ApiResponse.onFailure, 401은 CustomEntryPoint). 상태코드만 보고 버리면
+   * "해당 종목이 존재하지 않습니다" 같은 서버 설명이 "요청 실패 (404)"로 뭉개진다.
+   *
+   * 반대로 게이트웨이 오류 페이지(HTML)나 빈 본문처럼 JSON이 아닌 응답도 온다.
+   * 그때 response.json()이 던지는 SyntaxError를 그대로 흘리면 부르는 쪽은
+   * "Unexpected token <" 를 보게 되므로, 파싱 실패는 상태코드 문장으로 바꿔 던진다.
+   */
+  const text = await response.text()
+  let body: unknown = null
+
+  if (text !== '') {
+    try {
+      body = JSON.parse(text)
+    } catch {
+      throw new Error(
+        response.ok
+          ? `응답을 읽을 수 없습니다 (${response.status}) ${path}`
+          : `요청 실패 (${response.status}) ${path}`,
+      )
+    }
   }
-  return (await response.json()) as T
+
+  if (!response.ok) {
+    throw new ApiError(
+      serverField(body, 'message') ?? `요청 실패 (${response.status})`,
+      response.status,
+      serverField(body, 'code'),
+    )
+  }
+
+  return body as T
+}
+
+/** 실패 응답 본문에서 문자열 필드 하나를 꺼낸다. 없으면 null */
+function serverField(body: unknown, key: 'message' | 'code'): string | null {
+  if (typeof body !== 'object' || body === null) return null
+  const value = (body as Record<string, unknown>)[key]
+  return typeof value === 'string' && value !== '' ? value : null
 }
 
 /** { isSuccess, result } 래퍼를 벗긴다. 실패 코드는 서버가 준 message로 던진다 */
 function unwrap<T>(body: ApiResponse<T>): T {
   if (!body.isSuccess) {
-    throw new Error(body.message)
+    throw new ApiError(body.message, 200, body.code)
   }
   return body.result
 }
 
-/** MarketController 계열: 공통 래퍼 없이 데이터가 그대로 내려온다 */
-export function getRaw<T>(path: string, options?: RequestOptions): Promise<T> {
-  return requestJson<T>(path, undefined, options)
-}
-
-/** 그 외: { isSuccess, result } 래퍼를 벗겨 result만 반환한다 */
-export async function get<T>(path: string): Promise<T> {
-  return unwrap(await requestJson<ApiResponse<T>>(path))
+/**
+ * { isSuccess, result } 래퍼를 벗겨 result만 반환한다.
+ * 2026-08-11부터 모든 컨트롤러가 이 래퍼를 쓴다. 래퍼 없는 응답은 더 이상 없다.
+ */
+export async function get<T>(path: string, options?: RequestOptions): Promise<T> {
+  return unwrap(await requestJson<ApiResponse<T>>(path, undefined, options))
 }
 
 /** 서버 자원을 지운다. 본문 없이 경로만 보낸다 */
@@ -208,11 +261,29 @@ export async function post<T>(
   body: unknown,
   options?: RequestOptions,
 ): Promise<T> {
+  return sendJson<T>('POST', path, body, options)
+}
+
+/** 일부만 고친다(내 정보 수정). 보내는 방식은 post와 같고 method만 다르다 */
+export async function patch<T>(
+  path: string,
+  body: unknown,
+  options?: RequestOptions,
+): Promise<T> {
+  return sendJson<T>('PATCH', path, body, options)
+}
+
+async function sendJson<T>(
+  method: 'POST' | 'PATCH',
+  path: string,
+  body: unknown,
+  options?: RequestOptions,
+): Promise<T> {
   return unwrap(
     await requestJson<ApiResponse<T>>(
       path,
       {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       },

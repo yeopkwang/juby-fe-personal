@@ -134,3 +134,32 @@
     padding: 16px;
   }
 }
+
+.status {
+  margin: 16px 0;
+  font-size: 14px;
+  color: var(--color-text-sub);
+}
+
+/* 목록 아래 한 줄짜리 버튼. 카드와 같은 폭으로 놓아 목록의 일부처럼 보이게 한다 */
+.more {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.more:hover:not(:disabled) {
+  background: var(--color-bg-sub);
+}
+
+.more:disabled {
+  color: var(--color-text-sub);
+  cursor: not-allowed;
+}

@@ -129,3 +129,18 @@
     gap: 8px;
   }
 }
+
+/* 표를 못 받았을 때 .loading 안에 놓는 버튼 */
+.retry {
+  margin-top: 12px;
+  padding: 9px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.retry:hover {
+  border-color: var(--color-text-sub);
+}

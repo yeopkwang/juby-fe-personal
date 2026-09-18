@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { prefetchCandles } from '../api/candles'
 import { searchStocks } from '../api/stock'
 import type { StockInfo } from '../types/stock'
 import styles from './SearchBar.module.css'
 
-export default function SearchBar() {
+interface Props {
+  /** 검색 대상. 홈이 GET /api/stocks 로 받은 목록을 넘긴다(도착 전엔 로컬 사본) */
+  stocks: StockInfo[]
+}
+
+export default function SearchBar({ stocks }: Props) {
   const [keyword, setKeyword] = useState('')
   const [suggestions, setSuggestions] = useState<StockInfo[]>([])
   /** 화살표로 고른 후보. -1이면 아직 아무것도 안 골랐다 */
@@ -17,40 +21,9 @@ export default function SearchBar() {
 
   useEffect(() => {
     const trimmed = keyword.trim()
-    if (trimmed === '') {
-      setSuggestions([])
-      setActiveIndex(-1)
-      return
-    }
-
-    // 지금은 로컬 목록이라 바로 끝나지만, 검색 API로 바뀌면 늦게 온 응답이 최신 입력을 덮을 수 있다
-    let isStale = false
-
-    searchStocks(trimmed).then((found) => {
-      if (isStale) return
-      setSuggestions(found)
-      setActiveIndex(-1)
-    })
-
-    return () => {
-      isStale = true
-    }
-  }, [keyword])
-
-  /*
-   * Enter는 화살표로 고른 후보로, 안 골랐으면 첫 후보로 간다(handleSubmit과 같은 규칙).
-   * 마우스가 목록 위를 지나지 않는 길이라 hover만으로는 미리 받을 기회가 없다.
-   *
-   * 글자를 칠 때마다 첫 후보가 바뀌므로 잠깐 멈춘 뒤에야 받아온다.
-   * 안 그러면 "삼성전자"를 치는 동안 후보가 바뀔 때마다 요청이 나간다.
-   */
-  useEffect(() => {
-    const target = suggestions[activeIndex >= 0 ? activeIndex : 0]
-    if (target === undefined) return
-
-    const timer = setTimeout(() => prefetchCandles(target.stockCode), 250)
-    return () => clearTimeout(timer)
-  }, [suggestions, activeIndex])
+    setSuggestions(trimmed === '' ? [] : searchStocks(stocks, trimmed))
+    setActiveIndex(-1)
+  }, [keyword, stocks])
 
   function goTo(stock: StockInfo) {
     setIsOpen(false)
@@ -140,7 +113,6 @@ export default function SearchBar() {
                 }
                 // 눌리기 전에 input이 포커스를 잃으면 목록이 먼저 닫혀 클릭이 사라진다
                 onMouseDown={(event) => event.preventDefault()}
-                onMouseEnter={() => prefetchCandles(stock.stockCode)}
                 onClick={() => goTo(stock)}
               >
                 <span className={styles.optionName}>{stock.stockName}</span>

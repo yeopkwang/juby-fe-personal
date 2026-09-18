@@ -12,6 +12,23 @@ export function daysAgo(days: number): Date {
   return date
 }
 
+/** "2026-08-05" → "20260805". /api/stocks 계열이 하이픈 형식을 주는데 앱은 붙여 쓴다 */
+export function fromDashedYmd(dashed: string): string {
+  return dashed.replace(/-/g, '')
+}
+
+/**
+ * YYYYMMDD → Date(로컬 자정). 상세 화면이 기간 탭으로 일봉을 자를 때 쓴다.
+ * new Date("2026-08-05")는 UTC 자정이라 한국에서 날짜가 밀릴 수 있어 직접 조립한다.
+ */
+export function ymdToDate(ymd: string): Date {
+  return new Date(
+    Number(ymd.slice(0, 4)),
+    Number(ymd.slice(4, 6)) - 1,
+    Number(ymd.slice(6, 8)),
+  )
+}
+
 /** "20260805" → "2026-08-05" (lightweight-charts가 이 형식을 받는다) */
 export function toDashedYmd(ymd: string): string {
   return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`

@@ -1,11 +1,10 @@
 import { Link } from 'react-router-dom'
 import type { MouseEvent } from 'react'
-import { prefetchCandles } from '../api/candles'
 import type { SortDirection, SortKey, SortState, Stock } from '../types/stock'
 import {
   formatChangeRate,
   formatPrice,
-  formatVolume,
+  formatTradingValue,
   isFlatRate,
 } from '../utils/format'
 import styles from './StockTable.module.css'
@@ -14,7 +13,6 @@ interface Props {
   stocks: Stock[]
   sort: SortState | null
   onSort: (key: SortKey) => void
-  isSortDisabled: boolean
   favoriteCodes: Set<string>
   onHeartClick: (stockCode: string) => void
 }
@@ -30,9 +28,9 @@ const SORTABLE_COLUMNS: {
   hideAt?: 'small'
 }[] = [
   { key: 'stockName', label: '종목명', isNumeric: false },
-  { key: 'currentPrice', label: '현재가', isNumeric: true },
-  { key: 'changeRate', label: '등락률', isNumeric: true },
-  { key: 'volume', label: '거래량', isNumeric: true, hideAt: 'small' },
+  { key: 'closePrice', label: '종가', isNumeric: true },
+  { key: 'fluctuate', label: '등락률', isNumeric: true },
+  { key: 'tradingValue', label: '거래대금', isNumeric: true, hideAt: 'small' },
 ]
 
 function SortIcon({ direction }: { direction: SortDirection | null }) {
@@ -46,8 +44,7 @@ function SortIcon({ direction }: { direction: SortDirection | null }) {
   )
 }
 
-function rateClassName(rate: number | null): string {
-  if (rate === null) return styles.numeric
+function rateClassName(rate: number): string {
   if (isFlatRate(rate)) return `${styles.numeric} ${styles.flat}`
   return `${styles.numeric} ${rate > 0 ? styles.up : styles.down}`
 }
@@ -56,7 +53,6 @@ export default function StockTable({
   stocks,
   sort,
   onSort,
-  isSortDisabled,
   favoriteCodes,
   onHeartClick,
 }: Props) {
@@ -91,7 +87,6 @@ export default function StockTable({
               type="button"
               className={classNames.join(' ')}
               onClick={() => onSort(column.key)}
-              disabled={isSortDisabled}
               aria-label={`${column.label} 기준 정렬`}
             >
               {column.label}
@@ -106,12 +101,7 @@ export default function StockTable({
           const isFavorite = favoriteCodes.has(stock.stockCode)
 
           return (
-            <li
-              key={stock.stockCode}
-              className={styles.row}
-              /* 마우스를 올린 순간부터 일봉을 받아 둔다. 누를 때쯤이면 차트가 이미 준비된다 */
-              onMouseEnter={() => prefetchCandles(stock.stockCode)}
-            >
+            <li key={stock.stockCode} className={styles.row}>
               <button
                 type="button"
                 className={
@@ -153,13 +143,13 @@ export default function StockTable({
               </span>
 
               <span className={styles.numeric}>
-                {formatPrice(stock.currentPrice)}
+                {formatPrice(stock.closePrice)}
               </span>
-              <span className={rateClassName(stock.changeRate)}>
-                {formatChangeRate(stock.changeRate)}
+              <span className={rateClassName(stock.fluctuate)}>
+                {formatChangeRate(stock.fluctuate)}
               </span>
               <span className={`${styles.numeric} ${styles.colVolume}`}>
-                {formatVolume(stock.volume)}
+                {formatTradingValue(stock.tradingValue)}
               </span>
             </li>
           )

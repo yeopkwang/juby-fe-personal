@@ -44,17 +44,12 @@ export default function LoginPage() {
    * 넘겨주는 자리이고, 사용자가 그 화면을 직접 보고 아이디를 입력해야 한다.
    * fetch는 배경에서 도는 통신이라 화면을 옮기지 못하므로 주소창 자체를 이동시킨다.
    *
-   * ⛔ 지금은 막아 뒀다.
-   * client.ts의 API_DISABLED와 같은 이유다 — 증권사 계정 보호. 이 이동은 fetch가 아니라
-   * 주소창을 백엔드로 옮기는 것이라 client.ts의 스위치가 잡지 못해 여기서 따로 막는다.
-   * 되돌릴 때는 아래 주석을 풀고 그 윗줄(alert)을 지운다.
+   * ⚠️ 2026-09-18 기준 백엔드가 로그인을 마친 뒤 /oauth/callback 으로 되돌려보내지 않고
+   * 토큰을 JSON으로 그냥 출력한다(OAuth2SuccessHandler). 그래서 이 버튼을 누르면
+   * 백엔드 주소에 JSON이 뜬 채 끝난다. 백엔드가 리다이렉트를 붙이면 그대로 이어진다.
    */
   function handleSocialLogin(provider: string) {
-    alert('백엔드 호출을 막아 둔 상태라 로그인을 진행할 수 없습니다.')
-    console.warn(
-      `[차단됨] 원래 이동할 주소: ${API_ORIGIN}/oauth2/authorization/${provider}`,
-    )
-    // window.location.href = `${API_ORIGIN}/oauth2/authorization/${provider}`
+    window.location.href = `${API_ORIGIN}/oauth2/authorization/${provider}`
   }
 
   return (
