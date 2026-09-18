@@ -1,19 +1,22 @@
+import { post } from './client'
 import { delay } from '../utils/async'
 import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../types/ai'
 
 /**
  * AI 주가분석 창구.
  *
- * **지금은 전부 mock이다.** 백엔드에 `/v1/ai/sessions` 4종이 아직 없고,
- * 있는 `/api/open-ai/ask`는 생성한 답변을 `log.info()`로 흘려버려 프론트로 오지 않는다
- * (`OpenAiService.askQuestion()`이 void). 그쪽이 String을 반환하도록 바뀌면
- * 이 파일의 **함수 안쪽만** 실제 호출로 갈아끼우면 된다. 화면 코드는 손대지 않는다.
+ * **질문(ask)만 실제 API고, 대화방 목록·상세는 아직 mock이다.**
+ *
+ * `POST /api/open-ai/ask` 는 `{ answer }` 를 돌려준다(2026-09-18 확인). 로그인이 필요하고,
+ * 성향을 안 정한 회원이면 404(MEMBER404_2)라 화면이 성향테스트로 안내한다.
+ * stockName은 비워 보내면 서버가 질문에서 종목을 알아서 찾는다.
+ *
+ * 대화방(`/api/chat-sessions` 5종)은 백엔드 진행 중이라 붙일 곳이 없다.
+ * 그래서 새 대화의 sessionId·title은 화면에서 지어낸다. 서버가 발급하기 시작하면
+ * 아래 mock 함수들만 실제 호출로 갈아끼운다. 화면 코드는 손대지 않는다.
  *
  * 응답 형태는 요구사항서에 적어둔 가정을 따른다. 명세가 확정되면 문서와 이 파일을 함께 고친다.
  */
-
-/** 서버 왕복이 있는 척한다. 로딩 상태가 실제로 보이는지 확인하려면 지연이 필요하다 */
-const MOCK_LATENCY = 1500
 
 const MOCK_SESSIONS: ChatSession[] = [
   { sessionId: 1, title: '한화디펜스 전쟁 영향' },
@@ -47,24 +50,28 @@ export async function getSessionDetail(
 }
 
 /**
- * POST /v1/ai/sessions (새 대화) 또는 POST /v1/ai/sessions/{sessionId} (이어하기) 로 교체.
- * 그때 stockName은 요청 본문에 함께 실어 보낸다.
+ * 질문을 보내고 답을 받는다. **실제 API다.**
+ *
+ * 대화 이어가기는 아직 서버에 없다. sessionId를 받아도 서버에는 보내지 않고,
+ * 화면이 같은 방에 말풍선을 이어 붙이는 데만 쓴다. `/api/chat-sessions`가 생기면
+ * 그쪽 POST로 바꾸고 sessionId를 함께 보낸다.
  */
 export async function ask(
   question: string,
   stockName: string,
   sessionId?: number,
 ): Promise<AskResult> {
-  await delay(MOCK_LATENCY)
+  const { answer } = await post<{ answer: string }>('/api/open-ai/ask', {
+    question,
+    // 빈 문자열을 보내면 서버가 "종목명 있음"으로 오해할 수 있다. 없으면 null로 비운다
+    stockName: stockName === '' ? null : stockName,
+  })
 
   return {
     sessionId: sessionId ?? nextSessionId++,
-    /* 서버는 첫 질문을 요약해 제목을 만든다. 여기서는 앞부분을 잘라 흉내만 낸다 */
+    /* 서버는 아직 제목을 안 만든다. 첫 질문 앞부분을 잘라 쓴다 */
     title: toTitle(question),
-    answer:
-      `(준비 중) 백엔드 AI 응답 연동 전입니다.\n\n` +
-      `질문: ${question}\n` +
-      `종목: ${stockName === '' ? '(못 찾음)' : stockName}`,
+    answer,
   }
 }
 

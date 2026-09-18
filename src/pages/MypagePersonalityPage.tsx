@@ -45,11 +45,11 @@ export default function MypagePersonalityPage() {
       <div className={styles.message}>
         <p className={styles.messageText}>투자성향을 불러오지 못했습니다.</p>
         {/*
-          백엔드가 /api/**를 permitAll로 열어둬서 인증이 풀려도 401이 아니라 500이 온다.
-          로그인 화면으로 튕겨내는 대신 다시 로그인하라고 알려만 준다.
+          토큰이 만료됐으면 서버가 401을 주고 client.ts가 로그인 화면으로 보낸다.
+          여기까지 왔다면 401이 아닌 다른 실패(서버 오류, 네트워크)다.
         */}
         <p className={styles.hint}>
-          로그인이 풀렸을 수 있어요. 문제가 계속되면 다시 로그인해 주세요.
+          잠시 후 다시 시도해 주세요. 문제가 계속되면 다시 로그인해 보세요.
         </p>
         <button type="button" className={styles.primary} onClick={load}>
           다시 시도

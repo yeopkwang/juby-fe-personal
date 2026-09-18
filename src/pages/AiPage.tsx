@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ask, getSessionDetail, getSessions } from '../api/ai'
+import { ApiError } from '../api/client'
 import { getMyPersonality } from '../api/member'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import SessionSidebar from '../components/SessionSidebar'
@@ -13,6 +14,9 @@ import styles from './AiPage.module.css'
 const PERSONALITY_TEST_URL = '/personality.html?from=ai'
 
 const STOCK_HINT = '종목명을 함께 입력하면 더 정확한 분석을 받을 수 있어요.'
+const LOGIN_HINT = '로그인하면 질문할 수 있어요.'
+const NO_PERSONALITY_HINT =
+  '투자성향을 먼저 정해야 답할 수 있어요. 아래 버튼으로 검사해 주세요.'
 
 type DetailState = 'idle' | 'loading' | 'error'
 
@@ -36,6 +40,13 @@ export default function AiPage() {
   const localIdRef = useRef(-1)
   /** 실패한 질문. '다시 시도'가 이걸 그대로 다시 보낸다 */
   const lastAskRef = useRef<{ text: string; stockName: string } | null>(null)
+  /*
+   * 질문을 보낼 때마다 하나씩 올라가는 번호.
+   * 답을 기다리는 동안 다른 대화방을 누르거나 새 대화를 열면 이 번호도 올라간다.
+   * 답이 도착했을 때 번호가 달라져 있으면 보던 화면이 바뀐 것이므로 그 답은 버린다.
+   * 안 그러면 A방에 물은 답이 B방 말풍선 뒤에 가서 붙는다.
+   */
+  const askSeqRef = useRef(0)
 
   useEffect(() => {
     getSessions()
@@ -61,6 +72,7 @@ export default function AiPage() {
   }
 
   function handleNewChat() {
+    askSeqRef.current += 1
     setSessionId(null)
     setMessages([])
     setDetailState('idle')
@@ -72,6 +84,7 @@ export default function AiPage() {
     // 보고 있는 세션을 또 누른 것뿐이다. 다시 받아올 이유가 없다
     if (selectedId === sessionId && detailState !== 'error') return
 
+    askSeqRef.current += 1
     setSessionId(selectedId)
     setPending(null)
     setNotice('')
@@ -91,9 +104,13 @@ export default function AiPage() {
   async function send(text: string, stockName: string) {
     lastAskRef.current = { text, stockName }
     setPending('loading')
+    askSeqRef.current += 1
+    const seq = askSeqRef.current
 
     try {
       const result = await ask(text, stockName, sessionId ?? undefined)
+      // 기다리는 사이 화면이 다른 대화방으로 바뀌었다. 이 답은 그 방의 것이 아니다
+      if (seq !== askSeqRef.current) return
 
       setMessages((previous) => [
         ...previous,
@@ -115,7 +132,19 @@ export default function AiPage() {
         ])
       }
     } catch (error: unknown) {
+      if (seq !== askSeqRef.current) return
       console.warn('AI 질문 전송 실패', error)
+
+      /*
+       * 성향을 안 정한 회원은 서버가 404(MEMBER404_2)를 준다. 다시 보내 봐야 같은 답이라
+       * '다시 시도'를 띄우지 않고 검사부터 하라고 안내한다.
+       * 401은 client.ts가 이미 로그인 화면으로 보냈다.
+       */
+      if (error instanceof ApiError && error.code === 'MEMBER404_2') {
+        setPending(null)
+        setNotice(NO_PERSONALITY_HINT)
+        return
+      }
       setPending('error')
     }
   }
@@ -124,6 +153,12 @@ export default function AiPage() {
     const text = question.trim()
     // 공백만 친 경우까지 걸러진다
     if (text === '' || pending === 'loading') return
+
+    // 서버가 토큰 없는 요청을 401로 막는다. 보내 보고 실패하느니 먼저 알린다
+    if (!loggedIn) {
+      setNotice(LOGIN_HINT)
+      return
+    }
 
     const stockName = findStockName(text)
 
@@ -199,8 +234,12 @@ export default function AiPage() {
               <p className={styles.watermark}>JUBY</p>
               <p className={styles.watermarkSub}>AI 도우미</p>
 
-              {/* 성향을 모르면 이 영역 자체를 숨긴다. 지어낸 값을 보여줄 수는 없다 */}
-              {personality !== null && (
+              {/*
+                성향이 있으면 보여주고, 로그인했는데 없으면 검사를 권한다 —
+                성향 없는 회원의 질문은 서버가 거절하므로 미리 알려야 한다.
+                비로그인은 이 영역을 숨긴다. 지어낸 값을 보여줄 수는 없다.
+              */}
+              {personality !== null ? (
                 <div className={styles.personality}>
                   <p className={styles.personalityText}>
                     현재 당신의 투자성향은 ‘{personality}’ 입니다.
@@ -209,7 +248,16 @@ export default function AiPage() {
                     투자성향 변경하기
                   </a>
                 </div>
-              )}
+              ) : loggedIn ? (
+                <div className={styles.personality}>
+                  <p className={styles.personalityText}>
+                    투자성향을 정하면 나에게 맞춘 답을 받을 수 있어요.
+                  </p>
+                  <a className={styles.darkButton} href={PERSONALITY_TEST_URL}>
+                    투자성향 검사하기
+                  </a>
+                </div>
+              ) : null}
             </div>
           ) : (
             <ChatMessages

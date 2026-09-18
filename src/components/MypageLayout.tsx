@@ -4,6 +4,7 @@ import styles from './MypageLayout.module.css'
 
 const MENU = [
   { to: '/mypage/personality', label: '투자유형 보기' },
+  { to: '/mypage/likes', label: '관심종목' },
   { to: '/mypage/profile', label: '내 정보 확인' },
 ]
 

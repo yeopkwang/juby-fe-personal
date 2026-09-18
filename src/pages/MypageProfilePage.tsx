@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import Modal from '../components/Modal'
-import { deleteMember, getMemberInfo } from '../api/member'
+import { ApiError } from '../api/client'
+import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
 import { clearTokens } from '../utils/auth'
 import { formatBirth } from '../utils/format'
 import type { MemberInfo, ProfileImageUrl } from '../types/member'
@@ -47,10 +49,17 @@ function DefaultAvatar() {
 
 export default function MypageProfilePage() {
   const [state, setState] = useState<State>({ kind: 'loading' })
-  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const [editNotice, setEditNotice] = useState('')
+
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editName, setEditName] = useState('')
+  /** "YYYY-MM-DD" 또는 빈 문자열(없음). date input이 이 형식을 그대로 쓴다 */
+  const [editBirth, setEditBirth] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const load = useCallback(() => {
     setState({ kind: 'loading' })
@@ -85,10 +94,55 @@ export default function MypageProfilePage() {
     }
   }
 
-  function closeModal() {
+  function closeDelete() {
     if (isDeleting) return
-    setIsModalOpen(false)
+    setIsDeleteOpen(false)
     setDeleteError('')
+  }
+
+  function openEdit(member: MemberInfo) {
+    setEditName(member.name)
+    setEditBirth(member.birth ?? '')
+    setSaveError('')
+    setIsEditOpen(true)
+  }
+
+  function closeEdit() {
+    if (isSaving) return
+    setIsEditOpen(false)
+  }
+
+  /**
+   * 이름 2~4자, 생일은 오늘 이전 — 서버가 검사하고 400에 이유를 적어 준다.
+   * 화면에서도 같은 규칙으로 먼저 거르되, 서버 메시지가 오면 그걸 그대로 보여준다.
+   */
+  async function handleSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (isSaving) return
+
+    const name = editName.trim()
+    if (name.length < 2 || name.length > 4) {
+      setSaveError('이름은 2~4자여야 합니다.')
+      return
+    }
+
+    setIsSaving(true)
+    setSaveError('')
+
+    try {
+      await updateMemberInfo({ name, birth: editBirth === '' ? null : editBirth })
+      setIsEditOpen(false)
+      load()
+    } catch (error: unknown) {
+      console.warn('회원 정보 수정 실패', error)
+      setSaveError(
+        error instanceof ApiError && error.status === 400
+          ? error.message
+          : '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (state.kind === 'loading') {
@@ -99,9 +153,12 @@ export default function MypageProfilePage() {
     return (
       <div className={styles.message}>
         <p className={styles.messageText}>회원 정보를 불러오지 못했습니다.</p>
-        {/* permitAll 설정 탓에 인증이 풀려도 401이 아니라 500이 온다 */}
+        {/*
+          토큰이 만료됐으면 서버가 401을 주고 client.ts가 로그인 화면으로 보낸다.
+          여기까지 왔다면 401이 아닌 다른 실패(서버 오류, 네트워크)다.
+        */}
         <p className={styles.hint}>
-          로그인이 풀렸을 수 있어요. 문제가 계속되면 다시 로그인해 주세요.
+          잠시 후 다시 시도해 주세요. 문제가 계속되면 다시 로그인해 보세요.
         </p>
         <button type="button" className={styles.primary} onClick={load}>
           다시 시도
@@ -128,35 +185,83 @@ export default function MypageProfilePage() {
         <p className={styles.field}>{member.email}</p>
 
         <div className={styles.buttons}>
-          {/*
-            PATCH /api/members/me는 서버에 있지만 이번 범위에서 뺐다.
-            수정 폼 UI가 Figma에 없어 화면 설계가 먼저 정해져야 한다.
-          */}
           <button
             type="button"
             className={styles.muted}
-            onClick={() => setEditNotice('준비 중입니다')}
+            onClick={() => openEdit(member)}
           >
             정보 수정하기
           </button>
           <button
             type="button"
             className={styles.outline}
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => setIsDeleteOpen(true)}
           >
             회원 탈퇴하기
           </button>
         </div>
-
-        {editNotice !== '' && (
-          <p className={styles.notice} role="status">
-            {editNotice}
-          </p>
-        )}
       </div>
 
+      {/* 이름·생일만 고칠 수 있다. 이메일과 가입 경로는 소셜 계정에 딸린 값이라 서버가 안 받는다 */}
+      <Modal isOpen={isEditOpen} onClose={closeEdit}>
+        <form className={styles.form} onSubmit={(event) => void handleSave(event)}>
+          <p className={styles.modalTitle}>내 정보 수정</p>
+
+          <label className={styles.formLabel} htmlFor="edit-name">
+            이름
+          </label>
+          <input
+            id="edit-name"
+            className={styles.formInput}
+            type="text"
+            value={editName}
+            onChange={(event) => setEditName(event.target.value)}
+            minLength={2}
+            maxLength={4}
+            required
+            disabled={isSaving}
+          />
+          <p className={styles.formHelp}>2~4자</p>
+
+          <label className={styles.formLabel} htmlFor="edit-birth">
+            생년월일
+          </label>
+          <input
+            id="edit-birth"
+            className={styles.formInput}
+            type="date"
+            value={editBirth}
+            onChange={(event) => setEditBirth(event.target.value)}
+            // 오늘 이후는 서버가 거절한다. 달력에서 애초에 못 고르게 한다
+            max={new Date().toISOString().slice(0, 10)}
+            disabled={isSaving}
+          />
+          <p className={styles.formHelp}>비워 두면 정보 없음으로 저장돼요</p>
+
+          {saveError !== '' && (
+            <p className={styles.modalError} role="alert">
+              {saveError}
+            </p>
+          )}
+
+          <div className={styles.modalButtons}>
+            <button type="submit" className={styles.primary} disabled={isSaving}>
+              {isSaving ? '저장 중…' : '저장'}
+            </button>
+            <button
+              type="button"
+              className={styles.cancel}
+              onClick={closeEdit}
+              disabled={isSaving}
+            >
+              취소
+            </button>
+          </div>
+        </form>
+      </Modal>
+
       {/* 탈퇴는 되돌릴 수 없다. 버튼 하나로 바로 지우지 않는다 */}
-      <Modal isOpen={isModalOpen} onClose={closeModal}>
+      <Modal isOpen={isDeleteOpen} onClose={closeDelete}>
         <p className={styles.modalTitle}>정말 탈퇴하시겠습니까?</p>
         <p className={styles.modalText}>
           계정과 투자성향 정보가 모두 삭제되며 복구할 수 없습니다.
@@ -172,7 +277,7 @@ export default function MypageProfilePage() {
           <button
             type="button"
             className={styles.danger}
-            onClick={handleDelete}
+            onClick={() => void handleDelete()}
             disabled={isDeleting}
           >
             {isDeleting ? '처리 중…' : '탈퇴하기'}
@@ -180,7 +285,7 @@ export default function MypageProfilePage() {
           <button
             type="button"
             className={styles.cancel}
-            onClick={closeModal}
+            onClick={closeDelete}
             disabled={isDeleting}
           >
             취소

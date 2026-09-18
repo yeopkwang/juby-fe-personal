@@ -13,9 +13,14 @@ import { clearTokens, getRefreshToken } from '../utils/auth'
  */
 export async function logout(): Promise<void> {
   try {
-    // body 키가 refreshToken이 아니라 refresh_token(스네이크 케이스)이다. 백엔드 명세 기준
+    /*
+     * ⚠️ 이 API는 백엔드에 아직 없다(2026-09-18 확인: /api/auth 를 다루는 컨트롤러가 없음).
+     * 작업 보드에는 POST /api/auth/logout 으로 "진행 중"이라 그 경로를 적어 둔다.
+     * 예전 /v1/auth/logout 은 존재한 적이 없는 주소였다.
+     * 본문 키(refresh_token)도 아직 명세가 없어 추정값이다. 생기면 여기만 맞춘다.
+     */
     await post(
-      '/v1/auth/logout',
+      '/api/auth/logout',
       { refresh_token: getRefreshToken() },
       // 토큰이 만료된 채 눌러도 로그인 화면이 아니라 부르는 쪽이 정한 곳으로 가야 한다
       { ignoreUnauthorized: true },

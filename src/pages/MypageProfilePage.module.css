@@ -217,3 +217,42 @@
     padding: 56px 16px;
   }
 }
+
+/* ── 정보 수정 폼 ──────────────────────────────────────────────────── */
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.formLabel {
+  margin: 14px 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.formInput {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-sub);
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--color-text-sub);
+}
+
+.formInput:disabled {
+  color: var(--color-text-sub);
+}
+
+.formHelp {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
