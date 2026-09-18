@@ -5,15 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 프로젝트 소개·실행법·환경변수·코딩 규칙은 [README.md](README.md)에 있다. 먼저 읽는다.
 이 문서는 README에 없는 것, 즉 **여러 파일을 읽어야 보이는 구조**만 적는다.
 
-> **백테스트 화면(`/backtest`)은 2026-09-01에 브라우저로 검증을 마쳤다.**
-> 남은 일은 **API 연결**이다(지금은 `src/utils/backtestSample.ts`가 지어낸 값을 그린다).
-> 백엔드에서 확인한 사실·요청 목록·연결 순서는
-> [docs/handoff-2026-08-09.md](docs/handoff-2026-08-09.md)에 있다. 손대기 전에 읽는다.
+> **2026-09-18: 백엔드가 구현한 API는 전부 연결했다.** 홈·상세·뉴스·백테스트·성향테스트·
+> 마이페이지(정보 수정·관심종목)·AI 질문. 실제 브라우저로 검증했다.
+> 아직 못 하는 건 **로그인** 하나인데, 이건 백엔드 몫이다(아래 "로그인이 끝까지 이어지지 않는다").
+> 로그인이 붙기 전에는 마이페이지·관심종목·AI 질문·성향 저장을 실제로 써 볼 수 없다.
 
 ## 명령어
 
 ```bash
-npm run dev              # 개발 서버
+npm run dev              # 개발 서버 (vite 프록시가 /api 를 백엔드로 넘긴다)
 npm run build            # tsc -b 후 vite build (두 엔트리 모두)
 npm run lint             # oxlint
 npx tsc -b --noEmit      # 타입만 빠르게 확인
@@ -42,47 +42,53 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 ## API 계층
 
 `src/api/client.ts`가 **`fetch`를 쓰는 유일한 곳**이다(예외: `LoginPage.tsx`의 소셜 로그인
-`window.location.href`). 응답 형태가 두 가지라 함수도 두 개다.
+`window.location.href`). 화면 컴포넌트는 `src/api/*.ts`만 부른다.
 
-- `get<T>()` / `post<T>()` — `{ isSuccess, code, message, result }` 래퍼를 벗겨 `result`만 반환.
-  `isSuccess: false`면 서버 `message`로 throw.
-- `getRaw<T>()` — MarketController 계열(`/api/market/**`). 래퍼 없이 데이터가 그대로 온다.
+- `get` / `post` / `patch` / `remove` — 모든 응답이 `{ isSuccess, code, message, result }`
+  래퍼라 여기서 벗겨 `result`만 돌려준다. 래퍼 없는 응답은 없다(2026-08-11 통일).
+- 실패(4xx/5xx)는 **`ApiError`**(`status`, 서버 `code`, `message`)로 던진다. 화면이
+  `error instanceof ApiError && error.code === 'BACKTEST404_5'` 식으로 가려 다른 안내를 낸다.
+  네트워크 단절·시간 초과는 그냥 `Error`다.
+- JSON이 아닌 본문(게이트웨이 오류 페이지)이 오면 `SyntaxError` 대신 상태코드 문장으로 바꿔 던진다.
 
 401은 `client.ts`가 전역으로 처리한다(토큰 삭제 후 `/login`으로 이동). 단
 ① 이미 `/login`이거나 ② 애초에 토큰이 없던 요청이면 이동하지 않는다 — 무한 새로고침과
 비로그인 방문자를 끌고 가는 것을 막기 위해서다. 로그아웃처럼 예외가 필요하면
 `{ ignoreUnauthorized: true }`를 넘긴다.
 
-## 이 코드베이스의 성격을 결정하는 제약: KIS 호출 제한
+`API_DISABLED`(client.ts)는 모든 요청을 끊는 비상 스위치다. 2026-08~09에 증권사 계정 보호로
+켜 뒀다가 지금은 꺼져 있다. 다시 켜야 하면 그 한 줄만 바꾼다.
 
-백엔드가 한국투자증권 API를 중계하는데 호출 제한이 빡빡하고 일부는 느리다.
-`src/utils/async.ts`, `src/api/candles.ts`, `src/api/home.ts`의 복잡도는 **전부 여기서 나왔다.**
-실측값이 주석에 적혀 있으니 숫자를 바꾸기 전에 반드시 읽는다.
+## 증권사(KIS) 호출은 이제 세 곳뿐이다
 
-- 현재가 `/api/market/price` — 실전 서버, 종목당 ~56ms. 하지만 **종목당 1회 호출**이라
-  102종목을 몰아치면 60개가 500으로 떨어진다. → `settleInChunks(5개씩, 120ms 간격)` + `withRetry`
-- 일봉 `/api/market/daily_itemchartprice` — **모의투자 서버 중계라 건당 1.5~2.4초.**
-  → `loadCandles()`가 `inFlight` Map으로 동시 중복 요청을 합치고, 목록에서 hover 시
-  `prefetchCandles()`로 미리 받는다. 홈 카드도 상세와 **같은 창구**를 써서 캐시를 공유한다.
+백엔드가 한국투자증권 API를 중계하는데 호출 제한이 빡빡하다. 2026-09-18에 `/api/stocks/**`로
+갈아타면서 **홈 한 번 108건 → 4건**이 됐고, chunk·prefetch·장 열림 탐지·지난 값 저장 같은
+장치는 전부 지웠다. 남은 것:
 
-`shouldStop` 콜백은 "화면을 떠났는가"를 묻는다. 떠난 뒤에도 도는 요청이 다음 화면 요청을
-뒤로 밀어내기 때문에, 긴 루프를 새로 만들면 이 패턴을 따른다.
+| 어디 | KIS | 왜 |
+| --- | --- | --- |
+| 홈 표 `GET /api/stocks` | **0회** | DB의 `daily_price`를 읽는다. 종가·등락률·거래대금·`isLiked`·`baseDate` |
+| 홈 카드 `GET /api/stocks/{code}?period=ONE_MONTH` ×3 | 3회 | 일봉은 DB, **현재가 하나**를 증권사에 묻는다. `home.ts`가 200ms 간격으로 순차 호출 |
+| 상세 `GET /api/stocks/{code}?period=ALL` | 1회 | 같은 이유. **기간 탭은 서버에 다시 묻지 않고** 받아 둔 전체를 화면에서 자른다(`StockChartPage.periodStart`) |
 
-**백엔드에 `daily_price` 테이블을 읽는 API가 생기면** `candles.ts`의 캐시·prefetch와
-`quoteSnapshot.ts`는 통째로 필요 없어진다. `home.ts`의 `getHomeStocks()`도
-`GET /v1/home`이 생기면 시세까지 담아 반환하도록 바꾸는 게 예정된 방향이다.
+증권사 제한에 걸리면 500이 오고 한 번 더 부르면 대개 된다 — `withRetry`가 그 용도다.
+**4xx에는 재시도하지 않는다**(없는 종목을 다시 물어도 없다).
 
-## 장 시간 처리
+`baseDate`: 16시 배치 전에는 전 거래일, 후에는 당일 종가다. 화면은 "9월 17일 종가 기준"처럼
+언제 값인지 함께 적는다. 상세의 현재가만 실시간이고 시·고·저·거래량은 마지막 확정 봉이다.
 
-증권사 현재가 API는 "오늘 장" 기준이라 **장 시작 전·마감 후·주말에는 등락률과 거래량이
-0으로 초기화되어 온다.** 그대로 그리면 표 전체가 `0.00% / -`가 된다. 그래서:
+뉴스 `GET /api/stocks/{code}/news`는 Pinecone이라 증권사와 무관하다. `sort=LATEST|RELEVANCE`,
+`page=0~9`(서버 `@Max(9)`), 10건씩.
 
-- `hasSessionData()` — **시가(`stck_oprc`) > 0**으로 장 개시를 판정한다. 시각(09:00 등)으로
-  판단하지 않는 이유는 휴장·임시휴장·조기폐장에 전부 어긋나기 때문이다.
-- 오늘 값이 하나도 없으면 `quoteSnapshot.ts`에 저장해 둔 마지막 정규장 값을 대신 보여주고,
-  `frozenDate`로 어느 장 기준인지 화면에 함께 적는다.
-- `dropUnsettled()` — 아직 안 끝난 오늘 봉은 잘라낸다. 미확정 종가라 새로고침마다 차트가
-  움직이기 때문이다.
+**`src/api/stockList.ts`(102종목 사본)는 서버 목록이 오기 전 검색용 예비다.** 서버는 100종목을
+가나다순으로 주는데 그대로 검색하면 "삼성"에 삼성전자가 후보 밖으로 밀리므로
+`byTradingValue()`로 거래대금 순으로 세운 뒤 `searchStocks()`에 넘긴다.
+
+## 날짜는 `YYYYMMDD` 문자열이다
+
+사전순 비교가 곧 날짜순 비교라 코드가 이에 기댄다. **서버는 `YYYY-MM-DD`로 주므로**
+`src/api/*`가 받는 자리에서 `fromDashedYmd()`로 바꿔 넣는다. 화면 코드는 하이픈을 모른다.
+차트만 `toDashedYmd()`로 되돌려 넘긴다(lightweight-charts가 하이픈 형식을 받는다).
 
 ## localStorage 소유권
 
@@ -90,59 +96,60 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 
 - `src/utils/auth.ts` — `accessToken` / `refreshToken`. **토큰 접근은 여기서만.**
   (나중에 HttpOnly 쿠키로 옮길 때 이 파일만 고치면 되게 하려는 의도)
-- `src/utils/cache.ts` — TTL 있는 임시 캐시(`readCache`/`writeCache`). 읽기·쓰기 실패는
-  전부 삼키고 "없는 셈" 친다. 키: `candles:<종목코드>`(12h), `topStocks`(12h), `quoteSnapshot`(7d)
+- `src/utils/cache.ts` — TTL 있는 임시 캐시(`readCache`/`writeCache`). 읽기·쓰기 실패와
+  모양이 다른 값은 전부 "없는 셈" 친다. 지금 쓰는 키: `topStocks`(12h, 홈 카드 첫 그림용)뿐이다.
 
-## ⛔ 지금 백엔드 호출이 전부 막혀 있다
+## 로그인이 끝까지 이어지지 않는다 (백엔드 미구현)
 
-**화면이 아무것도 못 불러오는 게 정상이다. 고장난 게 아니다.**
-백엔드가 한국투자증권 API를 중계하는데 홈 한 번이 108건이라 증권사 계정이 정지될 수 있다는
-경고를 받아 나가는 길을 전부 끊었다. 세 곳이 함께 잠겨 있고 **되돌릴 때도 함께 풀어야 한다.**
+2026-09-18 확인. `OAuth2SuccessHandler`가 발급한 토큰을 **응답 본문 JSON으로 쓰고 끝난다.**
+프론트 `/oauth/callback?accessToken=…`으로 리다이렉트하지 않으므로 `OAuthCallbackPage`는
+도달할 수 없고, 소셜 로그인을 누르면 백엔드 도메인에 JSON이 그대로 뜬다.
 
-| 위치 | 무엇 |
-| --- | --- |
-| `src/api/client.ts`의 `API_DISABLED` | 모든 fetch를 요청 전에 끊는다 |
-| `src/pages/LoginPage.tsx` | 소셜 로그인 이동. fetch가 아니라 주소창을 옮기는 것이라 위 스위치가 못 잡는다 |
-| `vite.config.ts`의 `server.proxy` | 개발 프록시. 두 번째 자물쇠 |
+`POST /api/auth/reissue`·`/logout`도 **컨트롤러가 없다**(작업 보드는 "진행 중").
+`api/auth.ts`의 logout은 보드 경로를 적어 두고 실패를 삼키는 상태다.
 
-호출부를 하나씩 주석 처리하지 않은 이유는 `client.ts`의 fetch가 **앱 전체에서 유일한 통신
-창구**이기 때문이다(전수 확인함). 창구를 잠그면 빠뜨릴 곳이 없고 새로 추가되는 코드까지 막힌다.
+백엔드에 요청할 것: 성공 핸들러에서 `{FRONT_ORIGIN}/oauth/callback?accessToken=&refreshToken=`
+으로 리다이렉트. 그게 붙는 순간 프론트는 고칠 것 없이 동작한다.
 
-## 백엔드 미완성 구간 토글
+인증 범위(SecurityConfig): `/api/backtest/**`·`/api/stocks/**`·`/api/personality-tests`만 공개.
+나머지 `/api/**`는 토큰이 없거나 만료면 `CustomEntryPoint`가 **제대로 된 401**을 준다.
+예외: `/api/personality-tests`는 permitAll이라 **POST를 토큰 없이 부르면 NPE로 500**이다.
+그래서 `personality.ts`는 로그인했을 때만 POST하고 아니면 프론트에서 채점한다.
 
-`src/api/personality.ts` 상단의 `USE_BACKEND_QUESTIONS` / `USE_BACKEND_SUBMIT`가 **둘 다 false**다.
-`MOCK_QUESTIONS`(7문항)를 쓰고 채점도 프론트에서 한다.
-mock은 실제 API 응답과 같은 모양이라 플래그만 바꾸면 화면 코드는 그대로다.
+## 아직 mock인 곳
 
-**백엔드 소스(`JUBYInvest/JUBY-BE`)를 읽어 확인한 것.** 다시 파지 않아도 되게 적어 둔다.
+- `src/api/ai.ts` — **질문(`ask`)만 실제** `POST /api/open-ai/ask`. 대화방 목록·상세는 mock이다.
+  백엔드 `/api/chat-sessions` 5종이 진행 중이라 붙일 곳이 없다. 새 대화의 sessionId·title은
+  화면이 지어낸다. 성향 없는 회원의 질문은 서버가 404(MEMBER404_2)로 거절하므로 화면이
+  성향테스트로 안내한다.
+- `src/api/guide.ts` — 백엔드에 설명서 API도 테이블도 없다.
+- `src/api/personality.ts`의 `MOCK_QUESTIONS`(7문항) — **서버가 죽었을 때만** 쓴다.
+  정식 문항은 DB에 10개(보기 5개, 1·3·5·7·9점)가 있고 합계 10~90이 서버 채점 구간과 맞는다.
+  mock으로 물러선 경우엔 합이 그 구간에 못 미쳐 `normalizeScore()`로 늘린다.
+- `PATCH /api/members/me/personality`는 `personalityId`(DB 행 id)를 받는데 프론트가 그 id를
+  알 길이 없어 안 붙였다. 성향은 성향테스트 POST로 바꾼다.
 
-- 문항을 넣는 코드가 **백엔드 어디에도 없다.** `data.sql`·마이그레이션·`CommandLineRunner`가 없고
-  저장소 전체에 `INSERT`문이 0건이다(`SQL.sql`은 7줄짜리 임시 쿼리, `/api/initiate`는
-  stock·daily_price 적재용이라 무관). 누가 DB에 직접 넣지 않으면 비어 있다.
-- `PersonalityTestService`의 채점 구간이 **10문항을 못 박아 놨다.** 합계 유효 범위가 `10~90`이고
-  (10문항 × 보기 1~9점) **범위를 벗어나면 결과가 아니라 `SCORE_NOT_FOUND` 예외를 던진다.**
-  주석에도 "10개의 질문, 각 5개의 보기"라고 적혀 있다.
-  → **7문항의 낱개 점수를 그대로 보내면 최소 7점이라 500이 난다.** `submitTest()`가 낱개 대신
-  `normalizeScore()`로 환산한 값 하나만 보내는 건 이걸 피하려는 것이다.
-  `src/utils/personality.ts`의 `SERVER_MIN=10`/`SERVER_MAX=90`은 위 유효 범위에서 나온 값이다.
-- 백엔드 `InvestPersonality` enum이 프론트 `PersonalityType`과 **정확히 같다**(안정형·안정추구형·
-  위험중립형·적극투자형·공격투자형). 서버 채점으로 넘어가도 타입은 그대로 맞는다.
-- `getQuestions()`가 `findAll()`을 **정렬 없이** 부른다. `sortByIds()`는 실제로 필요한 방어다.
-- SecurityConfig의 허용 목록에 **`/api/**`가 통째로 `permitAll`**이다. 문항 조회는 비로그인도 된다.
-  대신 POST는 `@AuthenticationPrincipal`로 받은 user에서 id를 꺼내므로 **토큰 없이 부르면
-  401이 아니라 NPE로 500**이 난다. 마이페이지·성향 화면이 401 대신 500을 다루는 이유가 이것이다.
+프론트에 하드코딩된 데이터: `home.ts`의 `TOP_THEMES` 3개(테마 라벨과 종목은 API에 없다).
 
-남은 것은 **DB에 문항 10개를 넣는 일 하나**다. 들어오면 조회 플래그부터 켜고, 제출은 로그인이
-필요하니 나중에 켠다.
+## 백엔드 코드에서 확인한 백테스트 특성
 
-프론트에 하드코딩된 다른 데이터: `src/api/stockList.ts`의 102종목, `home.ts`의 `TOP_THEMES` 3개.
+`src/utils/backtest.ts`의 표(전략·최소 기간·가중치)는 전부 JUBY-BE 소스에서 옮긴 값이다.
+
+- 성향 → 전략은 **1:1**이다(`BacktestService`의 `switch(investType)`). 요청에 전략 필드가 없다.
+- 축별 점수(안정성·수익성·효율성·성장성)를 서버가 **응답에 안 담는다**(로그로만 찍음).
+  `calculateAxisScores()`가 원시 지표로 되계산한다. 서버가 주기 시작하면 지운다.
+- `/preset/options`는 종목과 무관한 전역 목록이라 특정 종목엔 없을 수 있다 → `BACKTEST404_5`.
+  화면은 "아직 계산되지 않은 조합"으로 안내한다.
+- 거래가 0건이면 MDD·변동성이 0이라 안정성이 100점이 된다. 화면이 `거래횟수 0회` 경고를 먼저 띄운다.
 
 ## 잔가지
 
-- 날짜는 전부 **`YYYYMMDD` 문자열**이다. 사전순 비교가 곧 날짜순 비교라 코드가 이에 기댄다.
-  변환은 `src/utils/date.ts`만 쓴다(차트는 `toDashedYmd`로 하이픈 형식이 필요).
 - 스타일은 CSS Modules(`*.module.css`). 색상은 `src/index.css`의 CSS 변수를 쓴다.
   등락 색은 한국식이다 — 상승 빨강, 하락 파랑(README 참고).
 - 차트 라이브러리가 둘이다. 상세 캔들은 `lightweight-charts`, 홈 카드 스파크라인은 `recharts`.
+  lightweight-charts는 차트 안에 TradingView 링크(`a[target=_blank]`)를 넣는다 — 뉴스 카드를
+  셀 때 이것이 섞이지 않게 한다.
 - `logout()`은 화면 이동을 하지 않는다. `Header`가 `isLoggedIn()`을 한 번만 읽으므로
   부르는 쪽에서 `window.location.href = '/'`로 통째로 새로고침해야 상태가 갱신된다.
+- 낙관적 갱신(하트·관심종목 해제)은 먼저 바꾸고 실패하면 되돌린다. 진행 중인 종목은 ref의
+  Set으로 막아 연타를 걸러낸다.
