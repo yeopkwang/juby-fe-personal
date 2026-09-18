@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { getPreset, getPresetOptions } from '../api/backtest'
+import { ApiError } from '../api/client'
+import { getMyPersonality } from '../api/member'
+import { byTradingValue, getStockList, searchStocks } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
+import { isLoggedIn } from '../utils/auth'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 import type { PersonalityType } from '../types/personality'
@@ -17,19 +22,7 @@ import {
   supportedPeriods,
   toPercent,
 } from '../utils/backtest'
-import { buildSamplePreset } from '../utils/backtestSample'
 import styles from './BacktestPage.module.css'
-
-/**
- * 🧪 원래는 GET /api/members/me/personality 로 받는 값이다.
- *
- * 백엔드 호출이 막혀 있어 고정해 둔다. 붙일 때 세 가지를 함께 다뤄야 한다.
- *   1. 이 API는 로그인이 필요하다 (@AuthenticationPrincipal)
- *   2. 토큰 없이 부르면 401이 아니라 **500**이 난다 (서버가 principal에서 id를 바로 꺼낸다)
- *   3. 로그인해도 성향테스트를 안 했으면 비어 있다 (personality 테이블도 아직 비어 있다)
- * 셋 다 "성향 없음"으로 뭉뚱그려 null로 두고, 화면은 성향테스트로 안내한다.
- */
-const SAVED_PERSONALITY: PersonalityType | null = '안정형'
 
 /**
  * 종목의 성향을 가릴 때 쓰는 기준 기간.
@@ -39,9 +32,6 @@ const SAVED_PERSONALITY: PersonalityType | null = '안정형'
  * 사용자가 3개월을 골라도 종목 성향만은 늘 이 기간으로 비교한다.
  */
 const COMPARE_PERIOD: BacktestPeriod = 'ONE_YEAR'
-
-/** 한 번에 보여줄 검색 결과 수. 목록이 길어지면 고르기가 더 어려워진다 */
-const MAX_MATCHES = 7
 
 /**
  * 받침이 있으면 '은', 없으면 '는'.
@@ -57,29 +47,130 @@ function withTopicParticle(word: string): string {
 /** 성향테스트를 하러 가는 곳. 아직 본 앱 라우트가 아니라 별도 엔트리다 */
 const PERSONALITY_TEST_URL = '/personality.html'
 
+interface Ranked {
+  investType: number
+  score: number
+}
+
+type ResultState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'ready'; preset: BacktestPreset; ranking: Ranked[] }
+  | { kind: 'error'; message: string; hint: string | null }
+
+/**
+ * 서버 실패 코드를 사람 말로. 코드는 백엔드 BacktestErrorCode 참고.
+ * 코드가 없으면(네트워크 등) 일반 문구로 둔다.
+ */
+function describeFailure(error: unknown): { message: string; hint: string | null } {
+  if (error instanceof ApiError) {
+    switch (error.code) {
+      case 'BACKTEST404_5':
+        return {
+          message: '아직 계산되지 않은 조합이에요.',
+          hint: '매일 새벽 4시에 계산돼요. 이 종목은 일봉이 모자라 건너뛰었을 수 있어요.',
+        }
+      case 'BACKTEST400_1':
+        return {
+          message: '이 전략은 그 기간을 지원하지 않아요.',
+          hint: '더 긴 기간을 골라 주세요.',
+        }
+      case 'BACKTEST404_1':
+      case 'STOCK404_1':
+        return { message: '목록에 없는 종목이에요.', hint: null }
+    }
+    return { message: error.message, hint: null }
+  }
+  return {
+    message: '결과를 불러오지 못했어요.',
+    hint: '잠시 후 다시 시도해 주세요.',
+  }
+}
+
 export default function BacktestPage() {
   const [query, setQuery] = useState('')
   const [stock, setStock] = useState<StockInfo | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
-  /*
-   * 성향은 더 이상 고르는 값이 아니다. 성향테스트 결과에 맞는 전략을 미리 골라 두고,
-   * 사용자는 전략만 바꾼다. 서버로 나가는 값은 어차피 investType 하나뿐이라
-   * 전략을 고르는 것이 곧 성향을 고르는 것과 같다.
+  /**
+   * 검색 대상 종목. 로컬 사본으로 시작해 서버 목록이 오면 바꾼다.
+   * 서버에 없는 종목을 골라 봐야 프리셋도 없으므로 서버 목록이 맞다.
    */
-  const recommended =
-    SAVED_PERSONALITY === null ? null : findByPersonality(SAVED_PERSONALITY)
+  const [stockOptions, setStockOptions] = useState<StockInfo[]>(STOCK_LIST)
 
-  const [investType, setInvestType] = useState<number | null>(
-    recommended?.investType ?? null,
-  )
+  /**
+   * 성향은 고르는 값이 아니라 성향테스트 결과다. 로그인했으면 서버에서 받아 오고,
+   * 그에 맞는 전략을 미리 골라 둔다. 사용자는 전략만 바꾼다.
+   * 서버로 나가는 값은 어차피 investType 하나뿐이라 전략을 고르는 것이 곧 성향을 고르는 것과 같다.
+   */
+  const [savedPersonality, setSavedPersonality] =
+    useState<PersonalityType | null>(null)
+  const recommended =
+    savedPersonality === null ? null : findByPersonality(savedPersonality)
+
+  const [investType, setInvestType] = useState<number | null>(null)
   const [period, setPeriod] = useState<BacktestPeriod | null>(null)
-  const [preset, setPreset] = useState<BacktestPreset | null>(null)
+
+  /**
+   * 서버가 실제로 계산해 둔 기간(성향별). 못 받으면 null이고 로컬 표만 쓴다.
+   * 로컬 표(supportedPeriods)와 교집합을 내서 선택지를 만든다.
+   */
+  const [serverPeriods, setServerPeriods] = useState<Map<
+    number,
+    BacktestPeriod[]
+  > | null>(null)
+
+  const [result, setResult] = useState<ResultState>({ kind: 'idle' })
   const resultRef = useRef<HTMLDivElement>(null)
+  /** 실행 번호. 기다리는 사이 조건이 바뀌면 늦게 온 결과를 버린다 */
+  const runSeqRef = useRef(0)
+
+  // 서버 목록·기간·내 성향을 한 번에 받는다. 셋 다 실패해도 화면은 로컬 값으로 뜬다
+  useEffect(() => {
+    getStockList()
+      // 거래대금 순으로 세운다. 가나다순이면 "삼성"에 삼성전자가 후보 밖으로 밀린다
+      .then(({ stocks }) => setStockOptions(byTradingValue(stocks)))
+      .catch((error: unknown) => console.warn('종목 목록 조회 실패', error))
+
+    getPresetOptions()
+      .then((options) =>
+        setServerPeriods(
+          new Map(
+            options.map((o) => [o.investType, o.periods.map((p) => p.period)]),
+          ),
+        ),
+      )
+      .catch((error: unknown) => console.warn('프리셋 기간 조회 실패', error))
+
+    if (isLoggedIn()) {
+      getMyPersonality()
+        // 못 받으면 성향 없음으로 둔다. 이 화면은 성향 없이도 쓸 수 있다
+        .catch(() => null)
+        .then((info) => setSavedPersonality(info?.investPersonality ?? null))
+    }
+  }, [])
+
+  // 내 성향이 도착했고 아직 전략을 안 골랐으면 맞는 전략을 미리 고른다
+  useEffect(() => {
+    if (recommended !== null && investType === null) {
+      setInvestType(recommended.investType)
+    }
+    // investType은 일부러 뺀다. 사용자가 비운 뒤 다시 채워 넣으면 안 된다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommended])
 
   const selected = investType === null ? null : findInvestType(investType)
-  const periodChoices = investType === null ? [] : supportedPeriods(investType)
-  const canRun = stock !== null && investType !== null && period !== null
+
+  const periodChoices = useMemo(() => {
+    if (investType === null) return []
+    const local = supportedPeriods(investType)
+    const server = serverPeriods?.get(investType)
+    return server === undefined ? local : local.filter((p) => server.includes(p))
+  }, [investType, serverPeriods])
+
+  const isRunning = result.kind === 'loading'
+  const canRun =
+    stock !== null && investType !== null && period !== null && !isRunning
 
   const matches = useMemo(() => {
     const keyword = query.trim()
@@ -87,34 +178,16 @@ export default function BacktestPage() {
     // 고른 종목의 이름이 그대로 적혀 있으면 다시 펼칠 이유가 없다
     if (stock !== null && keyword === stock.stockName) return []
 
-    return STOCK_LIST.filter(
-      (item) =>
-        item.stockName.includes(keyword) || item.stockCode.startsWith(keyword),
-    ).slice(0, MAX_MATCHES)
-  }, [query, stock])
-
-  /**
-   * 종목의 투자성향 = 다섯 전략으로 각각 돌려 적합도가 가장 높게 나온 전략의 성향.
-   *
-   * 서버에는 "이 종목은 무슨 성향" 같은 API가 없다. 전략별 점수를 모아 프론트가 고른다.
-   * 붙일 때는 GET /api/backtest/preset 을 investType만 바꿔 다섯 번 부른다(전부 DB 조회다).
-   */
-  const ranking = useMemo(() => {
-    if (stock === null) return []
-
-    return INVEST_TYPES.map((item) => ({
-      investType: item.investType,
-      score: buildSamplePreset(stock.stockCode, item.investType, COMPARE_PERIOD)
-        .result.finalScore,
-    })).sort((left, right) => right.score - left.score)
-  }, [stock])
+    return searchStocks(stockOptions, keyword)
+  }, [query, stock, stockOptions])
 
   /*
    * 조건을 건드리면 이전 결과는 더 이상 그 조건의 결과가 아니다.
-   * 남겨 두면 화면의 입력과 결과가 어긋난 채로 보인다.
+   * 남겨 두면 화면의 입력과 결과가 어긋난 채로 보인다. 받는 중이던 것도 버린다.
    */
   function clearResult() {
-    setPreset(null)
+    runSeqRef.current += 1
+    setResult({ kind: 'idle' })
   }
 
   function handleQueryChange(value: string) {
@@ -145,9 +218,45 @@ export default function BacktestPage() {
     clearResult()
   }
 
-  function handleSubmit() {
+  /**
+   * 고른 조합 하나와, 종목 성향을 가릴 다섯 성향(1년 기준)을 함께 받는다.
+   * 여섯 건 전부 DB 조회라 동시에 보내도 된다. 다섯 중 일부가 없어도(404) 나머지로 순위를 낸다.
+   */
+  async function handleSubmit() {
     if (stock === null || investType === null || period === null) return
-    setPreset(buildSamplePreset(stock.stockCode, investType, period))
+
+    runSeqRef.current += 1
+    const seq = runSeqRef.current
+    setResult({ kind: 'loading' })
+
+    const rankingTask = Promise.allSettled(
+      INVEST_TYPES.map((item) =>
+        getPreset(stock.stockCode, item.investType, COMPARE_PERIOD).then(
+          (preset): Ranked => ({
+            investType: item.investType,
+            score: preset.result.finalScore,
+          }),
+        ),
+      ),
+    )
+
+    try {
+      const [preset, settled] = await Promise.all([
+        getPreset(stock.stockCode, investType, period),
+        rankingTask,
+      ])
+      if (seq !== runSeqRef.current) return
+
+      const ranking = settled
+        .flatMap((s) => (s.status === 'fulfilled' ? [s.value] : []))
+        .sort((left, right) => right.score - left.score)
+
+      setResult({ kind: 'ready', preset, ranking })
+    } catch (error: unknown) {
+      if (seq !== runSeqRef.current) return
+      console.warn('백테스트 조회 실패', error)
+      setResult({ kind: 'error', ...describeFailure(error) })
+    }
   }
 
   /*
@@ -155,7 +264,7 @@ export default function BacktestPage() {
    * 결과가 생기는 순간 그쪽으로 내린다. 결과를 지울 때(다시하기)는 움직이지 않는다.
    */
   useEffect(() => {
-    if (preset === null || resultRef.current === null) return
+    if (result.kind !== 'ready' || resultRef.current === null) return
 
     const prefersReduced = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
@@ -165,7 +274,7 @@ export default function BacktestPage() {
       behavior: prefersReduced ? 'auto' : 'smooth',
       block: 'start',
     })
-  }, [preset])
+  }, [result.kind])
 
   return (
     <div className={styles.layout}>
@@ -177,11 +286,12 @@ export default function BacktestPage() {
           입력 칸에서 빼고 맨 위에 사실로 적어 둔다.
         */}
         <div className={styles.myBanner}>
-          {SAVED_PERSONALITY === null ? (
+          {savedPersonality === null ? (
             <>
               <p className={styles.myText}>
-                투자성향테스트를 아직 안 하셨어요. 먼저 하면 나에게 맞는 전략을
-                자동으로 골라드려요.
+                {isLoggedIn()
+                  ? '투자성향테스트를 아직 안 하셨어요. 먼저 하면 나에게 맞는 전략을 자동으로 골라드려요.'
+                  : '로그인하고 투자성향테스트를 하면 나에게 맞는 전략을 자동으로 골라드려요.'}
               </p>
               <a className={styles.myAction} href={PERSONALITY_TEST_URL}>
                 테스트하러 가기
@@ -190,7 +300,7 @@ export default function BacktestPage() {
           ) : (
             <>
               <p className={styles.myText}>
-                내 투자성향은 <b>{SAVED_PERSONALITY}</b>이에요.
+                내 투자성향은 <b>{savedPersonality}</b>이에요.
                 {recommended !== null && (
                   <>
                     {' '}
@@ -285,15 +395,17 @@ export default function BacktestPage() {
                 ))}
               </select>
 
-              {investType !== null && recommended?.investType !== investType && (
-                <button
-                  type="button"
-                  className={styles.reset}
-                  onClick={() => changeStrategy(recommended?.investType ?? null)}
-                >
-                  재설정
-                </button>
-              )}
+              {investType !== null &&
+                recommended !== null &&
+                recommended.investType !== investType && (
+                  <button
+                    type="button"
+                    className={styles.reset}
+                    onClick={() => changeStrategy(recommended.investType)}
+                  >
+                    재설정
+                  </button>
+                )}
             </div>
 
             {/*
@@ -359,13 +471,13 @@ export default function BacktestPage() {
               type="button"
               className={styles.submit}
               disabled={!canRun}
-              onClick={handleSubmit}
+              onClick={() => void handleSubmit()}
             >
-              백테스트 시작하기
+              {isRunning ? '불러오는 중…' : '백테스트 시작하기'}
             </button>
 
             {/* 버튼이 꺼져 있는 이유를 말해 준다. 안 그러면 왜 안 눌리는지 알 길이 없다 */}
-            {!canRun && (
+            {!canRun && !isRunning && (
               <p className={styles.submitHint}>
                 {stock === null
                   ? '종목을 먼저 골라주세요.'
@@ -378,18 +490,43 @@ export default function BacktestPage() {
         </section>
 
         <div ref={resultRef}>
-          {preset !== null && stock !== null && (
+          {result.kind === 'loading' && (
+            <p className={styles.loadingBox}>백테스트 결과를 불러오는 중…</p>
+          )}
+
+          {result.kind === 'error' && (
+            <div className={styles.errorBox}>
+              <p className={styles.errorText}>{result.message}</p>
+              {result.hint !== null && (
+                <p className={styles.errorHint}>{result.hint}</p>
+              )}
+              <button
+                type="button"
+                className={styles.errorRetry}
+                onClick={() => void handleSubmit()}
+              >
+                다시 시도
+              </button>
+            </div>
+          )}
+
+          {result.kind === 'ready' && stock !== null && (
             <BacktestResult
-              preset={preset}
+              preset={result.preset}
+              ranking={result.ranking}
               stockName={stock.stockName}
-              ranking={ranking}
+              savedPersonality={savedPersonality}
               onRetry={clearResult}
             />
           )}
         </div>
       </div>
 
-      <BacktestGuide investType={investType} onSelect={changeStrategy} />
+      <BacktestGuide
+        investType={investType}
+        savedPersonality={savedPersonality}
+        onSelect={changeStrategy}
+      />
     </div>
   )
 }
@@ -398,16 +535,12 @@ export default function BacktestPage() {
  * 결과
  * -------------------------------------------------------------------- */
 
-interface Ranked {
-  investType: number
-  score: number
-}
-
 interface ResultProps {
   preset: BacktestPreset
   stockName: string
-  /** 다섯 전략의 적합도를 높은 순으로. 첫 번째가 이 종목의 성향이다 */
+  /** 다섯 전략의 적합도를 높은 순으로. 첫 번째가 이 종목의 성향이다. 비어 있을 수 있다 */
   ranking: Ranked[]
+  savedPersonality: PersonalityType | null
   onRetry: () => void
 }
 
@@ -415,20 +548,23 @@ function BacktestResult({
   preset,
   stockName,
   ranking,
+  savedPersonality,
   onRetry,
 }: ResultProps) {
   const info = findInvestType(preset.investType)
-  const best = ranking[0]
-  const bestInfo = best === undefined ? null : findInvestType(best.investType)
-  if (info === null || bestInfo === null || best === undefined) return null
+  if (info === null) return null
+
+  const best = ranking[0] ?? null
+  const bestInfo = best === null ? null : findInvestType(best.investType)
 
   const { result } = preset
   const axisScores = calculateAxisScores(result)
   const verdict = scoreVerdict(result.finalScore)
   /** 종목이 나와 같은 성향으로 판정됐는가 */
-  const isSame = SAVED_PERSONALITY === bestInfo.personality
+  const isSame =
+    bestInfo !== null && savedPersonality === bestInfo.personality
   /** 내 성향에 딸린 전략을 그대로 돌렸는가 (다른 전략으로 바꿔 볼 수 있다) */
-  const usedOwnStrategy = SAVED_PERSONALITY === info.personality
+  const usedOwnStrategy = savedPersonality === info.personality
 
   /*
    * 지표를 표로 늘어놓으면 숫자는 보이는데 뜻이 안 보인다. JUBY는 초보자용이라
@@ -488,23 +624,17 @@ function BacktestResult({
       {/*
         읽는 사람이 가장 먼저 알아야 할 한 줄.
         "나는 이런 사람 → 이 전략으로 봤더니 → 이 종목은 이런 사람에게 맞더라"
-        세 마디를 순서대로 잇는다.
+        세 마디를 순서대로 잇는다. 다섯 성향 비교가 없으면 앞 두 마디만 한다.
       */}
       <div className={styles.compare}>
         <p className={styles.story}>
-          {SAVED_PERSONALITY === null ? (
+          {savedPersonality === null ? (
             <>
-              <b>{info.strategyName}</b>으로 분석한 결과,{' '}
-              {withTopicParticle(stockName)} <b>{bestInfo.personality}</b>에게
-              가장 잘 맞는 종목이에요.
+              <b>{info.strategyName}</b>으로 분석했어요.
             </>
           ) : (
             <>
-              {/*
-                내 성향에 딸린 전략을 그대로 썼는지, 다른 전략을 골랐는지에 따라
-                문장이 달라야 한다. 다른 걸 골랐는데 "나에게 맞는 전략"이라고 하면 거짓말이다.
-              */}
-              나는 <b>{SAVED_PERSONALITY}</b>,{' '}
+              나는 <b>{savedPersonality}</b>,{' '}
               {usedOwnStrategy ? (
                 <>
                   여기에 맞는 <b>{info.strategyName}</b>으로 분석했어요.
@@ -515,6 +645,10 @@ function BacktestResult({
                   <b>{info.strategyName}</b>으로 분석했어요.
                 </>
               )}
+            </>
+          )}
+          {bestInfo !== null && (
+            <>
               <br />그 결과 {withTopicParticle(stockName)}{' '}
               <b className={isSame ? styles.good : styles.bad}>
                 {bestInfo.personality}
@@ -524,31 +658,33 @@ function BacktestResult({
           )}
         </p>
 
-        <div className={styles.matchRow}>
-          <div className={styles.matchSide}>
-            <span className={styles.matchLabel}>내 투자성향</span>
-            <strong className={styles.matchValue}>
-              {SAVED_PERSONALITY ?? '아직 없어요'}
-            </strong>
-            <span className={styles.matchFrom}>투자성향테스트 결과</span>
-          </div>
+        {bestInfo !== null && best !== null && (
+          <div className={styles.matchRow}>
+            <div className={styles.matchSide}>
+              <span className={styles.matchLabel}>내 투자성향</span>
+              <strong className={styles.matchValue}>
+                {savedPersonality ?? '아직 없어요'}
+              </strong>
+              <span className={styles.matchFrom}>투자성향테스트 결과</span>
+            </div>
 
-          <span className={styles.matchSign} aria-hidden="true">
-            {isSame ? '=' : '↔'}
-          </span>
-
-          <div className={styles.matchSide}>
-            <span className={styles.matchLabel}>{stockName}의 투자성향</span>
-            <strong className={styles.matchValue}>
-              {bestInfo.personality}
-            </strong>
-            <span className={styles.matchFrom}>
-              적합도 {best.score.toFixed(1)}점으로 가장 높음
+            <span className={styles.matchSign} aria-hidden="true">
+              {isSame ? '=' : '↔'}
             </span>
-          </div>
-        </div>
 
-        {SAVED_PERSONALITY !== null && !isSame && (
+            <div className={styles.matchSide}>
+              <span className={styles.matchLabel}>{stockName}의 투자성향</span>
+              <strong className={styles.matchValue}>
+                {bestInfo.personality}
+              </strong>
+              <span className={styles.matchFrom}>
+                적합도 {best.score.toFixed(1)}점으로 가장 높음
+              </span>
+            </div>
+          </div>
+        )}
+
+        {savedPersonality !== null && bestInfo !== null && !isSame && (
           <p className={styles.matchText}>
             성향이 서로 달라요. 내 성향대로 간다면 {stockName}보다 더 맞는
             종목이 있을 수 있어요.
@@ -559,6 +695,7 @@ function BacktestResult({
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>
           {info.strategyName}으로 본 {stockName}
+          <span className={styles.cardNote}>{periodLabel(preset.period)}</span>
         </h3>
 
         <div className={styles.scoreRow}>
@@ -653,7 +790,6 @@ function BacktestResult({
             점수가 높게 잡히니, 적합도보다 <b>거래횟수 0회</b>를 먼저 봐주세요.
           </p>
         )}
-
       </div>
 
       {/*
@@ -667,36 +803,38 @@ function BacktestResult({
           <span className={styles.cardNote}>1년 기준으로 다섯 전략을 비교</span>
         </h3>
 
-        <ul className={styles.rankList}>
-          {ranking.map((item, index) => {
-            const rankInfo = findInvestType(item.investType)
-            if (rankInfo === null) return null
+        {ranking.length === 0 ? (
+          <p className={styles.warn}>
+            1년치 결과가 아직 계산되지 않아 비교할 수 없어요.
+          </p>
+        ) : (
+          <ul className={styles.rankList}>
+            {ranking.map((item, index) => {
+              const rankInfo = findInvestType(item.investType)
+              if (rankInfo === null) return null
 
-            return (
-              <li key={item.investType} className={styles.rank}>
-                <span className={styles.rankName}>
-                  {index === 0 && <b className={styles.crown}>최고</b>}
-                  {rankInfo.personality}
-                </span>
-                <div className={styles.bar}>
-                  <div
-                    className={index === 0 ? styles.barFillTop : styles.barFill}
-                    style={{ width: `${item.score}%` }}
-                  />
-                </div>
-                <span className={styles.rankScore}>{item.score.toFixed(1)}</span>
-              </li>
-            )
-          })}
-        </ul>
+              return (
+                <li key={item.investType} className={styles.rank}>
+                  <span className={styles.rankName}>
+                    {index === 0 && <b className={styles.crown}>최고</b>}
+                    {rankInfo.personality}
+                  </span>
+                  <div className={styles.bar}>
+                    <div
+                      className={index === 0 ? styles.barFillTop : styles.barFill}
+                      style={{ width: `${item.score}%` }}
+                    />
+                  </div>
+                  <span className={styles.rankScore}>{item.score.toFixed(1)}</span>
+                </li>
+              )
+            })}
+          </ul>
+        )}
 
         <p className={styles.meta}>
           {preset.startDate} ~ {preset.endDate} 일봉 기준 · 매일 새벽 4시에 다시
           계산돼요
-        </p>
-
-        <p className={styles.sample}>
-          아직 백엔드에 연결하지 않아 <b>화면 확인용 예시 값</b>이에요.
         </p>
       </div>
     </section>
@@ -709,6 +847,7 @@ function BacktestResult({
 
 interface GuideProps {
   investType: number | null
+  savedPersonality: PersonalityType | null
   onSelect: (investType: number) => void
 }
 
@@ -719,7 +858,7 @@ interface GuideProps {
  * 다섯 개를 모두 펼치면 글이 너무 길어 훑기 어렵다. 고른 것만 펼쳐서 매수·매도 조건까지
  * 보이고 나머지는 한 줄 요약으로 접어 둔다.
  */
-function BacktestGuide({ investType, onSelect }: GuideProps) {
+function BacktestGuide({ investType, savedPersonality, onSelect }: GuideProps) {
   return (
     <aside className={styles.guide}>
       <h2 className={styles.guideTitle}>
@@ -747,8 +886,8 @@ function BacktestGuide({ investType, onSelect }: GuideProps) {
             {INVEST_TYPES.map((item) => {
               const isActive = item.investType === investType
               const isRecommended =
-                SAVED_PERSONALITY !== null &&
-                item.personality === SAVED_PERSONALITY
+                savedPersonality !== null &&
+                item.personality === savedPersonality
 
               return (
                 <li key={item.investType}>
