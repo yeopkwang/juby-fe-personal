@@ -223,6 +223,7 @@ export default function HomePage() {
       <Modal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
+        label="로그인 안내"
       >
         <p className={styles.modalMessage}>로그인 후 이용 가능한 기능입니다</p>
         <div className={styles.modalButtons}>

@@ -8,6 +8,14 @@
   background: rgba(0, 0, 0, 0.45);
 }
 
+/*
+ * 열릴 때 포커스를 받지만(tabIndex -1) 사람이 탭으로 고른 게 아니라서 테두리는 그리지 않는다.
+ * 안쪽 버튼·입력칸의 포커스 표시는 그대로 남는다.
+ */
+.box:focus {
+  outline: none;
+}
+
 .box {
   width: 320px;
   padding: 32px 24px 20px;

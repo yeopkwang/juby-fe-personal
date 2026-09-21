@@ -208,7 +208,7 @@ export default function MypageProfilePage() {
       </div>
 
       {/* 이름·생일만 고칠 수 있다. 이메일과 가입 경로는 소셜 계정에 딸린 값이라 서버가 안 받는다 */}
-      <Modal isOpen={isEditOpen} onClose={closeEdit}>
+      <Modal isOpen={isEditOpen} onClose={closeEdit} label="내 정보 수정">
         <form className={styles.form} onSubmit={(event) => void handleSave(event)}>
           <p className={styles.modalTitle}>내 정보 수정</p>
 
@@ -266,7 +266,7 @@ export default function MypageProfilePage() {
       </Modal>
 
       {/* 탈퇴는 되돌릴 수 없다. 버튼 하나로 바로 지우지 않는다 */}
-      <Modal isOpen={isDeleteOpen} onClose={closeDelete}>
+      <Modal isOpen={isDeleteOpen} onClose={closeDelete} label="회원 탈퇴 확인">
         <p className={styles.modalTitle}>정말 탈퇴하시겠습니까?</p>
         <p className={styles.modalText}>
           계정과 투자성향 정보가 모두 삭제되며 복구할 수 없습니다.
