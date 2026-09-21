@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
 import NewsList from '../components/NewsList'
@@ -90,16 +90,31 @@ export default function StockChartPage() {
 
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD)
+  /** '다시 시도'가 1씩 올린다. 같은 종목으로 아래 effect를 한 번 더 돌리는 유일한 방법 */
+  const [retryCount, setRetryCount] = useState(0)
 
-  const load = useCallback(() => {
+  /*
+   * 종목을 빠르게 갈아타면 먼저 보낸 요청이 나중에 도착해 새 종목 화면을 덮을 수 있다.
+   * 그래서 응답을 받는 자리마다 isStale을 본다. 정리 함수는 이미 나간 요청을 취소하지
+   * 못하고 '이 응답은 이제 쓸모없다'는 표시만 남긴다(NewsList도 같은 방식이다).
+   *
+   * 예전에는 요청을 거는 쪽을 isStale로 감쌌는데, 그 자리는 effect 안에서 곧바로
+   * 실행돼 검사할 시점에 늘 false였다. 막는 시늉만 하고 아무것도 막지 못했다.
+   */
+  useEffect(() => {
     if (stockCode === undefined) return
+    let isStale = false
 
     setState({ kind: 'loading' })
 
     // 증권사 초당 제한에 걸리면 500이 온다. 한 번 더 부르면 대개 통과한다
     withRetry(() => getStockDetail(stockCode, 'ALL'), 1, 400)
-      .then((detail) => setState({ kind: 'ready', detail }))
+      .then((detail) => {
+        if (isStale) return
+        setState({ kind: 'ready', detail })
+      })
       .catch((error: unknown) => {
+        if (isStale) return
         if (error instanceof ApiError && error.status === 404) {
           setState({ kind: 'notFound' })
           return
@@ -107,25 +122,17 @@ export default function StockChartPage() {
         console.warn('종목 상세 조회 실패', error)
         setState({ kind: 'error' })
       })
-  }, [stockCode])
+
+    return () => {
+      isStale = true
+    }
+  }, [stockCode, retryCount])
 
   /*
    * 탭 제목에 종목명을 넣는다. 종목 여러 개를 띄워 두고 비교할 때 탭이 다 'JUBY'면
    * 어느 게 어느 종목인지 알 수 없다. 받아오기 전과 없는 종목일 때는 '종목'으로 둔다.
    */
   useDocumentTitle(state.kind === 'ready' ? state.detail.stockName : '종목')
-
-  useEffect(() => {
-    // 종목을 빠르게 갈아타면 늦게 온 응답이 최신 응답을 덮어쓸 수 있다
-    let isStale = false
-    const guarded = () => {
-      if (!isStale) load()
-    }
-    guarded()
-    return () => {
-      isStale = true
-    }
-  }, [load])
 
   if (state.kind === 'notFound') {
     return (
@@ -143,7 +150,11 @@ export default function StockChartPage() {
       <section className={styles.section}>
         <h1 className={styles.heading}>종목 정보를 불러오지 못했습니다</h1>
         <div className={styles.actions}>
-          <button type="button" className={styles.retryButton} onClick={load}>
+          <button
+            type="button"
+            className={styles.retryButton}
+            onClick={() => setRetryCount((count) => count + 1)}
+          >
             다시 시도
           </button>
           <Link to="/" className={styles.backLink}>
