@@ -4,6 +4,7 @@ import CandleChart from '../components/CandleChart'
 import NewsList from '../components/NewsList'
 import { ApiError } from '../api/client'
 import { getStockDetail } from '../api/stock'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { withRetry } from '../utils/async'
 import { toKoreanDate, toYmd, ymdToDate } from '../utils/date'
 import {
@@ -107,6 +108,12 @@ export default function StockChartPage() {
         setState({ kind: 'error' })
       })
   }, [stockCode])
+
+  /*
+   * 탭 제목에 종목명을 넣는다. 종목 여러 개를 띄워 두고 비교할 때 탭이 다 'JUBY'면
+   * 어느 게 어느 종목인지 알 수 없다. 받아오기 전과 없는 종목일 때는 '종목'으로 둔다.
+   */
+  useDocumentTitle(state.kind === 'ready' ? state.detail.stockName : '종목')
 
   useEffect(() => {
     // 종목을 빠르게 갈아타면 늦게 온 응답이 최신 응답을 덮어쓸 수 있다

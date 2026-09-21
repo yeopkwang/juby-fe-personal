@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getLikeStocks, unlikeStock } from '../api/member'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { fromDashedYmd, toKoreanDate } from '../utils/date'
 import {
   formatChangeRate,
@@ -23,6 +24,7 @@ function rateClassName(rate: number): string {
 
 /** 홈에서 하트를 누른 종목들. 시세는 홈 표와 같은 기준일 종가다 */
 export default function MypageLikesPage() {
+  useDocumentTitle('관심종목')
   const [state, setState] = useState<State>({ kind: 'loading' })
   /** 해제 요청이 진행 중인 종목. 연타를 막는다 */
   const pending = useRef(new Set<string>())

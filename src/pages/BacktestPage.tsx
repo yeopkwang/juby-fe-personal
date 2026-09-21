@@ -6,6 +6,7 @@ import { getMyPersonality } from '../api/member'
 import { byTradingValue, getStockList, searchStocks } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
@@ -90,6 +91,7 @@ function describeFailure(error: unknown): { message: string; hint: string | null
 }
 
 export default function BacktestPage() {
+  useDocumentTitle('주식 백테스트')
   const loggedIn = useIsLoggedIn()
 
   const [query, setQuery] = useState('')

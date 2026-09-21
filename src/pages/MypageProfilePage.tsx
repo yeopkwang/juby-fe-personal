@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Modal from '../components/Modal'
@@ -49,6 +50,7 @@ function DefaultAvatar() {
 }
 
 export default function MypageProfilePage() {
+  useDocumentTitle('내 정보')
   const navigate = useNavigate()
   const [state, setState] = useState<State>({ kind: 'loading' })
 

@@ -6,6 +6,7 @@ import { getMyPersonality } from '../api/member'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import SessionSidebar from '../components/SessionSidebar'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { findStockName } from '../utils/stockName'
 import type { ChatMessage, ChatSession } from '../types/ai'
 import type { PersonalityType } from '../types/personality'
@@ -21,6 +22,7 @@ const NO_PERSONALITY_HINT = '투자성향을 먼저 정해야 답할 수 있어�
 type DetailState = 'idle' | 'loading' | 'error'
 
 export default function AiPage() {
+  useDocumentTitle('AI 주가분석')
   const loggedIn = useIsLoggedIn()
 
   const [sessions, setSessions] = useState<ChatSession[]>([])

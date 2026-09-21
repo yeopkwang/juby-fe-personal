@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PersonalityCard from '../components/PersonalityCard'
 import { getMyPersonality } from '../api/member'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { PERSONALITY_INFO } from '../utils/personality'
 import type { PersonalityInfo } from '../types/member'
 import styles from './MypagePersonalityPage.module.css'
@@ -17,6 +18,7 @@ type State =
   | { kind: 'error' }
 
 export default function MypagePersonalityPage() {
+  useDocumentTitle('투자유형 보기')
   const [state, setState] = useState<State>({ kind: 'loading' })
 
   const load = useCallback(() => {

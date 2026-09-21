@@ -1,5 +1,6 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import PersonalityCard from '../components/PersonalityCard'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { PersonalityResult } from '../types/personality'
 import styles from './PersonalityResultPage.module.css'
 
@@ -12,6 +13,7 @@ function doneRoute(from: string | null): string {
 }
 
 export default function PersonalityResultPage() {
+  useDocumentTitle('투자성향 결과')
   const location = useLocation()
   const result = (location.state as { result?: PersonalityResult } | null)?.result
   const from = new URLSearchParams(location.search).get('from')

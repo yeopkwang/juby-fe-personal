@@ -58,5 +58,6 @@ npm run dev
 - `localStorage`의 토큰 접근은 `src/utils/auth.ts` 안에서만. 캐시용은 `src/utils/cache.ts`.
 - 화면에서 로그인 여부는 `useIsLoggedIn()`으로 읽는다. 토큰이 생기거나 사라지면 따라 바뀐다.
   `isLoggedIn()`을 직접 부르는 건 화면 밖(`src/api/*`)이나 한 번만 읽으면 되는 자리다.
+- 새 화면에는 `useDocumentTitle('화면 이름')`을 넣는다. 안 넣으면 앞 화면의 탭 제목이 남는다.
 - 상승은 빨강(`--color-up`), 하락은 파랑(`--color-down`), 보합은 검정(`--color-text`).
 - `.env`는 커밋하지 않는다. `.env.example`만 올린다.

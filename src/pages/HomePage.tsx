@@ -8,6 +8,7 @@ import { TOP_THEMES, loadTopStocks, readCachedTopStocks } from '../api/home'
 import { likeStock, unlikeStock } from '../api/member'
 import { byTradingValue, getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
 import { nextSort, sortStocks } from '../utils/sort'
@@ -31,6 +32,7 @@ type ListState =
  * 지난 값 저장 같은 장치가 이 파일에 가득했다. 지금은 전부 없다.
  */
 export default function HomePage() {
+  useDocumentTitle('초보자를 위한 주식 비서')
   /*
    * 지난 방문에서 받아둔 카드가 있으면 그걸로 시작한다. 없으면 자리만 잡아 둔다.
    * 어느 쪽이든 아래 effect가 최신 값을 받아 같은 자리에 갈아끼운다.
