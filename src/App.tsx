@@ -7,6 +7,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom'
+import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
 import ScrollToTop from './components/ScrollToTop'
 import HomePage from './pages/HomePage'
@@ -62,43 +63,52 @@ function Layout() {
 
       <main className={isLoginPage ? styles.bareMain : styles.main}>
         {/*
-          화면 묶음을 받는 동안 자리를 비워 둔다. 스피너를 넣으면 이미 캐시된 뒤에도
-          껌뻑여서, 받아오는 시간이 짧을수록 오히려 어수선해진다.
+          머리글은 경계 밖에 둔다. 아래가 멈춰도 메뉴로 빠져나갈 수 있어야 한다.
+          resetKey에 현재 경로를 넘겨, 다른 화면으로 옮기면 오류 상태가 풀리게 한다.
         */}
-        <Suspense fallback={<div className={styles.routeFallback} />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/ai" element={<AiPage />} />
-            <Route path="/stocks/:stockCode" element={<StockChartPage />} />
-            {/* 사이드바는 MypageLayout이 들고, 오른쪽 내용만 자식 라우트가 갈아끼운다 */}
-            <Route path="/mypage" element={<MypageLayout />}>
+        <ErrorBoundary resetKey={pathname}>
+          {/*
+            화면 묶음을 받는 동안 자리를 비워 둔다. 스피너를 넣으면 이미 캐시된 뒤에도
+            껌뻑여서, 받아오는 시간이 짧을수록 오히려 어수선해진다.
+          */}
+          <Suspense fallback={<div className={styles.routeFallback} />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/ai" element={<AiPage />} />
+              <Route path="/stocks/:stockCode" element={<StockChartPage />} />
+              {/* 사이드바는 MypageLayout이 들고, 오른쪽 내용만 자식 라우트가 갈아끼운다 */}
+              <Route path="/mypage" element={<MypageLayout />}>
+                <Route
+                  index
+                  element={<Navigate to="/mypage/personality" replace />}
+                />
+                <Route path="personality" element={<MypagePersonalityPage />} />
+                <Route path="likes" element={<MypageLikesPage />} />
+                <Route path="profile" element={<MypageProfilePage />} />
+              </Route>
+
+              <Route path="/guide" element={<GuidePage />} />
+              <Route path="/backtest" element={<BacktestPage />} />
+
+              {/*
+                결과 화면은 문항 화면이 navigate로 들고 온 state로 그린다.
+                주소를 직접 열면 보여줄 게 없어 스스로 문항 화면으로 되돌린다.
+              */}
               <Route
-                index
-                element={<Navigate to="/mypage/personality" replace />}
+                path="/personality-test"
+                element={<PersonalityTestPage />}
               />
-              <Route path="personality" element={<MypagePersonalityPage />} />
-              <Route path="likes" element={<MypageLikesPage />} />
-              <Route path="profile" element={<MypageProfilePage />} />
-            </Route>
+              <Route
+                path="/personality-test/result"
+                element={<PersonalityResultPage />}
+              />
 
-            <Route path="/guide" element={<GuidePage />} />
-            <Route path="/backtest" element={<BacktestPage />} />
-
-            {/*
-              결과 화면은 문항 화면이 navigate로 들고 온 state로 그린다.
-              주소를 직접 열면 보여줄 게 없어 스스로 문항 화면으로 되돌린다.
-            */}
-            <Route path="/personality-test" element={<PersonalityTestPage />} />
-            <Route
-              path="/personality-test/result"
-              element={<PersonalityResultPage />}
-            />
-
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
-            <Route path="*" element={<NotReadyPage />} />
-          </Routes>
-        </Suspense>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+              <Route path="*" element={<NotReadyPage />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   )
