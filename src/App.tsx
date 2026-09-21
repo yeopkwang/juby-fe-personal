@@ -37,7 +37,7 @@ const PersonalityTestPage = lazy(() => import('./pages/PersonalityTestPage'))
 const PersonalityResultPage = lazy(
   () => import('./pages/PersonalityResultPage'),
 )
-const NotReadyPage = lazy(() => import('./pages/NotReadyPage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 /**
  * 로그인 화면은 회색 배경을 가장자리까지 채워야 해서 공통 좌우 여백을 쓰지 않는다.
@@ -105,7 +105,7 @@ function Layout() {
 
               <Route path="/login" element={<LoginPage />} />
               <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
-              <Route path="*" element={<NotReadyPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>

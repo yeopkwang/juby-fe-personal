@@ -38,10 +38,16 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 완료 후 돌아갈 곳이 갈린다 — `mypage` → 마이페이지, `ai` → AI, 없으면 홈
 (`PersonalityResultPage.doneRoute`).
 
-`App.tsx`의 `path="*"`는 `NotReadyPage`로 간다. 미구현 화면은 전부 여기로 떨어진다.
+`App.tsx`의 `path="*"`는 `NotFoundPage`로 간다. 2026-09-21까지는 `NotReadyPage`가
+"기능 준비중입니다"라고 답했는데, 머리글 네 항목이 모두 실제 화면으로 이어진 뒤로는
+여기 닿는 주소가 오타뿐이라 곧 생길 것처럼 말하는 게 거짓말이 됐다. 만들다 만 화면이
+다시 생기면 **그 경로에만** 안내를 붙인다. 한 화면만 쓰던 `ComingSoon`도 함께 접었다.
 
-**배포할 때는 없는 경로를 `index.html`로 돌려주도록** 정적 호스팅을 설정해야 한다.
-안 하면 `/backtest` 같은 주소에서 새로고침할 때 404가 난다.
+배포는 **Vercel**이고 설정은 `vercel.json` 하나다(자세한 건 README의 "배포" 절).
+규칙 둘의 순서가 중요하다 — `/api/*`를 백엔드로 넘기는 게 먼저, 나머지를 `index.html`로
+돌리는 게 나중이다. `/api/*`를 넘기는 건 CORS 때문이 아니라 **사이트는 https인데 백엔드가
+http라** 브라우저가 직접 부르면 mixed content로 막히기 때문이다. 그래서 배포에서도
+`VITE_API_BASE_URL`은 비워 둔다 — 채우면 그 우회를 건너뛰어 요청이 막힌다.
 
 ## API 계층
 
