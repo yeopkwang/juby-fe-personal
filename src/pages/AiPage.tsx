@@ -15,8 +15,7 @@ const PERSONALITY_TEST_URL = '/personality.html?from=ai'
 
 const STOCK_HINT = '종목명을 함께 입력하면 더 정확한 분석을 받을 수 있어요.'
 const LOGIN_HINT = '로그인하면 질문할 수 있어요.'
-const NO_PERSONALITY_HINT =
-  '투자성향을 먼저 정해야 답할 수 있어요. 아래 버튼으로 검사해 주세요.'
+const NO_PERSONALITY_HINT = '투자성향을 먼저 정해야 답할 수 있어요.'
 
 type DetailState = 'idle' | 'loading' | 'error'
 
@@ -267,7 +266,20 @@ export default function AiPage() {
             />
           )}
 
-          {notice !== '' && <p className={styles.notice}>{notice}</p>}
+          {/*
+            성향이 없다는 안내에는 갈 곳을 함께 준다. 검사 버튼은 말풍선이 하나도
+            없을 때만 보이는 자리에 있어서, 질문을 보낸 뒤에는 화면에서 사라진다.
+          */}
+          {notice !== '' && (
+            <p className={styles.notice}>
+              {notice}
+              {notice === NO_PERSONALITY_HINT && (
+                <a className={styles.noticeLink} href={PERSONALITY_TEST_URL}>
+                  투자성향 검사하기
+                </a>
+              )}
+            </p>
+          )}
 
           <div className={styles.composer}>
             <div className={styles.composerBox}>

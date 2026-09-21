@@ -215,3 +215,11 @@
     height: clamp(380px, calc(100vh - 220px), 560px);
   }
 }
+
+/* 안내 문장 옆에 붙는 링크. 성향이 없을 때 검사 화면으로 바로 보낸다 */
+.noticeLink {
+  margin-left: 6px;
+  font-weight: 700;
+  color: var(--color-text);
+  text-decoration: underline;
+}
