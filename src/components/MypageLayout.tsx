@@ -19,6 +19,10 @@ export default function MypageLayout() {
   /*
    * 세 경로 모두 로그인이 필요하다. 렌더 전에 막아야 아래 화면들이
    * 토큰 없이 API를 부르고 실패 화면을 잠깐 보여주는 일이 없다.
+   *
+   * 여기는 일부러 구독하지 않는다(useIsLoggedIn 아님). 구독하면 토큰이 사라지는 순간
+   * 로그인 화면으로 밀어내는데, 탈퇴는 홈으로 가야 하므로 서로 싸운다.
+   * 도중에 토큰이 만료되는 경우는 어차피 다음 요청의 401을 client.ts가 받아 처리한다.
    */
   if (!isLoggedIn()) {
     return <Navigate to="/login" replace />

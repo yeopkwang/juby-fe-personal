@@ -24,12 +24,10 @@ export default function OAuthCallbackPage() {
     saveTokens(accessToken, refreshToken)
 
     /*
-     * navigate가 아니라 주소창을 통째로 바꾼다.
-     * 헤더는 그려질 때 isLoggedIn()을 한 번 읽을 뿐이라 navigate로는 다시 읽지 않아
-     * 로그인 직후에도 우측이 '로그인'으로 남는다. 전체 새로고침이면 헤더도 새로 읽는다.
-     * 전역 상태를 만들면 없앨 수 있는 임시 방편이다.
+     * 토큰을 담았다고 헤더에 알리는 건 saveTokens가 한다. 그래서 여기서는
+     * 화면만 옮기면 된다 — 주소가 토큰을 달고 있으니 replace로 기록에서 지운다.
      */
-    window.location.href = '/'
+    navigate('/', { replace: true })
   }, [searchParams, navigate])
 
   return <p className={styles.message}>로그인 중</p>

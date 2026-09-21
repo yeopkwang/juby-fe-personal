@@ -56,5 +56,7 @@ npm run dev
 - 화면 컴포넌트에서 `fetch`를 직접 쓰지 않는다. `src/api/`를 거친다.
   소셜 로그인 이동(`window.location.href`)만 예외다.
 - `localStorage`의 토큰 접근은 `src/utils/auth.ts` 안에서만. 캐시용은 `src/utils/cache.ts`.
+- 화면에서 로그인 여부는 `useIsLoggedIn()`으로 읽는다. 토큰이 생기거나 사라지면 따라 바뀐다.
+  `isLoggedIn()`을 직접 부르는 건 화면 밖(`src/api/*`)이나 한 번만 읽으면 되는 자리다.
 - 상승은 빨강(`--color-up`), 하락은 파랑(`--color-down`), 보합은 검정(`--color-text`).
 - `.env`는 커밋하지 않는다. `.env.example`만 올린다.

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Modal from '../components/Modal'
 import { ApiError } from '../api/client'
 import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
@@ -48,6 +49,7 @@ function DefaultAvatar() {
 }
 
 export default function MypageProfilePage() {
+  const navigate = useNavigate()
   const [state, setState] = useState<State>({ kind: 'loading' })
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -80,12 +82,13 @@ export default function MypageProfilePage() {
 
     try {
       await deleteMember()
-      clearTokens()
       /*
-       * 헤더는 그려질 때 isLoggedIn()을 한 번 읽을 뿐이라
-       * 주소창을 통째로 바꿔야 우측이 '로그인'으로 돌아온다(api/auth.ts의 logout과 같은 이유).
+       * 탈퇴했으니 로그인 화면이 아니라 홈으로 보낸다. replace를 주면 뒤로 가기로
+       * 없어진 계정의 마이페이지에 되돌아가지 않는다.
+       * 헤더가 '로그인'으로 돌아가는 건 clearTokens가 알아서 알린다.
        */
-      window.location.href = '/'
+      clearTokens()
+      navigate('/', { replace: true })
     } catch (error: unknown) {
       console.warn('회원 탈퇴 실패', error)
       // 실패했으면 토큰은 그대로 둔다. 지웠는데 계정이 남으면 로그인만 풀린 꼴이 된다

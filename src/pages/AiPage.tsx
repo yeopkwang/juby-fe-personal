@@ -5,7 +5,7 @@ import { ApiError } from '../api/client'
 import { getMyPersonality } from '../api/member'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import SessionSidebar from '../components/SessionSidebar'
-import { isLoggedIn } from '../utils/auth'
+import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { findStockName } from '../utils/stockName'
 import type { ChatMessage, ChatSession } from '../types/ai'
 import type { PersonalityType } from '../types/personality'
@@ -21,7 +21,7 @@ const NO_PERSONALITY_HINT = '투자성향을 먼저 정해야 답할 수 있어�
 type DetailState = 'idle' | 'loading' | 'error'
 
 export default function AiPage() {
-  const loggedIn = isLoggedIn()
+  const loggedIn = useIsLoggedIn()
 
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [sessionId, setSessionId] = useState<number | null>(null)

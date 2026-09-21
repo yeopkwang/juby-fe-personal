@@ -5,6 +5,7 @@ import { ApiError } from '../api/client'
 import { getMyPersonality } from '../api/member'
 import { byTradingValue, getStockList, searchStocks } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
+import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { isLoggedIn } from '../utils/auth'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
@@ -89,6 +90,8 @@ function describeFailure(error: unknown): { message: string; hint: string | null
 }
 
 export default function BacktestPage() {
+  const loggedIn = useIsLoggedIn()
+
   const [query, setQuery] = useState('')
   const [stock, setStock] = useState<StockInfo | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -143,6 +146,7 @@ export default function BacktestPage() {
       )
       .catch((error: unknown) => console.warn('프리셋 기간 조회 실패', error))
 
+    // 마운트 때 한 번만 읽는다. 여기서 loggedIn을 쓰면 빈 의존성 배열과 어긋난다
     if (isLoggedIn()) {
       getMyPersonality()
         // 못 받으면 성향 없음으로 둔다. 이 화면은 성향 없이도 쓸 수 있다
@@ -290,7 +294,7 @@ export default function BacktestPage() {
           {savedPersonality === null ? (
             <>
               <p className={styles.myText}>
-                {isLoggedIn()
+                {loggedIn
                   ? '투자성향테스트를 아직 안 하셨어요. 먼저 하면 나에게 맞는 전략을 자동으로 골라드려요.'
                   : '로그인하고 투자성향테스트를 하면 나에게 맞는 전략을 자동으로 골라드려요.'}
               </p>

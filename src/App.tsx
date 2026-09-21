@@ -1,14 +1,16 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import {
   BrowserRouter,
   Navigate,
   Route,
   Routes,
   useLocation,
+  useNavigate,
 } from 'react-router-dom'
 import Header from './components/Header'
 import ScrollToTop from './components/ScrollToTop'
 import HomePage from './pages/HomePage'
+import { setNavigator } from './utils/navigation'
 import styles from './App.module.css'
 
 /*
@@ -42,7 +44,17 @@ const NotReadyPage = lazy(() => import('./pages/NotReadyPage'))
  */
 function Layout() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const isLoginPage = pathname === '/login'
+
+  /*
+   * 컴포넌트가 아닌 client.ts가 401을 받았을 때 쓸 이동 수단을 맡겨 둔다.
+   * 이게 없으면 그쪽은 주소창을 통째로 바꾸는 수밖에 없어 화면이 한 번 깜빡인다.
+   */
+  useEffect(() => {
+    setNavigator((path) => navigate(path, { replace: true }))
+    return () => setNavigator(null)
+  }, [navigate])
 
   return (
     <div className={styles.page}>

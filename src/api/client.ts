@@ -1,4 +1,5 @@
 import { clearTokens, getAccessToken, isLoggedIn } from '../utils/auth'
+import { goTo } from '../utils/navigation'
 
 /**
  * 공통 fetch 래퍼. baseURL과 토큰 헤더를 여기서만 관리한다.
@@ -116,8 +117,8 @@ interface RequestOptions {
 
 /**
  * 토큰이 만료되면 서버가 401을 준다. 화면마다 처리하면 다 흩어지므로 여기서 한 번에 끝낸다.
- * client.ts는 컴포넌트가 아니라 navigate()를 쓸 수 없고,
- * 헤더가 로그인 상태를 다시 읽어야 하므로 주소창을 통째로 바꾸는 편이 맞다.
+ * client.ts는 컴포넌트가 아니라 navigate()를 직접 쓸 수 없어 `goTo()`를 거친다.
+ * 헤더는 clearTokens()가 알려 주므로 페이지를 새로 받을 필요가 없다.
  */
 function redirectToLogin(): void {
   // 이미 로그인 화면이면 보낼 곳이 없다. 여기서 401이 또 나면 무한히 새로고침한다
@@ -130,7 +131,7 @@ function redirectToLogin(): void {
   }
 
   clearTokens()
-  window.location.href = '/login'
+  goTo('/login')
 }
 
 async function requestJson<T>(
