@@ -1,14 +1,13 @@
-import { Suspense, lazy } from 'react'
 import { Link } from 'react-router-dom'
+import CardChart from './CardChart'
 import type { TopStock, TopTheme } from '../types/stock'
 import styles from './TopStockCard.module.css'
 
 /*
- * recharts(gzip 100KB 남짓)를 홈 첫 묶음에서 뺀다.
- * 어차피 일봉이 오기 전까지는 CardPlaceholder가 떠 있어서,
- * 그 사이에 받아오면 사용자 입장에서 기다림이 늘지 않는다.
+ * 예전에는 CardChart를 lazy로 따로 받았다. recharts(압축 97KB)가 딸려 들어와
+ * 홈 첫 묶음이 통째로 늦어졌기 때문이다. 2026-09-21에 그래프를 직접 그리면서
+ * 몇 KB로 줄어, 따로 받느라 요청을 한 번 더 하는 쪽이 오히려 손해가 됐다.
  */
-const CardChart = lazy(() => import('./CardChart'))
 
 interface Props {
   theme: TopTheme
@@ -26,14 +25,7 @@ export default function TopStockCard({ theme, stock }: Props) {
       <p className={styles.theme}>{theme.theme}</p>
       <p className={styles.name}>{theme.stockName}</p>
 
-      {stock === null ? (
-        <CardPlaceholder />
-      ) : (
-        /* 자리표시자를 그대로 물려줘 그래프가 도착해도 화면이 흔들리지 않는다 */
-        <Suspense fallback={<CardPlaceholder />}>
-          <CardChart stock={stock} />
-        </Suspense>
-      )}
+      {stock === null ? <CardPlaceholder /> : <CardChart stock={stock} />}
     </Link>
   )
 }

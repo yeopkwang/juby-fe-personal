@@ -150,9 +150,11 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 
 - 스타일은 CSS Modules(`*.module.css`). 색상은 `src/index.css`의 CSS 변수를 쓴다.
   등락 색은 한국식이다 — 상승 빨강, 하락 파랑(README 참고).
-- 차트 라이브러리가 둘이다. 상세 캔들은 `lightweight-charts`, 홈 카드 스파크라인은 `recharts`.
-  lightweight-charts는 차트 안에 TradingView 링크(`a[target=_blank]`)를 넣는다 — 뉴스 카드를
-  셀 때 이것이 섞이지 않게 한다.
+- 차트 라이브러리는 `lightweight-charts` 하나뿐이고 종목 상세의 캔들에만 쓴다. 이 라이브러리는
+  차트 안에 TradingView 링크(`a[target=_blank]`)를 넣는다 — 뉴스 카드를 셀 때 섞이지 않게 한다.
+  홈 카드의 작은 그래프는 `CardChart.tsx`가 SVG로 직접 그린다(2026-09-21에 recharts를 걷어냈다.
+  압축 97KB짜리를 선 세 줄에 쓰고 있었다). 크기는 `ResizeObserver`로 재서 실제 픽셀로 그린다 —
+  viewBox로 늘리면 카드가 넓을수록 선 굵기와 끝점 동그라미까지 같이 늘어난다.
 - `logout()`은 화면 이동을 하지 않는다. `Header`가 `isLoggedIn()`을 한 번만 읽으므로
   부르는 쪽에서 `window.location.href = '/'`로 통째로 새로고침해야 상태가 갱신된다.
 - 낙관적 갱신(하트·관심종목 해제)은 먼저 바꾸고 실패하면 되돌린다. 진행 중인 종목은 ref의
