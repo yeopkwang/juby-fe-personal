@@ -84,6 +84,12 @@
 }
 
 .title {
+  /*
+   * 제목은 서버가 주는 자유 글이라 긴 주소가 섞여 들어올 수 있다.
+   * 끊을 곳이 없으면 그 한 덩어리가 카드를 밀어 페이지가 가로로 스크롤된다.
+   * (바로 아래 .description은 두 줄에서 잘라내므로 이 문제가 없다)
+   */
+  overflow-wrap: anywhere;
   margin: 6px 0 0;
   font-size: 19px;
   font-weight: 700;
