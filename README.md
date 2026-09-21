@@ -15,30 +15,37 @@ npm run dev
 
 ## 화면 주소
 
-시작 파일이 두 벌이라 주소도 두 개다.
+시작 파일은 `index.html` 하나다. 주소는 전부 그 안의 라우터가 가른다.
 
 | 주소 | 내용 |
 | --- | --- |
-| `/` | 홈, 종목 상세, 로그인 |
-| `/personality.html` | 투자성향 테스트 |
+| `/` | 홈 |
+| `/stocks/:stockCode` | 종목 상세 |
+| `/backtest` | 주식 백테스트 |
+| `/ai` | AI 주가분석 |
+| `/personality-test` | 투자성향 테스트 |
+| `/mypage/personality`·`/likes`·`/profile` | 마이페이지 |
+| `/guide` | 사용설명서 |
+| `/login`·`/oauth/callback` | 로그인 |
 
-투자성향 테스트는 `personality.html`로 따로 떨어져 있다.
-가입 흐름과 마이페이지가 생기면 본 앱 안으로 들인다.
-`?from=mypage`를 붙이면 검사를 마친 뒤 마이페이지로 돌아간다.
+투자성향 테스트에 `?from=mypage`(또는 `ai`)를 붙이면 검사를 마친 뒤 그 화면으로 돌아간다.
+
+주소가 전부 한 파일에서 갈리므로, **배포할 때 없는 경로는 `index.html`을 돌려주도록**
+정적 호스팅을 설정해야 새로고침에서 404가 나지 않는다.
 
 ## 명령어
 
 | 명령 | 하는 일 |
 | --- | --- |
 | `npm run dev` | 개발 서버 |
-| `npm run build` | 타입 검사 후 빌드 (두 페이지 모두) |
+| `npm run build` | 타입 검사 후 빌드 |
 | `npm run lint` | oxlint |
 | `npm run preview` | 빌드 결과 확인 |
 
 ## 백엔드 연결
 
 `.env`의 `VITE_API_BASE_URL`을 비워두면 `vite.config.ts`의 프록시를 타서
-`/api`와 `/v1` 요청이 백엔드로 넘어간다. 개발 중에는 비워두는 편이 CORS를 안 겪는다.
+`/api` 요청이 백엔드로 넘어간다. 개발 중에는 비워두는 편이 CORS를 안 겪는다.
 
 `VITE_API_ORIGIN`은 소셜 로그인 이동에만 쓴다.
 브라우저 주소창이 직접 찾아가는 곳이라 프록시를 탈 수 없어 절대주소가 필요하다.

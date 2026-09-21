@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev              # 개발 서버 (vite 프록시가 /api 를 백엔드로 넘긴다)
-npm run build            # tsc -b 후 vite build (두 엔트리 모두)
+npm run build            # tsc -b 후 vite build
 npm run lint             # oxlint
 npx tsc -b --noEmit      # 타입만 빠르게 확인
 ```
@@ -23,21 +23,25 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 `npm run lint` + `npm run build`(타입 검사 포함) + 브라우저 확인으로 한다.
 테스트를 새로 도입하려면 먼저 사용자에게 묻는다.
 
-## 엔트리가 두 개다
+## 엔트리는 하나다
 
-| 엔트리 | 뿌리 | 라우터 |
-| --- | --- | --- |
-| `index.html` → `src/main.tsx` | `App.tsx` | `BrowserRouter` |
-| `personality.html` → `src/personality.tsx` | `PersonalityApp.tsx` | `MemoryRouter` |
+`index.html` → `src/main.tsx` → `App.tsx`(`BrowserRouter`) 하나뿐이다.
 
-`vite.config.ts`의 `rollupOptions.input`에 둘 다 적혀 있다. **엔트리를 추가하면 여기도 고쳐야
-빌드에 포함된다.** 투자성향테스트가 `MemoryRouter`인 이유는 주소가 항상 `/personality.html`로
-고정이라 하위 경로를 붙이면 새로고침 시 404가 나기 때문이다.
+2026-09-21까지는 투자성향테스트만 `personality.html` + `MemoryRouter`로 떨어져 있었다.
+로그인·마이페이지가 생겨 본 앱 라우트(`/personality-test`, `/personality-test/result`)로
+합치면서 `PersonalityApp.tsx`·`src/personality.tsx`·`personality.html`과
+`vite.config.ts`의 `rollupOptions.input`, `Header`의 `standalone` 갈래를 함께 지웠다.
+그래서 이제 검사 화면도 뒤로가기·새로고침이 되고, 오갈 때 페이지를 통째로 다시 받지 않는다.
 
-로그인·마이페이지가 생기면 `PersonalityApp.tsx`와 `personality.html`을 지우고 본 앱 라우트로
-합치는 게 원래 계획이다. 그래서 두 앱의 경로 이름(`/personality-test`)을 일부러 맞춰 뒀다.
+검사 결과는 주소가 아니라 `navigate`의 state로 넘어간다. `/personality-test/result`를
+직접 열면 보여줄 게 없어 문항 화면으로 되돌린다(`?from=`은 유지). 들어온 문에 따라
+완료 후 돌아갈 곳이 갈린다 — `mypage` → 마이페이지, `ai` → AI, 없으면 홈
+(`PersonalityResultPage.doneRoute`).
 
 `App.tsx`의 `path="*"`는 `NotReadyPage`로 간다. 미구현 화면은 전부 여기로 떨어진다.
+
+**배포할 때는 없는 경로를 `index.html`로 돌려주도록** 정적 호스팅을 설정해야 한다.
+안 하면 `/backtest` 같은 주소에서 새로고침할 때 404가 난다.
 
 ## API 계층
 

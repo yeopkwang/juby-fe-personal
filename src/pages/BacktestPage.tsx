@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getPreset, getPresetOptions } from '../api/backtest'
 import { ApiError } from '../api/client'
 import { getMyPersonality } from '../api/member'
@@ -44,8 +45,8 @@ function withTopicParticle(word: string): string {
   return (last - 0xac00) % 28 === 0 ? `${word}는` : `${word}은`
 }
 
-/** 성향테스트를 하러 가는 곳. 아직 본 앱 라우트가 아니라 별도 엔트리다 */
-const PERSONALITY_TEST_URL = '/personality.html'
+/** 성향테스트를 하러 가는 곳. 끝나면 doneRoute가 홈으로 보낸다(from 없음) */
+const PERSONALITY_TEST_URL = '/personality-test'
 
 interface Ranked {
   investType: number
@@ -293,9 +294,9 @@ export default function BacktestPage() {
                   ? '투자성향테스트를 아직 안 하셨어요. 먼저 하면 나에게 맞는 전략을 자동으로 골라드려요.'
                   : '로그인하고 투자성향테스트를 하면 나에게 맞는 전략을 자동으로 골라드려요.'}
               </p>
-              <a className={styles.myAction} href={PERSONALITY_TEST_URL}>
+              <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
                 테스트하러 가기
-              </a>
+              </Link>
             </>
           ) : (
             <>
@@ -308,9 +309,9 @@ export default function BacktestPage() {
                   </>
                 )}
               </p>
-              <a className={styles.myAction} href={PERSONALITY_TEST_URL}>
+              <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
                 다시 테스트
-              </a>
+              </Link>
             </>
           )}
         </div>

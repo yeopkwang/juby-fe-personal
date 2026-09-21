@@ -30,6 +30,10 @@ const MypageProfilePage = lazy(() => import('./pages/MypageProfilePage'))
 const MypageLikesPage = lazy(() => import('./pages/MypageLikesPage'))
 const GuidePage = lazy(() => import('./pages/GuidePage'))
 const BacktestPage = lazy(() => import('./pages/BacktestPage'))
+const PersonalityTestPage = lazy(() => import('./pages/PersonalityTestPage'))
+const PersonalityResultPage = lazy(
+  () => import('./pages/PersonalityResultPage'),
+)
 const NotReadyPage = lazy(() => import('./pages/NotReadyPage'))
 
 /**
@@ -68,9 +72,18 @@ function Layout() {
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/backtest" element={<BacktestPage />} />
 
+            {/*
+              결과 화면은 문항 화면이 navigate로 들고 온 state로 그린다.
+              주소를 직접 열면 보여줄 게 없어 스스로 문항 화면으로 되돌린다.
+            */}
+            <Route path="/personality-test" element={<PersonalityTestPage />} />
+            <Route
+              path="/personality-test/result"
+              element={<PersonalityResultPage />}
+            />
+
             <Route path="/login" element={<LoginPage />} />
             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
-            {/* 투자성향테스트는 personality.html에 따로 있다. 로그인이 붙을 때 여기로 들인다 */}
             <Route path="*" element={<NotReadyPage />} />
           </Routes>
         </Suspense>

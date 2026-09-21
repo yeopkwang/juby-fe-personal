@@ -3,10 +3,7 @@ import PersonalityCard from '../components/PersonalityCard'
 import type { PersonalityResult } from '../types/personality'
 import styles from './PersonalityResultPage.module.css'
 
-/**
- * 검사를 마친 뒤 돌아갈 곳. 들어온 문에 따라 달라진다.
- * 마이페이지는 아직 없어 NotReadyPage로 떨어지고, 마이페이지를 만들 때 이어진다.
- */
+/** 검사를 마친 뒤 돌아갈 곳. 들어온 문(?from=)에 따라 달라진다 */
 function doneRoute(from: string | null): string {
   if (from === 'mypage') return '/mypage/personality'
   // AI 주가분석의 '투자성향 변경하기'로 들어온 경우. 하던 자리로 돌려보낸다
@@ -51,14 +48,9 @@ export default function PersonalityResultPage() {
         description={result.description}
         imageUrl={result.imageUrl}
       >
-        {/*
-          Link가 아니라 a인 이유: 검사는 personality.html에 따로 떨어져 있어서
-          완료를 누르면 이 페이지를 아예 떠나 본 화면으로 넘어가야 한다.
-          Link를 쓰면 이 페이지 안에서만 움직여 첫 문항으로 되돌아간다.
-        */}
-        <a href={doneRoute(from)} className={styles.done}>
+        <Link to={doneRoute(from)} className={styles.done}>
           완료
-        </a>
+        </Link>
         {/* 다시 풀 때도 들어온 문을 유지해야 끝나고 같은 자리로 돌아간다 */}
         <Link
           to={{ pathname: '/personality-test', search: location.search }}

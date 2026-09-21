@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ask, getSessionDetail, getSessions } from '../api/ai'
 import { ApiError } from '../api/client'
 import { getMyPersonality } from '../api/member'
@@ -10,8 +11,8 @@ import type { ChatMessage, ChatSession } from '../types/ai'
 import type { PersonalityType } from '../types/personality'
 import styles from './AiPage.module.css'
 
-/** 성향검사는 personality.html에 따로 떨어져 있어 절대경로로 나간다(Link로는 못 간다) */
-const PERSONALITY_TEST_URL = '/personality.html?from=ai'
+/** 검사를 마치면 doneRoute가 from=ai를 보고 이 화면으로 돌려보낸다 */
+const PERSONALITY_TEST_URL = '/personality-test?from=ai'
 
 const STOCK_HINT = '종목명을 함께 입력하면 더 정확한 분석을 받을 수 있어요.'
 const LOGIN_HINT = '로그인하면 질문할 수 있어요.'
@@ -243,18 +244,18 @@ export default function AiPage() {
                   <p className={styles.personalityText}>
                     현재 당신의 투자성향은 ‘{personality}’ 입니다.
                   </p>
-                  <a className={styles.darkButton} href={PERSONALITY_TEST_URL}>
+                  <Link className={styles.darkButton} to={PERSONALITY_TEST_URL}>
                     투자성향 변경하기
-                  </a>
+                  </Link>
                 </div>
               ) : loggedIn ? (
                 <div className={styles.personality}>
                   <p className={styles.personalityText}>
                     투자성향을 정하면 나에게 맞춘 답을 받을 수 있어요.
                   </p>
-                  <a className={styles.darkButton} href={PERSONALITY_TEST_URL}>
+                  <Link className={styles.darkButton} to={PERSONALITY_TEST_URL}>
                     투자성향 검사하기
-                  </a>
+                  </Link>
                 </div>
               ) : null}
             </div>
@@ -274,9 +275,9 @@ export default function AiPage() {
             <p className={styles.notice}>
               {notice}
               {notice === NO_PERSONALITY_HINT && (
-                <a className={styles.noticeLink} href={PERSONALITY_TEST_URL}>
+                <Link className={styles.noticeLink} to={PERSONALITY_TEST_URL}>
                   투자성향 검사하기
-                </a>
+                </Link>
               )}
             </p>
           )}
