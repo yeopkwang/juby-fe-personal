@@ -8,8 +8,9 @@ import { clearTokens, getRefreshToken } from '../utils/auth'
  * 서버가 응답을 못 한다고 로그인 상태로 남겨두는 편이 더 위험하다.
  * refresh token이 없어 요청이 거절되는 경우도 결과는 같다.
  *
- * 화면 이동은 여기서 하지 않는다. 헤더는 그려질 때 isLoggedIn()을 한 번 읽을 뿐이라
- * 부르는 쪽에서 window.location.href = '/'로 통째로 새로 고쳐야 우측이 '로그인'으로 돌아온다.
+ * 화면 이동은 여기서 하지 않는다. 부르는 쪽이 navigate로 갈 곳을 정한다
+ * (지금은 MypageLayout 사이드바의 버튼 하나뿐이고, 홈으로 보낸다).
+ * 헤더는 토큰이 사라진 걸 구독으로 알아채고 스스로 '로그인'으로 돌아간다.
  */
 export async function logout(): Promise<void> {
   try {
@@ -22,8 +23,16 @@ export async function logout(): Promise<void> {
     await post(
       '/api/auth/logout',
       { refresh_token: getRefreshToken() },
-      // 토큰이 만료된 채 눌러도 로그인 화면이 아니라 부르는 쪽이 정한 곳으로 가야 한다
-      { ignoreUnauthorized: true },
+      {
+        // 토큰이 만료된 채 눌러도 로그인 화면이 아니라 부르는 쪽이 정한 곳으로 가야 한다
+        ignoreUnauthorized: true,
+        /*
+         * 기본 12초는 여기서 너무 길다. 이 요청이 실패해도 아래 finally가 토큰을 지워
+         * 결과는 똑같은데, 서버가 응답을 안 하면 그동안 버튼이 '로그아웃 중…'에 묶인다.
+         * 나가는 길을 서버 사정으로 12초 막아 둘 이유가 없다.
+         */
+        timeoutMs: 3_000,
+      },
     )
   } catch {
     // 서버 쪽 실패는 삼킨다. 아래에서 어차피 로컬 토큰을 지운다
