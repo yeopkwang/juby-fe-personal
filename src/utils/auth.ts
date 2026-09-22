@@ -9,6 +9,54 @@
 const ACCESS_TOKEN_KEY = 'accessToken'
 const REFRESH_TOKEN_KEY = 'refreshToken'
 
+/**
+ * localStorage를 못 쓸 때 대신 토큰을 담아 두는 곳.
+ *
+ * 브라우저 설정에서 사이트 데이터를 막으면 `window.localStorage`에 손대는 순간
+ * SecurityError가 난다(저장 공간이 꽉 차면 쓰기만 실패하기도 한다). 그 예외를 여기서
+ * 흘려보내면 `isLoggedIn()`이 던지고, 그걸 **렌더 중에** 읽는 Header가 그리다 멈춘다.
+ * 머리글은 ErrorBoundary 밖이라 오류 화면조차 못 뜨고 화면이 통째로 하얘진다.
+ *
+ * 그래서 막혔으면 여기 담는다. 새로고침하면 사라지지만 적어도 그 탭에서는 로그인해서
+ * 쓸 수 있다. cache.ts도 같은 이유로 실패를 삼키지만, 그쪽 값은 없는 셈 쳐도 되는
+ * 것들이라 따로 담아 두지 않는다.
+ */
+const fallback = new Map<string, string>()
+
+function readToken(key: string): string | null {
+  /*
+   * 담아 둔 게 있으면 그게 최신이다. 읽기는 되는데 쓰기만 실패한 경우
+   * localStorage에는 한물간 값이 남아 있을 수 있다.
+   */
+  const held = fallback.get(key)
+  if (held !== undefined) return held
+
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeToken(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value)
+    // 제대로 들어갔으면 예전에 담아 둔 값은 더 볼 일이 없다
+    fallback.delete(key)
+  } catch {
+    fallback.set(key, value)
+  }
+}
+
+function removeToken(key: string): void {
+  fallback.delete(key)
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    // 애초에 저장된 적이 없다. 위에서 담아 둔 것만 지우면 끝이다
+  }
+}
+
 /** 로그인 여부가 바뀌면 다시 그려야 하는 화면들 */
 const listeners = new Set<() => void>()
 
@@ -37,25 +85,25 @@ window.addEventListener('storage', (event) => {
 })
 
 export function saveTokens(accessToken: string, refreshToken: string): void {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+  writeToken(ACCESS_TOKEN_KEY, accessToken)
+  writeToken(REFRESH_TOKEN_KEY, refreshToken)
   notify()
 }
 
 export function clearTokens(): void {
-  localStorage.removeItem(ACCESS_TOKEN_KEY)
-  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  removeToken(ACCESS_TOKEN_KEY)
+  removeToken(REFRESH_TOKEN_KEY)
   notify()
 }
 
 /** 요청 헤더에 실을 토큰. client.ts가 쓴다 */
 export function getAccessToken(): string | null {
-  return localStorage.getItem(ACCESS_TOKEN_KEY)
+  return readToken(ACCESS_TOKEN_KEY)
 }
 
 /** 로그아웃 요청 본문에 실을 토큰 (STEP 4) */
 export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY)
+  return readToken(REFRESH_TOKEN_KEY)
 }
 
 export function isLoggedIn(): boolean {
