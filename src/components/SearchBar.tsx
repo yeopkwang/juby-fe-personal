@@ -75,6 +75,12 @@ export default function SearchBar({ stocks }: Props) {
   }
 
   const isListVisible = isOpen && suggestions.length > 0
+  /*
+   * 화살표로 후보를 옮겨도 포커스는 입력칸에 남는다. 그래서 지금 어느 후보에 있는지
+   * 눈으로는 배경색으로 알지만 보조기기는 알 길이 없다. 그 하나를 id로 가리켜 알려 준다.
+   */
+  const activeOptionId =
+    isListVisible && activeIndex >= 0 ? `stock-suggestion-${activeIndex}` : undefined
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} onBlur={handleBlur}>
@@ -94,6 +100,7 @@ export default function SearchBar({ stocks }: Props) {
           aria-expanded={isListVisible}
           aria-controls="stock-suggestions"
           aria-autocomplete="list"
+          aria-activedescendant={activeOptionId}
         />
         <button type="submit" className={styles.button}>
           검색
@@ -103,7 +110,13 @@ export default function SearchBar({ stocks }: Props) {
       {isListVisible && (
         <ul className={styles.list} id="stock-suggestions" role="listbox">
           {suggestions.map((stock, index) => (
-            <li key={stock.stockCode} role="option" aria-selected={index === activeIndex}>
+            <li
+              key={stock.stockCode}
+              // 입력칸의 aria-activedescendant가 이 id를 가리킨다
+              id={`stock-suggestion-${index}`}
+              role="option"
+              aria-selected={index === activeIndex}
+            >
               <button
                 type="button"
                 className={
