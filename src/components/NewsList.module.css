@@ -18,13 +18,6 @@
   gap: 6px;
 }
 
-.notice {
-  margin-right: 4px;
-  font-size: 13px;
-  color: var(--color-text-sub);
-  white-space: nowrap;
-}
-
 .tab {
   height: 36px;
   padding: 0 16px;

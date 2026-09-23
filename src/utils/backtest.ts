@@ -23,7 +23,7 @@ export const PERIODS: {
 
 /** 채점 4축. 화면에서 순서대로 그린다 */
 export const AXES = ['stable', 'profit', 'effect', 'growth'] as const
-export type Axis = (typeof AXES)[number]
+type Axis = (typeof AXES)[number]
 
 export const AXIS_LABEL: Record<Axis, string> = {
   stable: '안정성',
@@ -174,8 +174,13 @@ export function scoreVerdict(score: number): {
   short: string
   tone: 'good' | 'normal' | 'bad'
 } {
-  if (score >= 70) return { label: '적합한', short: '잘 맞아요', tone: 'good' }
-  if (score >= 50)
+  /*
+   * 화면은 점수를 소수 첫째 자리로 적는다. 그 값으로 가르지 않으면 49.95가 "50.0"으로 보이면서
+   * "잘 안 맞아요"가 되어, 보이는 숫자와 등급이 어긋난다.
+   */
+  const shown = Number(score.toFixed(1))
+  if (shown >= 70) return { label: '적합한', short: '잘 맞아요', tone: 'good' }
+  if (shown >= 50)
     return { label: '무난한', short: '무난해요', tone: 'normal' }
   return { label: '맞지 않는', short: '잘 안 맞아요', tone: 'bad' }
 }

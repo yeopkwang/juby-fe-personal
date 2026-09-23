@@ -48,7 +48,7 @@ function isUsablePreset(preset: BacktestPreset | null): preset is BacktestPreset
   )
 }
 
-export interface PresetOptions {
+interface PresetOptions {
   investType: number
   /** 이 성향으로 실제 DB에 계산되어 있는 기간. enum 순서(짧은 것부터)대로 온다 */
   periods: { period: BacktestPeriod; label: string }[]

@@ -10,15 +10,15 @@ const SERVER_MAX = 90
 /**
  * 문항 배점으로 나올 수 있는 총점의 최소·최대.
  *
- * 서버 채점 구간은 "10문항 × 5보기"를 전제로 짜여 있는데 확정된 문항은 7개이고
- * 보기 수도 5/3/2로 제각각이다. 그대로 더하면 9~63이라 최저점이 서버 하한(10)에 못 미치고
- * 최고점도 공격투자형 기준(75)에 닿지 못한다.
+ * 서버 채점 구간은 "10문항 × 5보기(1~9점)", 합계 10~90을 전제로 짜여 있다. 서버 문항은
+ * 그대로 맞지만, 서버가 죽어 예비 문항으로 물러서면 문항 수와 배점이 달라 그대로 더한 합이
+ * 서버 하한(10)에 못 미치거나 공격투자형 기준(75)에 닿지 못한다.
  *
- * 요구사항서는 9와 63을 상수로 두라고 하지만 문항에서 직접 계산한다.
+ * 범위를 상수로 두지 않고 문항에서 직접 계산한다.
  * 백엔드가 문항을 채우는 순간 개수와 배점이 달라지는데, 숫자를 박아두면 그때 환산이 어긋난다.
  * 계산해서 쓰면 mock이든 서버 문항이든 고칠 곳이 없다.
  */
-export function getScoreRange(questions: Question[]): { min: number; max: number } {
+function getScoreRange(questions: Question[]): { min: number; max: number } {
   let min = 0
   let max = 0
 
@@ -57,6 +57,14 @@ export function scoreToPersonality(score: number): PersonalityType {
   if (score < 55) return '위험중립형'
   if (score < 75) return '적극투자형'
   return '공격투자형'
+}
+
+/**
+ * 서버가 준 글이 비었으면 대신할 글을 쓴다. null·빈 문자열뿐 아니라 공백만 있는 값도
+ * 빈 것으로 본다 — `||`로 고르면 "  "가 참이라 설명이 통째로 빠지고 이미지가 src=" "로 깨졌다.
+ */
+export function textOr(value: string | null | undefined, fallback: string): string {
+  return typeof value === 'string' && value.trim() !== '' ? value : fallback
 }
 
 /**

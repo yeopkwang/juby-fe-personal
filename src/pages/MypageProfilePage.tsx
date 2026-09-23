@@ -241,7 +241,9 @@ export default function MypageProfilePage() {
             type="date"
             value={editBirth}
             onChange={(event) => setEditBirth(event.target.value)}
-            // 오늘 이후는 서버가 거절한다. 달력에서 애초에 못 고르게 한다
+            // 오늘 이후는 서버가 거절한다. 달력에서 애초에 못 고르게 한다.
+            // 하한이 없으면 0203년·1800년 같은 값도 그대로 저장됐다
+            min="1900-01-01"
             max={new Date().toISOString().slice(0, 10)}
             disabled={isSaving}
           />

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import PersonalityCard from '../components/PersonalityCard'
 import { getMyPersonality } from '../api/member'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { PERSONALITY_INFO } from '../utils/personality'
+import { PERSONALITY_INFO, textOr } from '../utils/personality'
 import type { PersonalityInfo } from '../types/member'
 import styles from './MypagePersonalityPage.module.css'
 
@@ -63,7 +63,7 @@ export default function MypagePersonalityPage() {
       <div className={styles.message}>
         <p className={styles.messageText}>아직 투자성향 검사를 하지 않았습니다</p>
         <p className={styles.hint}>
-          일곱 문항이면 끝나요. 검사하고 나면 여기에 결과가 남습니다.
+          몇 분이면 끝나요. 검사하고 나면 여기에 결과가 남습니다.
         </p>
         <a className={styles.primary} href={TEST_URL}>
           검사하러 가기
@@ -79,8 +79,8 @@ export default function MypagePersonalityPage() {
   return (
     <PersonalityCard
       type={info.investPersonality}
-      description={info.description || fallback.description}
-      imageUrl={info.personalityImg || fallback.imageUrl}
+      description={textOr(info.description, fallback.description)}
+      imageUrl={textOr(info.personalityImg, fallback.imageUrl)}
     >
       <Link to={TEST_URL} className={styles.retest}>
         검사 다시하기

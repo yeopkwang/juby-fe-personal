@@ -19,7 +19,7 @@ import type { NewsItem, NewsPage, NewsSort } from '../types/news'
  * 남은 증권사 호출은 상세의 현재가 한 번뿐이다.
  */
 
-export interface StockList {
+interface StockList {
   /** YYYYMMDD. 이 날 종가 기준이다 */
   baseDate: string
   stocks: Stock[]
@@ -121,7 +121,6 @@ interface StockNewsResponse {
 
 /** 서버는 page를 0~9로 제한한다(@Max(9)). 그 밖을 보내면 400이다 */
 export const NEWS_LAST_PAGE = 9
-export const NEWS_PAGE_SIZE = 10
 
 /**
  * 종목 뉴스. Pinecone에 모아 둔 기사라 증권사와 무관하다.

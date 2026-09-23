@@ -4,6 +4,7 @@ import {
   PERSONALITY_INFO,
   normalizeScore,
   scoreToPersonality,
+  textOr,
 } from '../utils/personality'
 import type {
   PersonalityResult,
@@ -55,7 +56,7 @@ function sortByIds(questions: Question[]): Question[] {
     }))
 }
 
-export interface QuestionSet {
+interface QuestionSet {
   questions: Question[]
   /** 서버 문항이 아니라 예비 문항이다. 화면이 "임시 문항"이라고 알린다 */
   isFallback: boolean
@@ -125,8 +126,8 @@ export async function submitTest(
   const fallback = PERSONALITY_INFO[result.personalityName]
   return {
     type: result.personalityName,
-    description: result.description || fallback.description,
-    imageUrl: result.url || fallback.imageUrl,
+    description: textOr(result.description, fallback.description),
+    imageUrl: textOr(result.url, fallback.imageUrl),
   }
 }
 

@@ -6,12 +6,6 @@ export function toYmd(date: Date): string {
   return `${year}${month}${day}`
 }
 
-export function daysAgo(days: number): Date {
-  const date = new Date()
-  date.setDate(date.getDate() - days)
-  return date
-}
-
 /**
  * "2026-08-05" → "20260805". /api/stocks 계열이 하이픈 형식을 주는데 앱은 붙여 쓴다.
  * 날짜가 비어 오면(null) 던지지 않고 빈 문자열로 둔다 — 기준일 하나 때문에

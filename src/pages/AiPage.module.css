@@ -128,6 +128,11 @@
   outline: none;
 }
 
+/* 질문칸 자체의 테두리는 지웠으니 감싸는 상자에 포커스를 드러낸다(키보드로 들어왔을 때 보이도록) */
+.composerBox:focus-within {
+  box-shadow: inset 0 0 0 2px var(--color-text-sub);
+}
+
 .input::placeholder {
   color: var(--color-text-sub);
 }

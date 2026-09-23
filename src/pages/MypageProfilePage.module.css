@@ -74,12 +74,6 @@
   background: var(--color-page-bg);
 }
 
-.notice {
-  margin: 14px 0 0;
-  font-size: 13px;
-  color: var(--color-text-sub);
-}
-
 /* 조회 실패 화면 */
 .message {
   display: flex;
