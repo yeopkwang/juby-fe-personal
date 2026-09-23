@@ -22,8 +22,8 @@ export async function getMemberInfo(): Promise<MemberInfo> {
 }
 
 /**
- * 이름·생일 수정. 서버가 이름 2~4자, 생일은 오늘 이전인지 검사하고
- * 어긋나면 400에 이유를 담아 준다(ApiError.message로 화면에 그대로 보여주면 된다).
+ * 이름·생일 수정. 서버가 이름 2~4자, 생일은 오늘 이전인지 검사하고 어긋나면 400을 준다.
+ * 화면은 서버 message를 그대로 쓰지 않고 이 두 규칙을 적은 고정 문구를 보여준다.
  */
 export async function updateMemberInfo(update: MemberUpdate): Promise<void> {
   await patch<{ modifiedDate: string }>('/api/members/me', update)

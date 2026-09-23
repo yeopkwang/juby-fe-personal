@@ -140,9 +140,13 @@ export default function MypageProfilePage() {
       load()
     } catch (error: unknown) {
       console.warn('회원 정보 수정 실패', error)
+      /*
+       * 400은 서버 검사에 걸린 것이다. 서버가 준 message는 쓰지 않는다 — 검사 문구가 아닌
+       * 개발자용 문구가 섞여 올 수 있다. 서버가 거는 규칙은 둘뿐이라 그걸 적는다.
+       */
       setSaveError(
         error instanceof ApiError && error.status === 400
-          ? error.message
+          ? '저장할 수 없는 값이에요. 이름은 2~4자, 생년월일은 오늘 이전이어야 해요.'
           : '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
       )
     } finally {

@@ -64,7 +64,9 @@ type ResultState =
 
 /**
  * 서버 실패 코드를 사람 말로. 코드는 백엔드 BacktestErrorCode 참고.
- * 코드가 없으면(네트워크 등) 일반 문구로 둔다.
+ * 아는 코드가 아니면(네트워크, 서버 오류, 응답 모양 어긋남) 일반 문구로 둔다.
+ * 서버가 준 message는 화면에 쓰지 않는다 — 개발자용 문구나 예외 이름이 섞여 올 수 있다.
+ * 원문은 handleSubmit이 콘솔에 남긴다.
  */
 function describeFailure(error: unknown): { message: string; hint: string | null } {
   if (error instanceof ApiError) {
@@ -83,7 +85,6 @@ function describeFailure(error: unknown): { message: string; hint: string | null
       case 'STOCK404_1':
         return { message: '목록에 없는 종목이에요.', hint: null }
     }
-    return { message: error.message, hint: null }
   }
   return {
     message: '결과를 불러오지 못했어요.',
