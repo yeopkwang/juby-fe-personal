@@ -19,5 +19,11 @@ export interface NewsPage {
   page: number
   /** 후보 전체 개수(최대 100). 마지막 페이지 판단에 쓴다 */
   totalCount: number
+  /**
+   * 이 페이지에서 서버가 준 기사 수. 빈 기사를 거르기 전 개수다.
+   * 마지막 페이지 판단은 이걸로 한다 — 거른 뒤의 개수로 totalCount와 견주면
+   * 끝에 닿아도 모자라 보여 "더 보기"가 빈 페이지를 계속 부른다.
+   */
+  receivedCount: number
   sort: NewsSort
 }

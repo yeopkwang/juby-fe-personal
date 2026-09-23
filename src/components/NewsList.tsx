@@ -14,7 +14,14 @@ interface Props {
 
 type State =
   | { kind: 'loading' }
-  | { kind: 'ready'; items: NewsItem[]; page: number; totalCount: number }
+  | {
+      kind: 'ready'
+      items: NewsItem[]
+      page: number
+      totalCount: number
+      /** 지금까지 서버가 준 기사 수(거르기 전). 마지막 페이지 판단에 쓴다 */
+      received: number
+    }
   | { kind: 'error' }
 
 /**
@@ -47,6 +54,7 @@ export default function NewsList({ stockCode }: Props) {
           items: result.items,
           page: 0,
           totalCount: result.totalCount,
+          received: result.receivedCount,
         })
       })
       .catch((error: unknown) => {
@@ -75,6 +83,7 @@ export default function NewsList({ stockCode }: Props) {
               ...current,
               items: [...current.items, ...result.items],
               page: nextPage,
+              received: current.received + result.receivedCount,
             }
           : current,
       )
@@ -88,7 +97,7 @@ export default function NewsList({ stockCode }: Props) {
 
   const hasMore =
     state.kind === 'ready' &&
-    state.items.length < state.totalCount &&
+    state.received < state.totalCount &&
     state.page < NEWS_LAST_PAGE
 
   return (

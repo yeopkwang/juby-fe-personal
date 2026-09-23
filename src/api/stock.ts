@@ -140,6 +140,7 @@ export async function getStockNews(
     items: response.newsList
       .map(toNewsItem)
       .filter((item) => item.title.trim() !== '' && item.link.trim() !== ''),
+    receivedCount: response.newsList.length,
     page: response.page,
     totalCount: response.totalCount,
     sort: response.sort,
