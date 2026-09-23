@@ -97,6 +97,13 @@
   font-weight: 600;
 }
 
+.saveError {
+  margin-top: 22px;
+  font-size: 14px;
+  color: var(--color-up);
+  text-align: right;
+}
+
 .buttons {
   display: flex;
   justify-content: flex-end;

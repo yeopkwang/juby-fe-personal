@@ -22,11 +22,19 @@ export default function PersonalityTestPage() {
   const { search } = useLocation()
 
   const [questions, setQuestions] = useState<Question[] | null>(null)
+  /** 문항을 못 받았다. 그릴 게 없으니 화면 전체를 안내로 바꾼다 */
   const [hasError, setHasError] = useState(false)
   /** 문항마다 고른 보기의 choiceId. 아직 안 고른 문항은 null */
   const [answers, setAnswers] = useState<(number | null)[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  /*
+   * 결과를 서버에 저장하지 못했다. 문항 조회 실패와 따로 둔다 — 같은 상태를 쓰면
+   * 고른 답 10개가 "문항을 불러오지 못했습니다" 한 줄로 바뀌어 사라진다.
+   * 저장 못 한 성향을 결과처럼 보여주면 마이페이지 성향과 어긋나므로
+   * 결과 화면으로 넘기지 않고 이 자리에서 다시 저장하게 한다.
+   */
+  const [saveFailed, setSaveFailed] = useState(false)
 
   useEffect(() => {
     getQuestions()
@@ -53,6 +61,8 @@ export default function PersonalityTestPage() {
   const isLast = currentIndex === total - 1
 
   function handleSelect(choiceId: number) {
+    // 답을 바꾸면 다시 보낼 내용도 바뀐다. 앞선 저장 실패 안내는 거둔다
+    setSaveFailed(false)
     // 배열을 직접 고치면 React가 같은 객체로 보고 다시 그리지 않는다. 새 배열을 만든다
     setAnswers((previous) =>
       previous.map((answer, index) =>
@@ -70,6 +80,7 @@ export default function PersonalityTestPage() {
     }
 
     setIsSubmitting(true)
+    setSaveFailed(false)
     try {
       const result = await submitTest(questions, toScores(questions, answers))
       navigate(
@@ -77,8 +88,9 @@ export default function PersonalityTestPage() {
         { state: { result } },
       )
     } catch (error: unknown) {
-      console.warn('성향 산출 실패', error)
-      setHasError(true)
+      // 401이면 client.ts가 이미 로그인 화면으로 보냈다. 그 밖은 여기 머물러 다시 저장하게 한다
+      console.warn('성향 결과 저장 실패', error)
+      setSaveFailed(true)
     } finally {
       setIsSubmitting(false)
     }
@@ -133,6 +145,12 @@ export default function PersonalityTestPage() {
           })}
         </div>
 
+        {saveFailed && isLast && (
+          <p className={styles.saveError} role="alert">
+            결과를 저장하지 못했어요. 고른 답은 그대로 있으니 다시 저장해 주세요.
+          </p>
+        )}
+
         <div className={styles.buttons}>
           <button
             type="button"
@@ -148,7 +166,7 @@ export default function PersonalityTestPage() {
             onClick={handleNext}
             disabled={selectedId === null || isSubmitting}
           >
-            {isLast ? '결과 보기' : '다음'}
+            {!isLast ? '다음' : saveFailed ? '다시 저장' : '결과 보기'}
           </button>
         </div>
       </section>
