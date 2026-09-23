@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
+import SectionBoundary from '../components/SectionBoundary'
 import Modal from '../components/Modal'
 import { TOP_THEMES, loadTopStocks, readCachedTopStocks } from '../api/home'
 import { likeStock, unlikeStock } from '../api/member'
@@ -206,8 +207,9 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* 표를 그리다 멈춰도 검색·테마 카드는 남는다. 다시 시도하면 목록을 새로 받는다 */}
         {list.kind === 'ready' && (
-          <>
+          <SectionBoundary onRetry={load}>
             <StockTable
               stocks={sortedStocks.slice(0, visibleCount)}
               sort={sort}
@@ -219,7 +221,7 @@ export default function HomePage() {
             <div ref={sentinelRef} className={styles.sentinel}>
               {visibleCount < stocks.length && '불러오는 중…'}
             </div>
-          </>
+          </SectionBoundary>
         )}
       </section>
 

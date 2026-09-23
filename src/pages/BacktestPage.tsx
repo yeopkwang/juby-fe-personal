@@ -5,6 +5,7 @@ import { ApiError } from '../api/client'
 import { getMyPersonality } from '../api/member'
 import { byTradingValue, getStockList, searchStocks } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
+import SectionBoundary from '../components/SectionBoundary'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
@@ -517,14 +518,17 @@ export default function BacktestPage() {
             </div>
           )}
 
+          {/* 결과를 그리다 멈춰도 입력 폼은 남는다. 다시 시도하면 같은 조건으로 다시 받는다 */}
           {result.kind === 'ready' && stock !== null && (
-            <BacktestResult
-              preset={result.preset}
-              ranking={result.ranking}
-              stockName={stock.stockName}
-              savedPersonality={savedPersonality}
-              onRetry={clearResult}
-            />
+            <SectionBoundary onRetry={() => void handleSubmit()}>
+              <BacktestResult
+                preset={result.preset}
+                ranking={result.ranking}
+                stockName={stock.stockName}
+                savedPersonality={savedPersonality}
+                onRetry={clearResult}
+              />
+            </SectionBoundary>
           )}
         </div>
       </div>

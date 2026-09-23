@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
 import NewsList from '../components/NewsList'
+import SectionBoundary from '../components/SectionBoundary'
 import { ApiError } from '../api/client'
 import { getStockDetail } from '../api/stock'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -166,106 +167,22 @@ export default function StockChartPage() {
   }
 
   const detail = state.kind === 'ready' ? state.detail : null
-  const shown = detail === null ? [] : sliceByPeriod(detail.candles, period)
-  const lastCandle = shown.at(-1) ?? null
-  const rateClassName =
-    detail === null ? undefined : toRateClassName(detail.comparePrev)
 
   return (
     <>
-      <section className={styles.section}>
-        {/* 뒤로 가기 말고는 목록으로 돌아갈 길이 없었다 */}
-        <Link to="/" className={styles.back}>
-          <span aria-hidden="true">‹</span> 홈으로 돌아가기
-        </Link>
-
-        <h1 className={styles.identity}>
-          {/* 이름은 응답에 실려 온다. 오기 전엔 코드만 적는다 */}
-          <span className={styles.name}>{detail?.stockName ?? ''}</span>
-          <span className={styles.code}>{stockCode}</span>
-        </h1>
-
-        <p className={styles.price}>
-          {formatPrice(detail?.currentPrice ?? null)}
-        </p>
-
-        <p className={styles.change}>
-          전일 대비{' '}
-          <span className={rateClassName}>
-            {formatChangeRate(detail?.comparePrev ?? null)}
-          </span>
-        </p>
-
-        {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다 */}
-        <div className={styles.periodTabs} role="tablist" aria-label="기간">
-          {PERIOD_TABS.map((tab) => (
-            <button
-              key={tab.period}
-              type="button"
-              role="tab"
-              aria-selected={tab.period === period}
-              className={
-                tab.period === period
-                  ? `${styles.periodTab} ${styles.periodTabActive}`
-                  : styles.periodTab
-              }
-              onClick={() => setPeriod(tab.period)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.chartBox}>
-          {detail === null && <div className={styles.chartSkeleton} />}
-
-          {detail !== null && shown.length === 0 && (
-            <p className={styles.chartMessage}>이 기간에는 거래일이 없습니다.</p>
-          )}
-
-          {shown.length > 0 && <CandleChart candles={shown} />}
-        </div>
-
-        {/*
-          마지막 거래일의 시·고·저·거래량. 현재가 API는 이 값을 안 주고(현재가·등락률뿐),
-          일봉 테이블은 장 마감 후 확정값만 들어가므로 "오늘"이 아니라 어느 날인지 함께 적는다.
-        */}
-        {lastCandle !== null && (
-          <>
-            {toKoreanDate(lastCandle.date) !== '' && (
-              <p className={styles.summaryDate}>
-                {toKoreanDate(lastCandle.date)} 마감 기준
-              </p>
-            )}
-            <dl className={styles.summary}>
-              <div className={styles.summaryItem}>
-                <dt className={styles.summaryLabel}>시가</dt>
-                <dd className={styles.summaryValue}>
-                  {formatPrice(lastCandle.open)}
-                </dd>
-              </div>
-              <div className={styles.summaryItem}>
-                <dt className={styles.summaryLabel}>고가</dt>
-                <dd className={`${styles.summaryValue} ${styles.up}`}>
-                  {formatPrice(lastCandle.high)}
-                </dd>
-              </div>
-              <div className={styles.summaryItem}>
-                <dt className={styles.summaryLabel}>저가</dt>
-                <dd className={`${styles.summaryValue} ${styles.down}`}>
-                  {formatPrice(lastCandle.low)}
-                </dd>
-              </div>
-              <div className={styles.summaryItem}>
-                <dt className={styles.summaryLabel}>거래량</dt>
-                <dd className={styles.summaryValue}>
-                  {formatVolume(lastCandle.volume)}
-                </dd>
-              </div>
-            </dl>
-          </>
-        )}
-      </section>
+      {/*
+        가격·차트를 그리다 멈춰도 뉴스는 남는다. 다시 시도하면 종목 정보를 새로 받는다.
+        오류 경계는 자식이 그리다 난 오류만 받아내므로 이 구역을 PriceSection으로 떼어 뒀다 —
+        여기(StockChartPage) 렌더에서 계산하면 경계를 지나쳐 화면 전체가 오류 화면이 된다.
+      */}
+      <SectionBoundary onRetry={() => setRetryCount((count) => count + 1)}>
+        <PriceSection
+          stockCode={stockCode}
+          detail={detail}
+          period={period}
+          onPeriodChange={setPeriod}
+        />
+      </SectionBoundary>
 
       {stockCode !== undefined && (
         <section className={styles.section}>
@@ -273,5 +190,117 @@ export default function StockChartPage() {
         </section>
       )}
     </>
+  )
+}
+
+interface PriceSectionProps {
+  stockCode: string | undefined
+  /** 아직 받아오기 전이면 null. 자리만 잡아 두고 차트 자리에 뼈대를 그린다 */
+  detail: StockDetail | null
+  period: Period
+  onPeriodChange: (period: Period) => void
+}
+
+/** 이름·현재가·기간 탭·차트·마지막 거래일 요약. 구역 오류 경계 안에서 그려진다 */
+function PriceSection({ stockCode, detail, period, onPeriodChange }: PriceSectionProps) {
+  const shown = detail === null ? [] : sliceByPeriod(detail.candles, period)
+  const lastCandle = shown.at(-1) ?? null
+  const rateClassName =
+    detail === null ? undefined : toRateClassName(detail.comparePrev)
+
+  return (
+    <section className={styles.section}>
+      {/* 뒤로 가기 말고는 목록으로 돌아갈 길이 없었다 */}
+      <Link to="/" className={styles.back}>
+        <span aria-hidden="true">‹</span> 홈으로 돌아가기
+      </Link>
+
+      <h1 className={styles.identity}>
+        {/* 이름은 응답에 실려 온다. 오기 전엔 코드만 적는다 */}
+        <span className={styles.name}>{detail?.stockName ?? ''}</span>
+        <span className={styles.code}>{stockCode}</span>
+      </h1>
+
+      <p className={styles.price}>
+        {formatPrice(detail?.currentPrice ?? null)}
+      </p>
+
+      <p className={styles.change}>
+        전일 대비{' '}
+        <span className={rateClassName}>
+          {formatChangeRate(detail?.comparePrev ?? null)}
+        </span>
+      </p>
+
+      {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다 */}
+      <div className={styles.periodTabs} role="tablist" aria-label="기간">
+        {PERIOD_TABS.map((tab) => (
+          <button
+            key={tab.period}
+            type="button"
+            role="tab"
+            aria-selected={tab.period === period}
+            className={
+              tab.period === period
+                ? `${styles.periodTab} ${styles.periodTabActive}`
+                : styles.periodTab
+            }
+            onClick={() => onPeriodChange(tab.period)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.chartBox}>
+        {detail === null && <div className={styles.chartSkeleton} />}
+
+        {detail !== null && shown.length === 0 && (
+          <p className={styles.chartMessage}>이 기간에는 거래일이 없습니다.</p>
+        )}
+
+        {shown.length > 0 && <CandleChart candles={shown} />}
+      </div>
+
+      {/*
+        마지막 거래일의 시·고·저·거래량. 현재가 API는 이 값을 안 주고(현재가·등락률뿐),
+        일봉 테이블은 장 마감 후 확정값만 들어가므로 "오늘"이 아니라 어느 날인지 함께 적는다.
+      */}
+      {lastCandle !== null && (
+        <>
+          {toKoreanDate(lastCandle.date) !== '' && (
+            <p className={styles.summaryDate}>
+              {toKoreanDate(lastCandle.date)} 마감 기준
+            </p>
+          )}
+          <dl className={styles.summary}>
+            <div className={styles.summaryItem}>
+              <dt className={styles.summaryLabel}>시가</dt>
+              <dd className={styles.summaryValue}>
+                {formatPrice(lastCandle.open)}
+              </dd>
+            </div>
+            <div className={styles.summaryItem}>
+              <dt className={styles.summaryLabel}>고가</dt>
+              <dd className={`${styles.summaryValue} ${styles.up}`}>
+                {formatPrice(lastCandle.high)}
+              </dd>
+            </div>
+            <div className={styles.summaryItem}>
+              <dt className={styles.summaryLabel}>저가</dt>
+              <dd className={`${styles.summaryValue} ${styles.down}`}>
+                {formatPrice(lastCandle.low)}
+              </dd>
+            </div>
+            <div className={styles.summaryItem}>
+              <dt className={styles.summaryLabel}>거래량</dt>
+              <dd className={styles.summaryValue}>
+                {formatVolume(lastCandle.volume)}
+              </dd>
+            </div>
+          </dl>
+        </>
+      )}
+    </section>
   )
 }

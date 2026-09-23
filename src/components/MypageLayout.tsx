@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { logout } from '../api/auth'
+import SectionBoundary from './SectionBoundary'
 import { isLoggedIn } from '../utils/auth'
 import styles from './MypageLayout.module.css'
 
@@ -22,6 +23,7 @@ const MENU = [
  */
 export default function MypageLayout() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   /*
@@ -90,7 +92,13 @@ export default function MypageLayout() {
         </aside>
 
         <section className={styles.content}>
-          <Outlet />
+          {/*
+            안쪽 화면이 그리다 멈춰도 사이드바·로그아웃은 남는다. 탭을 옮기면 오류 상태가 풀리고,
+            다시 시도하면 안쪽 화면이 새로 마운트되며 스스로 다시 불러온다.
+          */}
+          <SectionBoundary resetKey={pathname}>
+            <Outlet />
+          </SectionBoundary>
         </section>
       </div>
     </>
