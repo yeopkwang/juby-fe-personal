@@ -1,4 +1,4 @@
-import { get } from './client'
+import { get, malformedResponse } from './client'
 import { fromDashedYmd } from '../utils/date'
 import type {
   Candle,
@@ -27,7 +27,9 @@ export interface StockList {
 
 /** 100종목 시세. DB만 읽는다 — 증권사 호출이 없어 몇 번을 불러도 부담이 없다 */
 export async function getStockList(): Promise<StockList> {
-  const response = await get<StockListResponse>('/api/stocks')
+  const response = await get<StockListResponse | null>('/api/stocks')
+  // 목록 자체가 없으면 그릴 게 없다. 한 행의 값이 빈 건 그 칸만 "-"로 두고 넘긴다
+  if (response === null || !Array.isArray(response.stockList)) throw malformedResponse()
   return {
     baseDate: fromDashedYmd(response.baseDate),
     stocks: response.stockList,
@@ -62,9 +64,11 @@ export async function getStockDetail(
   stockCode: string,
   period: Period = 'ALL',
 ): Promise<StockDetail> {
-  const response = await get<StockDetailResponse>(
+  const response = await get<StockDetailResponse | null>(
     `/api/stocks/${encodeURIComponent(stockCode)}?period=${period}`,
   )
+  // 일봉 배열이 없으면 차트를 그릴 수 없다. 현재가·등락률이 빈 건 "-"로 두고 넘긴다
+  if (response === null || !Array.isArray(response.dailyPrices)) throw malformedResponse()
 
   return {
     stockName: response.stockName,

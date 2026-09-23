@@ -1,4 +1,4 @@
-import { ApiError, get, patch, post, remove } from './client'
+import { ApiError, get, malformedResponse, patch, post, remove } from './client'
 import type {
   LikeStockList,
   MemberInfo,
@@ -11,8 +11,14 @@ import type {
  * client.ts가 로그인 화면으로 보낸다).
  */
 
-export function getMemberInfo(): Promise<MemberInfo> {
-  return get<MemberInfo>('/api/members/me')
+/**
+ * 내 정보. 본문이 비어 오면 그리다가 null.birth를 읽어 화면 전체가 오류 화면이 되므로
+ * 여기서 실패로 바꿔 던진다. 이름·이메일·생일 낱개가 빈 건 화면이 받아낸다.
+ */
+export async function getMemberInfo(): Promise<MemberInfo> {
+  const member = await get<MemberInfo | null>('/api/members/me')
+  if (member === null || typeof member !== 'object') throw malformedResponse()
+  return member
 }
 
 /**

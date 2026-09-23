@@ -1,4 +1,4 @@
-import { get } from './client'
+import { get, malformedResponse } from './client'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 
 /**
@@ -14,7 +14,7 @@ import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
  *   - BACKTEST404_5 아직 계산되지 않은 프리셋 (배치가 그 종목을 건너뛴 경우)
  *   - BACKTEST400_1 그 성향이 지원하지 않는 기간
  */
-export function getPreset(
+export async function getPreset(
   stockCode: string,
   investType: number,
   period: BacktestPeriod,
@@ -24,7 +24,28 @@ export function getPreset(
     investType: String(investType),
     period,
   })
-  return get<BacktestPreset>(`/api/backtest/preset?${query}`)
+  const preset = await get<BacktestPreset | null>(`/api/backtest/preset?${query}`)
+  if (!isUsablePreset(preset)) throw malformedResponse()
+  return preset
+}
+
+/**
+ * 결과 화면이 반드시 읽는 값이 다 있는가. 점수(finalScore)와 네 축의 지표 묶음이다.
+ * 하나라도 비면 그리다가 null.필드를 읽어 화면 전체가 오류 화면이 된다(2026-09-23 검사).
+ * 묶음 안의 낱개 지표는 비어도 된다 — 포맷 함수가 "-"로 적는다.
+ */
+function isUsablePreset(preset: BacktestPreset | null): preset is BacktestPreset {
+  if (preset === null || typeof preset !== 'object') return false
+  if (typeof preset.investType !== 'number') return false
+
+  const scoring = preset.result as BacktestPreset['result'] | null | undefined
+  if (scoring === null || typeof scoring !== 'object') return false
+  if (typeof scoring.finalScore !== 'number' || !Number.isFinite(scoring.finalScore)) {
+    return false
+  }
+  return [scoring.stable, scoring.profit, scoring.effect, scoring.growth].every(
+    (group) => typeof group === 'object' && group !== null,
+  )
 }
 
 export interface PresetOptions {

@@ -105,6 +105,31 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 200인데 쓸 수 있는 응답이 아닐 때의 문구. 서버가 준 글이 아니라 고정 문구다.
+ * 본문이 비었거나 { isSuccess, result } 래퍼가 아니거나, 화면이 반드시 쓰는 값이 비어 있는 경우다.
+ */
+const MALFORMED_MESSAGE = '서버 응답을 읽을 수 없습니다.'
+
+/**
+ * 응답 모양이 어긋났다는 ApiError. src/api/*.ts가 받은 값을 검사하다 쓴다.
+ *
+ * 그냥 두면 화면이 null.필드를 읽다 그리는 도중에 던지고, 그건 오류 경계까지 올라가
+ * 화면 전체를 "화면을 표시하지 못했어요"로 바꾼다. 여기서 ApiError로 바꿔 던지면
+ * 화면이 이미 가진 "불러오지 못했어요 + 다시 시도" 경로를 탄다.
+ */
+export function malformedResponse(): ApiError {
+  return new ApiError(MALFORMED_MESSAGE, 200, null)
+}
+
+function isApiResponse(body: unknown): body is ApiResponse<unknown> {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    typeof (body as { isSuccess?: unknown }).isSuccess === 'boolean'
+  )
+}
+
 interface RequestOptions {
   /**
    * 401을 받아도 로그인 화면으로 보내지 않는다.
@@ -215,6 +240,14 @@ async function requestJson<T>(
       response.status,
       serverField(body, 'code'),
     )
+  }
+
+  /*
+   * 성공인데 본문이 비었거나 래퍼가 아니다. 그대로 넘기면 unwrap이 null.isSuccess를 읽다
+   * TypeError로 던지고, 래퍼 없는 JSON은 message ""·code undefined인 ApiError가 됐다.
+   */
+  if (!isApiResponse(body)) {
+    throw new ApiError(MALFORMED_MESSAGE, response.status, null)
   }
 
   return body as T
