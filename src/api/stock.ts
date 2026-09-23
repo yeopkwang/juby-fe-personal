@@ -180,8 +180,11 @@ function toNewsItem(item: StockNewsResponse['newsList'][number]): NewsItem {
 /** 검색창 후보 목록에 한 번에 보여줄 최대 개수 */
 const MAX_RESULTS = 8
 
-/** 띄어쓰기와 대소문자를 무시하고 비교하려고 다듬는다. "sk 하이닉스" → "sk하이닉스" */
-function normalize(text: string): string {
+/**
+ * 띄어쓰기와 대소문자를 무시하고 비교하려고 다듬는다. "sk 하이닉스" → "sk하이닉스"
+ * 검색창과 AI 질문의 종목명 찾기(utils/stockName.ts)가 같이 쓴다.
+ */
+export function normalize(text: string): string {
   return text.replace(/\s+/g, '').toLowerCase()
 }
 
