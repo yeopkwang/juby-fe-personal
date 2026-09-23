@@ -182,8 +182,11 @@ export default function HomePage() {
       <section className={styles.section}>
         <div className={styles.headingRow}>
           <h2 className={styles.heading}>현재 주가 보기</h2>
-          {/* 16시 배치 전에는 전 거래일 종가가 뜬다. 언제 것인지 밝혀둔다 */}
-          {list.kind === 'ready' && (
+          {/*
+            16시 배치 전에는 전 거래일 종가가 뜬다. 언제 것인지 밝혀둔다.
+            기준일이 비어 오면 줄째 숨긴다 — 시세표는 그대로 보여준다
+          */}
+          {list.kind === 'ready' && toKoreanDate(list.baseDate) !== '' && (
             <span className={styles.asOf}>
               {toKoreanDate(list.baseDate)} 종가 기준
             </span>

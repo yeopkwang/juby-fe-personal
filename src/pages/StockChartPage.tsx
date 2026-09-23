@@ -232,9 +232,11 @@ export default function StockChartPage() {
         */}
         {lastCandle !== null && (
           <>
-            <p className={styles.summaryDate}>
-              {toKoreanDate(lastCandle.date)} 마감 기준
-            </p>
+            {toKoreanDate(lastCandle.date) !== '' && (
+              <p className={styles.summaryDate}>
+                {toKoreanDate(lastCandle.date)} 마감 기준
+              </p>
+            )}
             <dl className={styles.summary}>
               <div className={styles.summaryItem}>
                 <dt className={styles.summaryLabel}>시가</dt>

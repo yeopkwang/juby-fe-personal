@@ -101,7 +101,10 @@ export default function MypageLikesPage() {
 
   return (
     <>
-      <p className={styles.asOf}>{toKoreanDate(state.baseDate)} 종가 기준</p>
+      {/* 기준일이 비어 오면 줄째 숨긴다. 목록은 그대로 보여준다 */}
+      {toKoreanDate(state.baseDate) !== '' && (
+        <p className={styles.asOf}>{toKoreanDate(state.baseDate)} 종가 기준</p>
+      )}
 
       <ul className={styles.list}>
         {state.stocks.map((stock) => (

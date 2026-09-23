@@ -12,9 +12,13 @@ export function daysAgo(days: number): Date {
   return date
 }
 
-/** "2026-08-05" → "20260805". /api/stocks 계열이 하이픈 형식을 주는데 앱은 붙여 쓴다 */
-export function fromDashedYmd(dashed: string): string {
-  return dashed.replace(/-/g, '')
+/**
+ * "2026-08-05" → "20260805". /api/stocks 계열이 하이픈 형식을 주는데 앱은 붙여 쓴다.
+ * 날짜가 비어 오면(null) 던지지 않고 빈 문자열로 둔다 — 기준일 하나 때문에
+ * 멀쩡한 시세표 전체가 실패로 바뀌면 안 된다. 화면이 빈 날짜의 줄을 숨긴다.
+ */
+export function fromDashedYmd(dashed: string | null | undefined): string {
+  return typeof dashed === 'string' ? dashed.replace(/-/g, '') : ''
 }
 
 /**
@@ -34,8 +38,16 @@ export function toDashedYmd(ymd: string): string {
   return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`
 }
 
-/** "20260805" → "8월 5일" (화면에 읽히는 형태). 해가 바뀌면 연도까지 적는다 */
-export function toKoreanDate(ymd: string, today: Date = new Date()): string {
+/**
+ * "20260805" → "8월 5일" (화면에 읽히는 형태). 해가 바뀌면 연도까지 적는다.
+ * 여덟 자리 날짜가 아니면 빈 문자열이다. 그대로 쪼개면 "년 0월 0일"이 나온다.
+ */
+export function toKoreanDate(
+  ymd: string | null | undefined,
+  today: Date = new Date(),
+): string {
+  if (typeof ymd !== 'string' || !/^\d{8}$/.test(ymd)) return ''
+
   const year = ymd.slice(0, 4)
   const month = Number(ymd.slice(4, 6))
   const day = Number(ymd.slice(6, 8))

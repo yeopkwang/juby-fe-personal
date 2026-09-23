@@ -180,8 +180,12 @@ export function scoreVerdict(score: number): {
   return { label: '맞지 않는', short: '잘 안 맞아요', tone: 'bad' }
 }
 
-/** 소수 비율(0.1856)을 백분율 문자열(18.56%)로 */
-export function toPercent(ratio: number, digits = 2): string {
+/**
+ * 소수 비율(0.1856)을 백분율 문자열(18.56%)로.
+ * 숫자가 아니면 "-"다. 예전엔 null이 0으로 계산돼 "0.00%"가 나와 값이 없는 것과 0이 구분되지 않았다.
+ */
+export function toPercent(ratio: number | null | undefined, digits = 2): string {
+  if (typeof ratio !== 'number' || !Number.isFinite(ratio)) return '-'
   return `${(ratio * 100).toFixed(digits)}%`
 }
 
