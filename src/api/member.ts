@@ -1,4 +1,4 @@
-import { get, patch, post, remove } from './client'
+import { ApiError, get, patch, post, remove } from './client'
 import type {
   LikeStockList,
   MemberInfo,
@@ -26,16 +26,21 @@ export async function updateMemberInfo(update: MemberUpdate): Promise<void> {
 /**
  * 저장된 내 투자성향. 아직 검사하지 않았으면 null.
  *
- * 값이 비는 모양을 넓게 받아준다. 성향을 검사하지 않은 회원에게 서버가 본문을
- * null로 줄 수도, 필드만 빈 채 줄 수도 있어서다.
+ * 검사하지 않은 회원에게 서버는 **404(MEMBER404_2)** 를 준다
+ * (MemberService.getPersonalityInfo). 갓 가입한 회원이 전부 여기에 해당하므로
+ * 이 404는 실패가 아니라 "없음"이다. 본문이 null이거나 성향 이름이 빈 경우도 같이 받아준다.
  *
- * 다만 **통신·서버 오류는 삼키지 않고 던진다.** 부르는 쪽이
+ * 다만 **그 밖의 통신·서버 오류는 삼키지 않고 던진다.** 부르는 쪽이
  * "아직 검사 안 함"과 "못 불러옴"을 다른 화면으로 보여줘야 하기 때문이다.
  */
 export async function getMyPersonality(): Promise<PersonalityInfo | null> {
-  const result = await get<PersonalityInfo | null>(
-    '/api/members/me/personality',
-  )
+  let result: PersonalityInfo | null
+  try {
+    result = await get<PersonalityInfo | null>('/api/members/me/personality')
+  } catch (error: unknown) {
+    if (error instanceof ApiError && error.code === 'MEMBER404_2') return null
+    throw error
+  }
   // 성향 이름이 없으면 결과 화면을 그릴 수 없다. 없는 것으로 본다
   return result === null || !result.investPersonality ? null : result
 }
