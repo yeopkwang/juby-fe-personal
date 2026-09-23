@@ -22,8 +22,12 @@ export default function PersonalityTestPage() {
   const { search } = useLocation()
 
   const [questions, setQuestions] = useState<Question[] | null>(null)
+  /** 서버 문항 대신 예비 문항으로 진행 중이다(비로그인만 여기로 온다) */
+  const [isFallback, setIsFallback] = useState(false)
   /** 문항을 못 받았다. 그릴 게 없으니 화면 전체를 안내로 바꾼다 */
   const [hasError, setHasError] = useState(false)
+  /** 문항 조회 '다시 시도'. 올리면 아래 effect가 다시 돈다 */
+  const [retryCount, setRetryCount] = useState(0)
   /** 문항마다 고른 보기의 choiceId. 아직 안 고른 문항은 null */
   const [answers, setAnswers] = useState<(number | null)[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -37,19 +41,33 @@ export default function PersonalityTestPage() {
   const [saveFailed, setSaveFailed] = useState(false)
 
   useEffect(() => {
+    setHasError(false)
     getQuestions()
       .then((loaded) => {
-        setQuestions(loaded)
-        setAnswers(Array(loaded.length).fill(null))
+        setQuestions(loaded.questions)
+        setIsFallback(loaded.isFallback)
+        setAnswers(Array(loaded.questions.length).fill(null))
       })
       .catch((error: unknown) => {
+        // 로그인 상태에서 서버 문항을 못 받은 경우다. 예비 문항 결과가 저장되면 안 되므로 멈춘다
         console.warn('성향 테스트 문항 조회 실패', error)
         setHasError(true)
       })
-  }, [])
+  }, [retryCount])
 
   if (hasError) {
-    return <p className={styles.message}>문항을 불러오지 못했습니다.</p>
+    return (
+      <div className={styles.message}>
+        <p>문항을 불러오지 못했습니다.</p>
+        <button
+          type="button"
+          className={styles.retry}
+          onClick={() => setRetryCount((count) => count + 1)}
+        >
+          다시 시도
+        </button>
+      </div>
+    )
   }
   if (questions === null) {
     return <p className={styles.message}>불러오는 중…</p>
@@ -99,6 +117,12 @@ export default function PersonalityTestPage() {
   return (
     <>
       <h1 className={styles.title}>나의 투자성향 테스트</h1>
+
+      {isFallback && (
+        <p className={styles.fallbackNotice} role="status">
+          서버 문항을 불러오지 못해 임시 문항으로 진행하고 있어요. 결과는 참고로만 봐 주세요.
+        </p>
+      )}
 
       <div
         className={styles.progressTrack}

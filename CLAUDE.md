@@ -179,7 +179,9 @@ http라** 브라우저가 직접 부르면 mixed content로 막히기 때문이�
   화면이 지어낸다. 성향 없는 회원의 질문은 서버가 404(MEMBER404_2)로 거절하므로 화면이
   성향테스트로 안내한다.
 - `src/api/guide.ts` — 백엔드에 설명서 API도 테이블도 없다.
-- `src/api/personality.ts`의 `MOCK_QUESTIONS`(7문항) — **서버가 죽었을 때만** 쓴다.
+- `src/api/personality.ts`의 `MOCK_QUESTIONS`(7문항) — **비로그인 상태에서 서버가 죽었을 때만** 쓴다.
+  화면이 "임시 문항으로 진행 중"이라고 알린다. 로그인 상태면 물러서지 않고 실패 안내 + 다시 시도를
+  보여준다 — 로그인 결과는 서버에 저장되므로 예비 문항 점수가 회원 성향으로 남으면 안 된다.
   정식 문항은 DB에 10개(보기 5개, 1·3·5·7·9점)가 있고 합계 10~90이 서버 채점 구간과 맞는다.
   mock으로 물러선 경우엔 합이 그 구간에 못 미쳐 `normalizeScore()`로 늘린다.
 - `PATCH /api/members/me/personality`는 `personalityId`(DB 행 id)를 받는데 프론트가 그 id를

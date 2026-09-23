@@ -18,7 +18,7 @@ import type {
  *
  * 2026-09-18부터 true다. DB에 **10문항 × 보기 5개(1·3·5·7·9점)**가 들어왔다.
  * 합계 범위가 10~90이라 서버 채점 구간과 정확히 맞는다.
- * 서버가 죽어 문항을 못 받으면 mock으로 물러선다(공개 API라 실패 = 서버 장애다).
+ * 서버가 죽어 문항을 못 받으면 **비로그인일 때만** mock으로 물러선다(getQuestions 참고).
  *
  * 채점 위치는 플래그가 아니라 **로그인 여부**로 정한다.
  *   로그인함     → POST /api/personality-tests (서버가 채점하고 회원에 저장)
@@ -55,17 +55,34 @@ function sortByIds(questions: Question[]): Question[] {
     }))
 }
 
-export async function getQuestions(): Promise<Question[]> {
-  if (!USE_BACKEND_QUESTIONS) return sortByIds(MOCK_QUESTIONS)
+export interface QuestionSet {
+  questions: Question[]
+  /** 서버 문항이 아니라 예비 문항이다. 화면이 "임시 문항"이라고 알린다 */
+  isFallback: boolean
+}
+
+/**
+ * 서버 문항을 받는다. 못 받으면(실패·빈 목록) 로그인 여부로 갈린다.
+ *
+ * 로그인 상태면 **예비 문항으로 물러서지 않고 던진다.** 로그인 상태의 결과는 서버에
+ * 저장되는데(submitTest), 예비 문항 점수가 공식 문항 결과처럼 회원 성향으로 남으면
+ * 안 된다. 화면은 실패 안내와 다시 시도를 보여준다.
+ * 비로그인은 어차피 저장하지 않으므로 예비 문항으로 진행하되 isFallback으로 알린다.
+ */
+export async function getQuestions(): Promise<QuestionSet> {
+  if (!USE_BACKEND_QUESTIONS) {
+    return { questions: sortByIds(MOCK_QUESTIONS), isFallback: true }
+  }
 
   try {
     const { questions } = await get<QuestionListResponse>('/api/personality-tests')
-    // 서버가 빈 목록을 주면 화면이 0/0으로 멈춘다. 그때도 mock으로 물러선다
+    // 서버가 빈 목록을 주면 화면이 0/0으로 멈춘다. 받지 못한 것과 같이 다룬다
     if (questions.length === 0) throw new Error('문항이 비어 있습니다')
-    return sortByIds(questions)
+    return { questions: sortByIds(questions), isFallback: false }
   } catch (error: unknown) {
+    if (isLoggedIn()) throw error
     console.warn('성향 문항을 서버에서 못 받아 로컬 문항을 씁니다', error)
-    return sortByIds(MOCK_QUESTIONS)
+    return { questions: sortByIds(MOCK_QUESTIONS), isFallback: true }
   }
 }
 
@@ -92,8 +109,9 @@ export async function submitTest(
   }
 
   /*
-   * 서버는 받은 배열을 전부 더해 구간에 넣는다. 명세대로 낱개 점수를 보내되,
-   * mock 문항으로 물러선 상태라면 합이 서버 구간(10~90)에 못 미치므로 환산값 하나로 보낸다.
+   * 서버는 받은 배열을 전부 더해 구간에 넣는다. 명세대로 낱개 점수를 보낸다.
+   * 로그인 상태는 mock 문항으로 물러서지 않으므로(getQuestions) raw와 normalized가
+   * 다를 수 있는 건 USE_BACKEND_QUESTIONS를 끈 개발 상태뿐이다. 그때만 환산값 하나로 보낸다.
    */
   const result = await post<TestResultResponse>('/api/personality-tests', {
     scores: raw === normalized ? scores : [normalized],
