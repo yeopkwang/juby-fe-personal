@@ -137,7 +137,10 @@ export async function getStockNews(
   )
 
   return {
-    items: response.newsList.map(toNewsItem),
+    // 제목이나 링크가 빈 기사는 뺀다. 그리면 제목 없는 카드가 href=""로 지금 페이지를 새 탭에 연다
+    items: response.newsList
+      .map(toNewsItem)
+      .filter((item) => item.title.trim() !== '' && item.link.trim() !== ''),
     page: response.page,
     totalCount: response.totalCount,
     sort: response.sort,

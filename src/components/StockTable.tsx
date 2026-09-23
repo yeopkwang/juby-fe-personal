@@ -154,6 +154,9 @@ export default function StockTable({
             </li>
           )
         })}
+
+        {/* 빈 목록을 머리글만 남긴 채 두면 표가 덜 그려진 건지 종목이 없는 건지 알 수 없다 */}
+        {stocks.length === 0 && <li className={styles.empty}>표시할 종목이 없어요</li>}
       </ul>
     </div>
   )

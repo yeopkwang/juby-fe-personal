@@ -61,6 +61,16 @@
   animation: shimmer 1.4s linear infinite;
 }
 
+.chartMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
 @keyframes shimmer {
   from {
     background-position: 200% 0;

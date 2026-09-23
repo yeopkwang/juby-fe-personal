@@ -28,11 +28,16 @@ export default function NewsList({ stockCode }: Props) {
   const [sort, setSort] = useState<NewsSort>('LATEST')
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  /** 더 보기가 실패했다. 받아 둔 목록은 두고 목록 끝에 알린 뒤 버튼을 다시 누르게 한다 */
+  const [moreFailed, setMoreFailed] = useState(false)
+  /** 첫 페이지 '다시 시도'. 올리면 아래 effect가 다시 돈다 */
+  const [retryCount, setRetryCount] = useState(0)
 
   // 종목이나 정렬이 바뀌면 첫 페이지부터 다시
   useEffect(() => {
     let isStale = false
     setState({ kind: 'loading' })
+    setMoreFailed(false)
 
     getStockNews(stockCode, sort, 0)
       .then((result) => {
@@ -53,13 +58,14 @@ export default function NewsList({ stockCode }: Props) {
     return () => {
       isStale = true
     }
-  }, [stockCode, sort])
+  }, [stockCode, sort, retryCount])
 
   async function loadMore() {
     if (state.kind !== 'ready' || isLoadingMore) return
     const nextPage = state.page + 1
 
     setIsLoadingMore(true)
+    setMoreFailed(false)
     try {
       const result = await getStockNews(stockCode, sort, nextPage)
       setState((current) =>
@@ -74,6 +80,7 @@ export default function NewsList({ stockCode }: Props) {
       )
     } catch (error: unknown) {
       console.warn('뉴스 더 보기 실패', error)
+      setMoreFailed(true)
     } finally {
       setIsLoadingMore(false)
     }
@@ -110,8 +117,18 @@ export default function NewsList({ stockCode }: Props) {
         <p className={styles.status}>불러오는 중…</p>
       )}
 
+      {/* 실패는 목록 자리를 지키는 상자 안에 알리고, 빈 결과(아래)와 다른 문구로 둔다 */}
       {state.kind === 'error' && (
-        <p className={styles.status}>뉴스를 불러오지 못했습니다.</p>
+        <div className={styles.errorBox}>
+          <p className={styles.errorText}>뉴스를 불러오지 못했습니다.</p>
+          <button
+            type="button"
+            className={styles.errorRetry}
+            onClick={() => setRetryCount((count) => count + 1)}
+          >
+            다시 시도
+          </button>
+        </div>
       )}
 
       {state.kind === 'ready' && state.items.length === 0 && (
@@ -140,6 +157,12 @@ export default function NewsList({ stockCode }: Props) {
             </li>
           ))}
         </ul>
+      )}
+
+      {moreFailed && (
+        <p className={styles.moreFailed} role="status">
+          더 불러오지 못했어요. 아래 버튼을 다시 눌러 주세요.
+        </p>
       )}
 
       {hasMore && (

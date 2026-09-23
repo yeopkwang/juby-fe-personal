@@ -28,6 +28,8 @@ export default function MypageLikesPage() {
   const [state, setState] = useState<State>({ kind: 'loading' })
   /** 해제 요청이 진행 중인 종목. 연타를 막는다 */
   const pending = useRef(new Set<string>())
+  /** 해제에 실패해 목록을 되돌렸을 때 알리는 말. 되돌리기만 하면 누른 게 무시된 것처럼 보인다 */
+  const [notice, setNotice] = useState('')
 
   const load = useCallback(() => {
     setState({ kind: 'loading' })
@@ -52,6 +54,7 @@ export default function MypageLikesPage() {
   async function handleUnlike(stockCode: string) {
     if (pending.current.has(stockCode)) return
     pending.current.add(stockCode)
+    setNotice('')
 
     setState((current) =>
       current.kind === 'ready'
@@ -66,6 +69,7 @@ export default function MypageLikesPage() {
       await unlikeStock(stockCode)
     } catch (error: unknown) {
       console.warn('관심종목 해제 실패', error)
+      setNotice('관심종목을 해제하지 못했어요. 잠시 후 다시 시도해 주세요.')
       load()
     } finally {
       pending.current.delete(stockCode)
@@ -101,6 +105,12 @@ export default function MypageLikesPage() {
 
   return (
     <>
+      {notice !== '' && (
+        <p className={styles.notice} role="status">
+          {notice}
+        </p>
+      )}
+
       {/* 기준일이 비어 오면 줄째 숨긴다. 목록은 그대로 보여준다 */}
       {toKoreanDate(state.baseDate) !== '' && (
         <p className={styles.asOf}>{toKoreanDate(state.baseDate)} 종가 기준</p>

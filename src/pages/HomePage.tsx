@@ -13,7 +13,13 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
 import { nextSort, sortStocks } from '../utils/sort'
-import type { SortKey, SortState, Stock, TopStock } from '../types/stock'
+import type {
+  CardFailure,
+  SortKey,
+  SortState,
+  Stock,
+  TopStock,
+} from '../types/stock'
 import styles from './HomePage.module.css'
 
 const PAGE_SIZE = 20
@@ -42,6 +48,10 @@ export default function HomePage() {
     () => readCachedTopStocks() ?? TOP_THEMES.map(() => null),
   )
   const [hasTopError, setHasTopError] = useState(false)
+  /** 카드마다 못 채운 이유. null이면 아직 오는 중이거나 채워졌다 */
+  const [cardFailures, setCardFailures] = useState<(CardFailure | null)[]>(() =>
+    TOP_THEMES.map(() => null),
+  )
   const [list, setList] = useState<ListState>({ kind: 'loading' })
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [sort, setSort] = useState<SortState | null>(null)
@@ -53,17 +63,26 @@ export default function HomePage() {
   const hasStartedTop = useRef(false)
   /** 하트 요청이 진행 중인 종목. 연타로 등록·해제가 겹쳐 서버와 어긋나는 걸 막는다 */
   const pendingLikes = useRef(new Set<string>())
+  /** 하트를 서버에 반영하지 못해 되돌렸을 때 알리는 말. 조용히 되돌리면 누른 게 무시된 것처럼 보인다 */
+  const [likeNotice, setLikeNotice] = useState('')
 
   useEffect(() => {
     // 개발 모드는 effect를 두 번 실행한다. 그대로 두면 카드 요청이 6건이 되어 제한에 걸린다
     if (hasStartedTop.current) return
     hasStartedTop.current = true
 
-    loadTopStocks((index, stock) => {
-      setTopStocks((previous) =>
-        previous.map((item, i) => (i === index ? stock : item)),
-      )
-    }).catch((error: unknown) => {
+    loadTopStocks(
+      (index, stock) => {
+        setTopStocks((previous) =>
+          previous.map((item, i) => (i === index ? stock : item)),
+        )
+      },
+      (index, reason) => {
+        setCardFailures((previous) =>
+          previous.map((item, i) => (i === index ? reason : item)),
+        )
+      },
+    ).catch((error: unknown) => {
       console.warn('테마별 대표 종목 조회 실패', error)
       setHasTopError(true)
     })
@@ -139,6 +158,7 @@ export default function HomePage() {
       })
 
     pendingLikes.current.add(stockCode)
+    setLikeNotice('')
     apply(!wasLiked)
 
     try {
@@ -147,6 +167,11 @@ export default function HomePage() {
     } catch (error: unknown) {
       console.warn('관심종목 반영 실패', error)
       apply(wasLiked)
+      setLikeNotice(
+        wasLiked
+          ? '관심종목을 해제하지 못했어요. 잠시 후 다시 시도해 주세요.'
+          : '관심종목에 추가하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      )
     } finally {
       pendingLikes.current.delete(stockCode)
     }
@@ -174,6 +199,7 @@ export default function HomePage() {
                 key={theme.stockCode}
                 theme={theme}
                 stock={topStocks[index]}
+                failure={cardFailures[index]}
               />
             ))}
           </div>
@@ -193,6 +219,12 @@ export default function HomePage() {
             </span>
           )}
         </div>
+
+        {likeNotice !== '' && (
+          <p className={styles.likeNotice} role="status">
+            {likeNotice}
+          </p>
+        )}
 
         {list.kind === 'loading' && (
           <p className={styles.loading}>시세를 불러오는 중…</p>

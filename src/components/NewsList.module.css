@@ -147,6 +147,42 @@
   color: var(--color-text-sub);
 }
 
+/* 첫 페이지를 못 받았을 때. 목록이 있을 자리를 카드와 같은 상자로 지킨다 */
+.errorBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 32px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.errorText {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-sub);
+}
+
+.errorRetry {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.moreFailed {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--color-up);
+  text-align: center;
+}
+
 /* 목록 아래 한 줄짜리 버튼. 카드와 같은 폭으로 놓아 목록의 일부처럼 보이게 한다 */
 .more {
   display: block;

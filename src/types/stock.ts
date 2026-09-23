@@ -80,3 +80,6 @@ export interface TopStock extends StockInfo {
   /** prices와 같은 길이 */
   volumes: number[]
 }
+
+/** 홈 테마 카드 한 장을 못 채운 이유. 요청 실패와 받은 일봉이 없는 경우를 화면이 다르게 그린다 */
+export type CardFailure = 'error' | 'empty'

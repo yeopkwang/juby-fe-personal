@@ -78,6 +78,10 @@ export async function getQuestions(): Promise<QuestionSet> {
     const { questions } = await get<QuestionListResponse>('/api/personality-tests')
     // 서버가 빈 목록을 주면 화면이 0/0으로 멈춘다. 받지 못한 것과 같이 다룬다
     if (questions.length === 0) throw new Error('문항이 비어 있습니다')
+    // 보기가 빈 문항이 하나라도 있으면 그 문항에서 더 나아갈 수 없다. 이것도 받지 못한 것과 같다
+    if (questions.some((q) => !Array.isArray(q.choices) || q.choices.length === 0)) {
+      throw new Error('보기가 빈 문항이 있습니다')
+    }
     return { questions: sortByIds(questions), isFallback: false }
   } catch (error: unknown) {
     if (isLoggedIn()) throw error

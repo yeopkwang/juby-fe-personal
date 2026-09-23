@@ -1,7 +1,7 @@
 import { getStockDetail } from './stock'
 import { delay, withRetry } from '../utils/async'
 import { readCache, writeCache } from '../utils/cache'
-import type { Candle, TopStock, TopTheme } from '../types/stock'
+import type { Candle, CardFailure, TopStock, TopTheme } from '../types/stock'
 
 /** 테마 라벨과 종목 선정은 API에 없어 프론트에서 고정한다 */
 export const TOP_THEMES: TopTheme[] = [
@@ -43,6 +43,8 @@ export function readCachedTopStocks(): TopStock[] | null {
  */
 export async function loadTopStocks(
   onEach: (index: number, stock: TopStock) => void,
+  /** 한 장을 못 채웠을 때. 조용히 넘기면 카드가 로딩 자리표시 그대로 남아 실패와 구분되지 않는다 */
+  onFail: (index: number, reason: CardFailure) => void,
 ): Promise<void> {
   const loaded: TopStock[] = []
 
@@ -56,7 +58,8 @@ export async function loadTopStocks(
         400,
       )
       if (detail.candles.length === 0) {
-        throw new Error('일봉 데이터가 비어 있습니다')
+        onFail(index, 'empty')
+        continue
       }
 
       const stock = toTopStock(theme, detail.candles)
@@ -64,6 +67,7 @@ export async function loadTopStocks(
       onEach(index, stock)
     } catch (error: unknown) {
       console.warn(`${theme.stockName} 카드 조회 실패`, error)
+      onFail(index, 'error')
     }
   }
 

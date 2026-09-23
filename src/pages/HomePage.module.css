@@ -28,6 +28,12 @@
 }
 
 /* 지난 장 값을 보여주는 중이라는 표시. 숫자를 의심하기 전에 눈에 들어와야 한다 */
+.likeNotice {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--color-up);
+}
+
 .asOf {
   padding: 4px 10px;
   border-radius: 999px;

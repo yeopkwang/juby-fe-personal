@@ -114,6 +114,13 @@ export default function AiPage() {
       // 기다리는 사이 화면이 다른 대화방으로 바뀌었다. 이 답은 그 방의 것이 아니다
       if (seq !== askSeqRef.current) return
 
+      // 답이 비어 오면 빈 말풍선을 남기지 않고 실패로 다룬다. '다시 시도'로 같은 질문을 다시 보낸다
+      if (typeof result.answer !== 'string' || result.answer.trim() === '') {
+        console.warn('AI 답이 비어 있습니다', result)
+        setPending('error')
+        return
+      }
+
       setMessages((previous) => [
         ...previous,
         {
