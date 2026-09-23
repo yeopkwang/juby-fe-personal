@@ -4,7 +4,7 @@ import CandleChart from '../components/CandleChart'
 import NewsList from '../components/NewsList'
 import SectionBoundary from '../components/SectionBoundary'
 import { ApiError } from '../api/client'
-import { getStockDetail } from '../api/stock'
+import { getStockDetail, isStockCode } from '../api/stock'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { withRetry } from '../utils/async'
 import { toKoreanDate, toYmd, ymdToDate } from '../utils/date'
@@ -102,8 +102,15 @@ export default function StockChartPage() {
    * 예전에는 요청을 거는 쪽을 isStale로 감쌌는데, 그 자리는 effect 안에서 곧바로
    * 실행돼 검사할 시점에 늘 false였다. 막는 시늉만 하고 아무것도 막지 못했다.
    */
+  /*
+   * 형식이 틀린 코드면 요청하지 않고 곧바로 "없는 종목"이다. effect에서 막으면 늦는다 —
+   * 첫 렌더에 뉴스 목록이 먼저 마운트되고, 자식의 effect가 부모보다 먼저 돌아 요청이 나간다.
+   * 그래서 렌더에서 판단해 뉴스 목록을 아예 그리지 않는다(아래 notFound 분기).
+   */
+  const hasValidCode = stockCode !== undefined && isStockCode(stockCode)
+
   useEffect(() => {
-    if (stockCode === undefined) return
+    if (stockCode === undefined || !hasValidCode) return
     let isStale = false
 
     setState({ kind: 'loading' })
@@ -127,7 +134,7 @@ export default function StockChartPage() {
     return () => {
       isStale = true
     }
-  }, [stockCode, retryCount])
+  }, [stockCode, hasValidCode, retryCount])
 
   /*
    * 탭 제목에 종목명을 넣는다. 종목 여러 개를 띄워 두고 비교할 때 탭이 다 'JUBY'면
@@ -135,7 +142,7 @@ export default function StockChartPage() {
    */
   useDocumentTitle(state.kind === 'ready' ? state.detail.stockName : '종목')
 
-  if (state.kind === 'notFound') {
+  if (!hasValidCode || state.kind === 'notFound') {
     return (
       <section className={styles.section}>
         <h1 className={styles.heading}>목록에 없는 종목입니다</h1>
