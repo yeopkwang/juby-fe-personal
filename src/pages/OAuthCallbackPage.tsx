@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { saveTokens } from '../utils/auth'
+import { saveTokens, toUsableToken } from '../utils/auth'
 import styles from './OAuthCallbackPage.module.css'
 
 /**
@@ -12,8 +12,9 @@ export default function OAuthCallbackPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const accessToken = searchParams.get('accessToken')
-    const refreshToken = searchParams.get('refreshToken')
+    // 빠진 것뿐 아니라 빈 값·공백·"null" 글자도 없는 것으로 본다(toUsableToken)
+    const accessToken = toUsableToken(searchParams.get('accessToken'))
+    const refreshToken = toUsableToken(searchParams.get('refreshToken'))
 
     if (accessToken === null || refreshToken === null) {
       // replace를 주면 뒤로 가기로 이 빈 콜백에 다시 돌아오지 않는다

@@ -23,16 +23,30 @@ const REFRESH_TOKEN_KEY = 'refreshToken'
  */
 const fallback = new Map<string, string>()
 
+/**
+ * 토큰으로 쓸 수 있는 값을 다듬어 돌려준다. 못 쓰면 null.
+ *
+ * 앞뒤 공백을 자르고, 빈 값과 "null"·"undefined" 글자는 없는 것으로 본다. 콜백 주소에
+ * 빈 값이 달려 오면 그대로 저장돼 머리글이 로그인 상태로 바뀌었고, 요청에는
+ * "Bearer null"이 실렸다. 콜백(저장 전)과 읽는 자리(이미 저장된 값) 모두 이 규칙을 쓴다.
+ */
+export function toUsableToken(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') return null
+  return trimmed
+}
+
 function readToken(key: string): string | null {
   /*
    * 담아 둔 게 있으면 그게 최신이다. 읽기는 되는데 쓰기만 실패한 경우
    * localStorage에는 한물간 값이 남아 있을 수 있다.
    */
   const held = fallback.get(key)
-  if (held !== undefined) return held
+  if (held !== undefined) return toUsableToken(held)
 
   try {
-    return localStorage.getItem(key)
+    return toUsableToken(localStorage.getItem(key))
   } catch {
     return null
   }
