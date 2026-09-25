@@ -195,7 +195,7 @@ export default function HomePage() {
       <SearchBar stocks={searchable} />
 
       <section className={styles.section}>
-        <p className={styles.eyebrow}>백테스트 기법으로 투자한 (??? 멘트 수정예정 - 광엽)</p>
+        <p className={styles.eyebrow}>백테스트 기법으로 투자한</p>
         {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
         <h1 className={styles.heading}>테마별 대표 종목</h1>
 
