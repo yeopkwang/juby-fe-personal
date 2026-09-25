@@ -12,6 +12,7 @@ import Header from './components/Header'
 import ScrollToTop from './components/ScrollToTop'
 import HomePage from './pages/HomePage'
 import { setNavigator } from './utils/navigation'
+import { loadStockChartPage } from './utils/preload'
 import styles from './App.module.css'
 
 /*
@@ -21,7 +22,9 @@ import styles from './App.module.css'
  * 반면 상세(lightweight-charts)와 AI는 홈에서 쓰지 않는데도 같은 묶음에 들어 있어
  * 홈 첫 로딩을 통째로 늦추고 있었다.
  */
-const StockChartPage = lazy(() => import('./pages/StockChartPage'))
+// 홈·관심종목이 한가할 때 미리 받아 둔다(utils/preload.ts). 미리 받기가 실패했을 때의 대처가
+// loadStockChartPage 안에 있으므로 import를 따로 쓰지 않는다
+const StockChartPage = lazy(loadStockChartPage)
 const AiPage = lazy(() => import('./pages/AiPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'))

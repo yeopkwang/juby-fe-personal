@@ -12,6 +12,7 @@ import { STOCK_LIST } from '../api/stockList'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
+import { preloadStockChartPage } from '../utils/preload'
 import { nextSort, sortStocks } from '../utils/sort'
 import type {
   CardFailure,
@@ -113,6 +114,9 @@ export default function HomePage() {
   }, [])
 
   useEffect(load, [load])
+
+  // 종목을 누르기 전에 상세 화면 묶음을 받아 둔다. 누른 뒤 받으면 그만큼 상세 요청이 늦게 나간다
+  useEffect(() => preloadStockChartPage(), [])
 
   const stocks = list.kind === 'ready' ? list.stocks : EMPTY_STOCKS
   /* 검색 후보는 거래대금 순. 서버 목록은 가나다순이라 그대로 주면 삼성전자가 삼성전기 뒤로 밀린다 */
@@ -250,6 +254,7 @@ export default function HomePage() {
           <SectionBoundary onRetry={load}>
             <StockTable
               stocks={sortedStocks.slice(0, visibleCount)}
+              baseDate={list.baseDate}
               sort={sort}
               onSort={handleSort}
               favoriteCodes={favoriteCodes}

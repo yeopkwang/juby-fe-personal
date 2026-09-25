@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { searchStocks } from '../api/stock'
+import { toPreviewState } from '../utils/stockPreview'
 import type { StockInfo } from '../types/stock'
 import styles from './SearchBar.module.css'
 
@@ -28,7 +29,10 @@ export default function SearchBar({ stocks }: Props) {
   function goTo(stock: StockInfo) {
     setIsOpen(false)
     setMessage('')
-    navigate(`/stocks/${stock.stockCode}`)
+    // 후보 목록에는 기준일이 없어 이름만 싣는다
+    navigate(`/stocks/${stock.stockCode}`, {
+      state: toPreviewState({ stockCode: stock.stockCode, stockName: stock.stockName }),
+    })
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {

@@ -7,10 +7,13 @@ import {
   formatTradingValue,
   isFlatRate,
 } from '../utils/format'
+import { toPreviewState } from '../utils/stockPreview'
 import styles from './StockTable.module.css'
 
 interface Props {
   stocks: Stock[]
+  /** 표 가격이 언제 종가인지(YYYYMMDD). 상세로 넘어갈 때 가격과 함께 싣는다 */
+  baseDate: string
   sort: SortState | null
   onSort: (key: SortKey) => void
   favoriteCodes: Set<string>
@@ -51,6 +54,7 @@ function rateClassName(rate: number): string {
 
 export default function StockTable({
   stocks,
+  baseDate,
   sort,
   onSort,
   favoriteCodes,
@@ -137,7 +141,17 @@ export default function StockTable({
                 하트는 z-index로 덮개 위에 띄워 두어 따로 눌린다.
               */}
               <span className={styles.name}>
-                <Link to={`/stocks/${stock.stockCode}`} className={styles.nameLink}>
+                <Link
+                  to={`/stocks/${stock.stockCode}`}
+                  state={toPreviewState({
+                    stockCode: stock.stockCode,
+                    stockName: stock.stockName,
+                    closePrice: stock.closePrice,
+                    fluctuate: stock.fluctuate,
+                    baseDate,
+                  })}
+                  className={styles.nameLink}
+                >
                   {stock.stockName}
                 </Link>
               </span>

@@ -67,6 +67,19 @@ export interface StockDetail extends StockInfo {
   candles: Candle[]
 }
 
+/**
+ * 목록에서 상세로 넘어갈 때 링크에 실어 가는 값(`utils/stockPreview.ts`).
+ * 상세 응답이 오기 전에 이름·가격 자리를 먼저 채운다.
+ * 가격은 목록의 **기준일 종가**라 현재가가 아니다. 상세 화면은 날짜를 붙여 "종가"로 적는다.
+ */
+export interface StockPreview extends StockInfo {
+  closePrice?: number
+  /** 기준일 등락률(%) */
+  fluctuate?: number
+  /** closePrice가 언제 값인지. YYYYMMDD */
+  baseDate?: string
+}
+
 /** 카드 제목에 필요한 부분. 그래프가 도착하기 전에 이것만으로 먼저 그린다 */
 export type TopTheme = Pick<TopStock, 'stockCode' | 'stockName' | 'theme'>
 

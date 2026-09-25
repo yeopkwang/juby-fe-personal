@@ -122,8 +122,22 @@ export default function NewsList({ stockCode }: Props) {
         </div>
       </div>
 
+      {/*
+        기사 카드와 같은 모양의 뼈대. 한 줄짜리 "불러오는 중…"만 두면 목록 자리가 비어 있다가
+        기사가 오는 순간 아래가 한꺼번에 밀린다. 읽어 주는 글은 남겨 둔다.
+      */}
       {state.kind === 'loading' && (
-        <p className={styles.status}>불러오는 중…</p>
+        <div className={styles.list} aria-busy="true">
+          <p className={styles.srOnly}>불러오는 중…</p>
+          {[0, 1, 2].map((index) => (
+            <div key={index} className={styles.newsSkeleton} aria-hidden="true">
+              <span className={`${styles.bone} ${styles.boneMeta}`} />
+              <span className={`${styles.bone} ${styles.boneTitle}`} />
+              <span className={`${styles.bone} ${styles.boneLine}`} />
+              <span className={`${styles.bone} ${styles.boneLineShort}`} />
+            </div>
+          ))}
+        </div>
       )}
 
       {/* 실패는 목록 자리를 지키는 상자 안에 알리고, 빈 결과(아래)와 다른 문구로 둔다 */}

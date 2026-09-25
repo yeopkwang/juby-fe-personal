@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import CardChart from './CardChart'
+import { toPreviewState } from '../utils/stockPreview'
 import type { CardFailure, TopStock, TopTheme } from '../types/stock'
 import styles from './TopStockCard.module.css'
 
@@ -26,7 +27,12 @@ interface Props {
  */
 export default function TopStockCard({ theme, stock, failure = null }: Props) {
   return (
-    <Link to={`/stocks/${theme.stockCode}`} className={styles.card}>
+    <Link
+      to={`/stocks/${theme.stockCode}`}
+      // 카드에는 기준일 종가가 없어 이름만 싣는다. 가격 자리는 상세 화면이 뼈대로 둔다
+      state={toPreviewState({ stockCode: theme.stockCode, stockName: theme.stockName })}
+      className={styles.card}
+    >
       <p className={styles.theme}>{theme.theme}</p>
       <p className={styles.name}>{theme.stockName}</p>
 

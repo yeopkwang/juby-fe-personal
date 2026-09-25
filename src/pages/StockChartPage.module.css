@@ -132,12 +132,52 @@
  * 일봉이 오기 전 자리. 백엔드가 건당 2초 넘게 걸려 그동안 칸이 통째로 비어 있었다.
  * 홈 카드와 같은 결로 칸을 채워 두면 자리는 잡혀 있고 뭔가 오는 중이라는 게 보인다.
  */
-.chartSkeleton {
-  height: 100%;
-  border-radius: 8px;
+.chartSkeleton,
+.textSkeleton {
   background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
+}
+
+.chartSkeleton {
+  height: 100%;
+  border-radius: 8px;
+}
+
+/*
+ * 이름·가격·요약 값이 오기 전 자리. 글자 줄 안에 들어가는 높이의 inline-block이라
+ * 줄 높이는 글자가 있을 때와 같다 — 값이 와도 아래가 밀리지 않는다. 크기는 부모 글자 크기를 따른다.
+ */
+.textSkeleton {
+  display: inline-block;
+  height: 0.9em;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
+.nameSkeleton {
+  width: 6em;
+}
+
+.priceSkeleton {
+  width: 4.5em;
+}
+
+.changeSkeleton {
+  width: 10em;
+}
+
+.dateSkeleton {
+  width: 9em;
+}
+
+.valueSkeleton {
+  width: 5em;
+}
+
+/* 목록에서 들고 온 기준일 종가. 현재가가 오면 바뀌므로 흐리게 둔다 */
+.pricePending {
+  color: var(--color-text-sub);
 }
 
 @keyframes shimmer {
@@ -150,7 +190,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chartSkeleton {
+  .chartSkeleton,
+  .textSkeleton {
     animation: none;
   }
 }

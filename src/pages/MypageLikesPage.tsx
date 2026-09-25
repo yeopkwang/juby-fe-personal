@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { getLikeStocks, unlikeStock } from '../api/member'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { fromDashedYmd, toKoreanDate } from '../utils/date'
+import { preloadStockChartPage } from '../utils/preload'
+import { toPreviewState } from '../utils/stockPreview'
 import {
   formatChangeRate,
   formatPrice,
@@ -49,6 +51,9 @@ export default function MypageLikesPage() {
   }, [])
 
   useEffect(load, [load])
+
+  // 홈과 같은 이유로 상세 화면 묶음을 미리 받아 둔다
+  useEffect(() => preloadStockChartPage(), [])
 
   /** 먼저 지우고 서버에 알린다. 실패하면 목록을 다시 받아 원래대로 돌린다 */
   async function handleUnlike(stockCode: string) {
@@ -120,7 +125,17 @@ export default function MypageLikesPage() {
         {state.stocks.map((stock) => (
           <li key={stock.stockCode} className={styles.row}>
             <div className={styles.identity}>
-              <Link to={`/stocks/${stock.stockCode}`} className={styles.name}>
+              <Link
+                to={`/stocks/${stock.stockCode}`}
+                state={toPreviewState({
+                  stockCode: stock.stockCode,
+                  stockName: stock.stockName,
+                  closePrice: stock.closePrice,
+                  fluctuate: stock.fluctuate,
+                  baseDate: state.baseDate,
+                })}
+                className={styles.name}
+              >
                 {stock.stockName}
               </Link>
               <span className={styles.code}>{stock.stockCode}</span>

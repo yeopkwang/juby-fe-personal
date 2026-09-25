@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
 import NewsList from '../components/NewsList'
 import SectionBoundary from '../components/SectionBoundary'
@@ -14,7 +14,8 @@ import {
   formatVolume,
   isFlatRate,
 } from '../utils/format'
-import type { Candle, Period, StockDetail } from '../types/stock'
+import { readPreview } from '../utils/stockPreview'
+import type { Candle, Period, StockDetail, StockPreview } from '../types/stock'
 import styles from './StockChartPage.module.css'
 
 /** 백엔드 Period enum 순서 그대로. 화면 탭도 이 순서로 놓는다 */
@@ -86,8 +87,18 @@ function toRateClassName(rate: number): string | undefined {
   return rate > 0 ? styles.up : styles.down
 }
 
+/** 시세 요약 네 칸. 값이 오기 전에도 같은 칸을 그려 자리를 잡아 둔다 */
+const SUMMARY_LABELS = ['시가', '고가', '저가', '거래량']
+
 export default function StockChartPage() {
   const { stockCode } = useParams<{ stockCode: string }>()
+  /*
+   * 목록에서 누르고 왔으면 이름(과 기준일 종가)을 들고 온다. 응답을 기다리는 동안 그 자리를
+   * 먼저 채운다. 주소를 직접 열었으면 없다 — 그땐 뼈대를 그린다.
+   */
+  const location = useLocation()
+  const preview =
+    stockCode === undefined ? null : readPreview(location.state, stockCode)
 
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD)
@@ -138,9 +149,16 @@ export default function StockChartPage() {
 
   /*
    * 탭 제목에 종목명을 넣는다. 종목 여러 개를 띄워 두고 비교할 때 탭이 다 'JUBY'면
-   * 어느 게 어느 종목인지 알 수 없다. 받아오기 전과 없는 종목일 때는 '종목'으로 둔다.
+   * 어느 게 어느 종목인지 알 수 없다. 받아오는 중이면 들고 온 이름을 쓰고,
+   * 그것도 없거나 없는 종목·실패일 때는 '종목'으로 둔다.
    */
-  useDocumentTitle(state.kind === 'ready' ? state.detail.stockName : '종목')
+  useDocumentTitle(
+    state.kind === 'ready'
+      ? state.detail.stockName
+      : state.kind === 'loading'
+        ? (preview?.stockName ?? '종목')
+        : '종목',
+  )
 
   if (!hasValidCode || state.kind === 'notFound') {
     return (
@@ -186,6 +204,7 @@ export default function StockChartPage() {
         <PriceSection
           stockCode={stockCode}
           detail={detail}
+          preview={preview}
           period={period}
           onPeriodChange={setPeriod}
         />
@@ -204,40 +223,45 @@ interface PriceSectionProps {
   stockCode: string | undefined
   /** 아직 받아오기 전이면 null. 자리만 잡아 두고 차트 자리에 뼈대를 그린다 */
   detail: StockDetail | null
+  /** 목록에서 들고 온 이름·기준일 종가. detail이 오기 전에만 쓴다 */
+  preview: StockPreview | null
   period: Period
   onPeriodChange: (period: Period) => void
 }
 
 /** 이름·현재가·기간 탭·차트·마지막 거래일 요약. 구역 오류 경계 안에서 그려진다 */
-function PriceSection({ stockCode, detail, period, onPeriodChange }: PriceSectionProps) {
+function PriceSection({
+  stockCode,
+  detail,
+  preview,
+  period,
+  onPeriodChange,
+}: PriceSectionProps) {
   const shown = detail === null ? [] : sliceByPeriod(detail.candles, period)
   const lastCandle = shown.at(-1) ?? null
-  const rateClassName =
-    detail === null ? undefined : toRateClassName(detail.comparePrev)
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} aria-busy={detail === null}>
       {/* 뒤로 가기 말고는 목록으로 돌아갈 길이 없었다 */}
       <Link to="/" className={styles.back}>
         <span aria-hidden="true">‹</span> 홈으로 돌아가기
       </Link>
 
       <h1 className={styles.identity}>
-        {/* 이름은 응답에 실려 온다. 오기 전엔 코드만 적는다 */}
-        <span className={styles.name}>{detail?.stockName ?? ''}</span>
+        {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다 */}
+        <span className={styles.name}>
+          {detail !== null ? (
+            detail.stockName
+          ) : preview !== null ? (
+            preview.stockName
+          ) : (
+            <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
+          )}
+        </span>
         <span className={styles.code}>{stockCode}</span>
       </h1>
 
-      <p className={styles.price}>
-        {formatPrice(detail?.currentPrice ?? null)}
-      </p>
-
-      <p className={styles.change}>
-        전일 대비{' '}
-        <span className={rateClassName}>
-          {formatChangeRate(detail?.comparePrev ?? null)}
-        </span>
-      </p>
+      <PriceLines detail={detail} preview={preview} />
 
       {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다 */}
       <div className={styles.periodTabs} role="tablist" aria-label="기간">
@@ -272,7 +296,26 @@ function PriceSection({ stockCode, detail, period, onPeriodChange }: PriceSectio
       {/*
         마지막 거래일의 시·고·저·거래량. 현재가 API는 이 값을 안 주고(현재가·등락률뿐),
         일봉 테이블은 장 마감 후 확정값만 들어가므로 "오늘"이 아니라 어느 날인지 함께 적는다.
+        응답 전에는 같은 칸을 뼈대로 그려 둔다. 비워 두면 응답이 오는 순간 아래 뉴스가 밀려 내려간다.
       */}
+      {detail === null && (
+        <>
+          <p className={styles.summaryDate}>
+            <span className={`${styles.textSkeleton} ${styles.dateSkeleton}`} />
+          </p>
+          <dl className={styles.summary}>
+            {SUMMARY_LABELS.map((label) => (
+              <div key={label} className={styles.summaryItem}>
+                <dt className={styles.summaryLabel}>{label}</dt>
+                <dd className={styles.summaryValue}>
+                  <span className={`${styles.textSkeleton} ${styles.valueSkeleton}`} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      )}
+
       {lastCandle !== null && (
         <>
           {toKoreanDate(lastCandle.date) !== '' && (
@@ -309,5 +352,64 @@ function PriceSection({ stockCode, detail, period, onPeriodChange }: PriceSectio
         </>
       )}
     </section>
+  )
+}
+
+/**
+ * 가격 두 줄. 응답이 오면 현재가·전일 대비, 오기 전엔 목록에서 들고 온 기준일 종가를
+ * 흐리게 날짜와 함께 적고(현재가로 읽히면 안 된다), 그것도 없으면 뼈대를 둔다.
+ * 예전엔 오기 전에도 "-"를 적어 값이 없는 것과 오는 중인 것을 가를 수 없었다.
+ */
+function PriceLines({
+  detail,
+  preview,
+}: {
+  detail: StockDetail | null
+  preview: StockPreview | null
+}) {
+  if (detail !== null) {
+    return (
+      <>
+        <p className={styles.price}>{formatPrice(detail.currentPrice)}</p>
+        <p className={styles.change}>
+          전일 대비{' '}
+          <span className={toRateClassName(detail.comparePrev)}>
+            {formatChangeRate(detail.comparePrev)}
+          </span>
+        </p>
+      </>
+    )
+  }
+
+  if (preview?.closePrice !== undefined) {
+    return (
+      <>
+        <p className={`${styles.price} ${styles.pricePending}`}>
+          {formatPrice(preview.closePrice)}
+        </p>
+        <p className={styles.change}>
+          {toKoreanDate(preview.baseDate)} 종가
+          {preview.fluctuate !== undefined && (
+            <>
+              {' · 전일 대비 '}
+              <span className={toRateClassName(preview.fluctuate)}>
+                {formatChangeRate(preview.fluctuate)}
+              </span>
+            </>
+          )}
+        </p>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <p className={styles.price}>
+        <span className={`${styles.textSkeleton} ${styles.priceSkeleton}`} />
+      </p>
+      <p className={styles.change}>
+        <span className={`${styles.textSkeleton} ${styles.changeSkeleton}`} />
+      </p>
+    </>
   )
 }
