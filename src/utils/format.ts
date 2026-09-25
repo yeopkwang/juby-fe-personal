@@ -6,7 +6,7 @@ const EMPTY = '-'
  * 표 한 줄 때문에 화면 전체가 오류 화면으로 넘어간다. 문자열 숫자도 받지 않는다
  * (서버는 숫자로 준다. 문자열이 왔다면 모양이 어긋난 것이라 값을 믿지 않는다).
  */
-function isFiniteNumber(value: unknown): value is number {
+export function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
 

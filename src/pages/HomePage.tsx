@@ -24,6 +24,12 @@ import styles from './HomePage.module.css'
 
 const PAGE_SIZE = 20
 
+/**
+ * 표의 처음 순서. 서버 목록은 가나다순이라 그대로 두면 사람들이 찾는 종목이 아래로 밀린다.
+ * 정렬 상태로 두어 거래대금 머리에 화살표가 켜진다 — 무엇 순인지 화면에서 보인다
+ */
+const DEFAULT_SORT: SortState = { key: 'tradingValue', direction: 'desc' }
+
 /** 목록이 아직 없을 때 쓰는 빈 배열. 렌더마다 새로 만들면 useMemo가 매번 다시 돈다 */
 const EMPTY_STOCKS: Stock[] = []
 
@@ -54,7 +60,7 @@ export default function HomePage() {
   )
   const [list, setList] = useState<ListState>({ kind: 'loading' })
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
-  const [sort, setSort] = useState<SortState | null>(null)
+  const [sort, setSort] = useState<SortState>(DEFAULT_SORT)
   /** 관심종목. 처음엔 서버가 준 isLiked로 채우고, 하트를 누르면 서버에 반영한다 */
   const [favoriteCodes, setFavoriteCodes] = useState<Set<string>>(new Set())
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
@@ -177,7 +183,7 @@ export default function HomePage() {
     }
   }
 
-  const sortedStocks = sort === null ? stocks : sortStocks(stocks, sort)
+  const sortedStocks = sortStocks(stocks, sort)
 
   return (
     <>
