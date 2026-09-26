@@ -99,6 +99,11 @@
 .heart {
   position: relative;
   z-index: 1;
+  /*
+   * 칸 높이를 다 채운다. 아이콘 크기(18px)로 두면 휴대폰에서 조금만 빗나가도 행을 덮은
+   * 종목 링크가 눌려 상세로 넘어간다
+   */
+  align-self: stretch;
   display: flex;
   align-items: center;
   padding: 0;
@@ -180,8 +185,22 @@
 }
 
 @media (max-width: 600px) {
+  /*
+   * 숫자 두 칸은 고정 폭, 남는 폭은 종목명. 비율로 나누면 320px에서 가격이 "1,025,000 / 원"으로 쪼개지고
+   * 등락률이 가격에 붙었다. 칸 폭을 행마다 따로 재면 머리글과 줄이 어긋나므로 고정 폭으로 맞춘다.
+   * 가장 긴 값(1,025,000원, +29.99%)이 한 줄에 들어가는 폭이다. 긴 종목명은 두 줄로 넘어간다
+   */
   .table {
-    --columns: 38px 1.6fr 1.2fr 1fr;
+    --columns: 38px minmax(0, 1fr) 84px 64px;
+  }
+
+  .head,
+  .row {
+    column-gap: 6px;
+  }
+
+  .numeric {
+    white-space: nowrap;
   }
 
   .colVolume {
