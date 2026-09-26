@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { reloadPage } from '../utils/reloadPage'
 import styles from './ErrorBoundary.module.css'
 
 interface Props {
@@ -66,13 +67,14 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className={styles.actions}>
           {/*
             상태만 되돌리지 않고 페이지를 새로 받는다. 화면 묶음을 받다가 실패한 경우
-            (배포로 파일 이름이 바뀐 뒤 옛 주소를 물었을 때)가 흔한데,
-            그건 다시 그리는 것으로는 안 풀리고 새로 받아야 풀린다.
+            (배포로 파일 이름이 바뀐 뒤 옛 주소를 물었을 때, 망이 잠깐 끊겼을 때)가 흔한데,
+            그건 다시 그리는 것으로는 안 풀리고 새로 받아야 풀린다. 사파리는 새로고침만으로도
+            안 풀려 받지 못한 묶음을 먼저 다시 받는다(reloadPage).
           */}
           <button
             type="button"
             className={styles.retry}
-            onClick={() => window.location.reload()}
+            onClick={() => void reloadPage()}
           >
             다시 시도
           </button>

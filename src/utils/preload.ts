@@ -1,3 +1,5 @@
+import { reloadPage } from './reloadPage'
+
 /**
  * 미리 받기가 실패했는지. 브라우저(적어도 크롬)는 실패한 import를 페이지가 살아 있는 동안 기억해서,
  * 같은 주소로 다시 import하면 서버에 묻지도 않고 곧바로 실패를 돌려준다(2026-09-25 확인).
@@ -16,11 +18,12 @@ function importStockChartPage() {
  * 그때는 페이지를 새로 받는다. 이미 상세 주소로 옮겨 온 뒤라 새로 받은 페이지가 곧 상세 화면이고,
  * 새 페이지는 실패 기록이 비어 있어 정상적으로 받는다. 목록에서 들고 온 값(state)도 주소 기록에
  * 남아 그대로 보인다. 새 페이지에서는 미리 받기를 거치지 않으므로, 거기서 또 실패하면 오류 화면이
- * 받는다 — 새로 받기가 되풀이되지 않는다.
+ * 받는다 — 새로 받기가 되풀이되지 않는다. 사파리는 새로고침한 문서에서도 앞선 실패를 되풀이하므로
+ * 받지 못한 묶음을 먼저 다시 받아 두고 새로고침한다(reloadPage).
  */
 export function loadStockChartPage() {
   if (preloadFailed) {
-    window.location.reload()
+    void reloadPage()
     // 새 페이지가 뜰 때까지 Suspense 대기로 둔다
     return new Promise<never>(() => {})
   }
