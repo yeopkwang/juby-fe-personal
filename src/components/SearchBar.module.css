@@ -115,9 +115,7 @@
     gap: 8px;
   }
 
-  .input {
-    font-size: 15px;
-  }
+  /* 입력칸 글자는 줄이지 않는다. 16px 아래면 아이폰 사파리가 누르는 순간 화면을 확대한다 */
 
   .button {
     height: 38px;

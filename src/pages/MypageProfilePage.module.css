@@ -239,7 +239,8 @@
   border-radius: 10px;
   background: var(--color-bg-sub);
   font: inherit;
-  font-size: 15px;
+  /* 16px 아래면 아이폰·아이패드 사파리가 누르는 순간 화면을 확대하고 되돌리지 않는다 */
+  font-size: 16px;
   color: var(--color-text);
 }
 
