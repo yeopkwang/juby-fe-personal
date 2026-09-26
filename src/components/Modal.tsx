@@ -30,6 +30,12 @@ export default function Modal({ isOpen, onClose, label, children }: Props) {
     closeRef.current = onClose
   })
 
+  /*
+   * 배경에서 누르기 시작했는가. 상자 안에서 누른 채 끌다가 배경에서 떼면 크롬은 click을
+   * 누른 자리와 뗀 자리의 공통 조상인 배경에 보낸다. 그걸 닫기로 받으면 쓰던 내용이 날아간다.
+   */
+  const pressedOnBackdrop = useRef(false)
+
   useEffect(() => {
     if (!isOpen) return
 
@@ -104,7 +110,15 @@ export default function Modal({ isOpen, onClose, label, children }: Props) {
   if (!isOpen) return null
 
   return (
-    <div className={styles.backdrop} onClick={onClose}>
+    <div
+      className={styles.backdrop}
+      onMouseDown={(event) => {
+        pressedOnBackdrop.current = event.target === event.currentTarget
+      }}
+      onClick={() => {
+        if (pressedOnBackdrop.current) onClose()
+      }}
+    >
       {/* 박스 안쪽 클릭까지 배경으로 전달되면 모달이 바로 닫힌다 */}
       <div
         ref={boxRef}
