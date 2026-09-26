@@ -47,6 +47,8 @@ export default function AiPage() {
    * 답을 기다리는 동안 다른 대화방을 누르거나 새 대화를 열면 이 번호도 올라간다.
    * 답이 도착했을 때 번호가 달라져 있으면 보던 화면이 바뀐 것이므로 그 답은 버린다.
    * 안 그러면 A방에 물은 답이 B방 말풍선 뒤에 가서 붙는다.
+   * 대화방 내용도 같은 번호로 거른다 — 방을 누르고 곧바로 새 대화를 열면 늦게 온
+   * 그 방 말풍선이 새 대화 화면을 채운다.
    */
   const askSeqRef = useRef(0)
 
@@ -87,6 +89,7 @@ export default function AiPage() {
     if (selectedId === sessionId && detailState !== 'error') return
 
     askSeqRef.current += 1
+    const seq = askSeqRef.current
     setSessionId(selectedId)
     setPending(null)
     setNotice('')
@@ -94,10 +97,13 @@ export default function AiPage() {
 
     getSessionDetail(selectedId)
       .then((detail) => {
+        // 받는 사이 다른 방이나 새 대화로 옮겼다
+        if (seq !== askSeqRef.current) return
         setMessages(detail.messages)
         setDetailState('idle')
       })
       .catch((error: unknown) => {
+        if (seq !== askSeqRef.current) return
         console.warn('AI 대화 조회 실패', error)
         setDetailState('error')
       })
@@ -162,6 +168,11 @@ export default function AiPage() {
     const text = question.trim()
     // 공백만 친 경우까지 걸러진다
     if (text === '' || pending === 'loading') return
+    /*
+     * 대화방 내용을 받는 중이면 보내지 않는다. 보내면 늦게 온 대화 내용이 방금 띄운
+     * 질문과 답을 덮어써 둘 다 사라진다. 입력칸의 글은 그대로 남는다.
+     */
+    if (detailState === 'loading') return
 
     // 서버가 토큰 없는 요청을 401로 막는다. 보내 보고 실패하느니 먼저 알린다
     if (!loggedIn) {
@@ -307,7 +318,11 @@ export default function AiPage() {
                 type="button"
                 className={styles.send}
                 onClick={handleSubmit}
-                disabled={pending === 'loading' || question.trim() === ''}
+                disabled={
+                  pending === 'loading' ||
+                  detailState === 'loading' ||
+                  question.trim() === ''
+                }
               >
                 보내기
               </button>

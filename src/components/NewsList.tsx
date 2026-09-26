@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NEWS_LAST_PAGE, getStockNews } from '../api/stock'
 import type { NewsItem, NewsSort } from '../types/news'
 import styles from './NewsList.module.css'
@@ -39,12 +39,21 @@ export default function NewsList({ stockCode }: Props) {
   const [moreFailed, setMoreFailed] = useState(false)
   /** 첫 페이지 '다시 시도'. 올리면 아래 effect가 다시 돈다 */
   const [retryCount, setRetryCount] = useState(0)
+  /*
+   * 목록 번호. 종목·정렬이 바뀌거나 첫 페이지를 다시 받을 때마다 올라간다.
+   * 더 보기는 누른 순간의 번호를 들고 가서, 받아 왔을 때 번호가 달라져 있으면 버린다.
+   * 안 그러면 최신순 2페이지가 관련도순 목록 뒤에 붙고, 그 실패가 새 목록에 뜬다.
+   */
+  const listSeqRef = useRef(0)
 
   // 종목이나 정렬이 바뀌면 첫 페이지부터 다시
   useEffect(() => {
     let isStale = false
+    listSeqRef.current += 1
     setState({ kind: 'loading' })
     setMoreFailed(false)
+    // 앞 목록의 더 보기가 아직 오는 중이어도 새 목록의 버튼은 풀어 둔다
+    setIsLoadingMore(false)
 
     getStockNews(stockCode, sort, 0)
       .then((result) => {
@@ -70,15 +79,17 @@ export default function NewsList({ stockCode }: Props) {
 
   async function loadMore() {
     if (state.kind !== 'ready' || isLoadingMore) return
+    const seq = listSeqRef.current
     const nextPage = state.page + 1
 
     setIsLoadingMore(true)
     setMoreFailed(false)
     try {
       const result = await getStockNews(stockCode, sort, nextPage)
+      // 받는 사이 종목이나 정렬이 바뀌었으면 이 페이지는 다른 목록의 것이다
+      if (seq !== listSeqRef.current) return
       setState((current) =>
-        // 받는 사이 종목이나 정렬이 바뀌었으면 이 페이지는 다른 목록의 것이다
-        current.kind === 'ready' && current.page === state.page
+        current.kind === 'ready'
           ? {
               ...current,
               items: [...current.items, ...result.items],
@@ -88,10 +99,12 @@ export default function NewsList({ stockCode }: Props) {
           : current,
       )
     } catch (error: unknown) {
+      if (seq !== listSeqRef.current) return
       console.warn('뉴스 더 보기 실패', error)
       setMoreFailed(true)
     } finally {
-      setIsLoadingMore(false)
+      // 새 목록의 버튼 상태는 새 목록 것이다. 거기서 누른 더 보기가 오는 중일 수 있다
+      if (seq === listSeqRef.current) setIsLoadingMore(false)
     }
   }
 
