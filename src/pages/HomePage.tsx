@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { Link, useLocation, useNavigationType } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
@@ -34,6 +41,19 @@ const DEFAULT_SORT: SortState = { key: 'tradingValue', direction: 'desc' }
 /** 목록이 아직 없을 때 쓰는 빈 배열. 렌더마다 새로 만들면 useMemo가 매번 다시 돈다 */
 const EMPTY_STOCKS: Stock[] = []
 
+/** 홈을 떠날 때의 시세표. 뒤로 가기로 돌아오면 이걸로 보던 자리를 되살린다 */
+interface HomeView {
+  sort: SortState
+  visibleCount: number
+  scrollY: number
+}
+
+/**
+ * 떠날 때의 시세표를 주소 기록 항목(location.key)마다 둔다. 같은 홈이라도 기록의 어느 칸이냐에
+ * 따라 보던 자리가 다르다. 메모리에만 두므로 새로고침하면 비고, 그땐 처음부터 보여준다.
+ */
+const savedViews = new Map<string, HomeView>()
+
 type ListState =
   | { kind: 'loading' }
   | { kind: 'ready'; baseDate: string; stocks: Stock[] }
@@ -47,6 +67,16 @@ type ListState =
  */
 export default function HomePage() {
   useDocumentTitle('초보자를 위한 주식 비서')
+  const location = useLocation()
+  const navigationType = useNavigationType()
+  /*
+   * 뒤로·앞으로 가기로 돌아왔으면 떠날 때의 정렬·보이던 행 수·스크롤을 되살린다.
+   * 100행을 내려 보다 종목을 눌렀는데 돌아오면 맨 위 20행에 기본 정렬이라 보던 자리를 잃었다.
+   * 링크(머리글 로고 등)로 새로 들어오면 처음부터 보여준다 — 브라우저가 스크롤을 다루는 방식과 같다.
+   */
+  const [restored] = useState(() =>
+    navigationType === 'POP' ? (savedViews.get(location.key) ?? null) : null,
+  )
   /*
    * 지난 방문에서 받아둔 카드가 있으면 그걸로 시작한다. 없으면 자리만 잡아 둔다.
    * 어느 쪽이든 아래 effect가 최신 값을 받아 같은 자리에 갈아끼운다.
@@ -60,8 +90,10 @@ export default function HomePage() {
     TOP_THEMES.map(() => null),
   )
   const [list, setList] = useState<ListState>({ kind: 'loading' })
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
-  const [sort, setSort] = useState<SortState>(DEFAULT_SORT)
+  const [visibleCount, setVisibleCount] = useState(
+    restored?.visibleCount ?? PAGE_SIZE,
+  )
+  const [sort, setSort] = useState<SortState>(restored?.sort ?? DEFAULT_SORT)
   /** 관심종목. 처음엔 서버가 준 isLiked로 채우고, 하트를 누르면 서버에 반영한다 */
   const [favoriteCodes, setFavoriteCodes] = useState<Set<string>>(new Set())
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
@@ -117,6 +149,49 @@ export default function HomePage() {
 
   // 종목을 누르기 전에 상세 화면 묶음을 받아 둔다. 누른 뒤 받으면 그만큼 상세 요청이 늦게 나간다
   useEffect(() => preloadStockChartPage(), [])
+
+  /** 지금 보고 있는 시세표. 떠날 때 savedViews에 옮겨 담는다 */
+  const viewRef = useRef<HomeView>({
+    sort,
+    visibleCount,
+    scrollY: restored?.scrollY ?? 0,
+  })
+  /** 되살릴 스크롤. 목록이 와서 행이 다 그려진 뒤에야 그 높이까지 내려갈 수 있다 */
+  const pendingScrollRef = useRef(restored?.scrollY ?? null)
+
+  useEffect(() => {
+    viewRef.current.sort = sort
+    viewRef.current.visibleCount = visibleCount
+  }, [sort, visibleCount])
+
+  /*
+   * 스크롤은 움직일 때마다 적어 두고 떠날 때 담는다. 떠나는 순간에 재면 늦다 — 화면이 이미
+   * 짧은 상세로 바뀌어 눌린 값이 나온다. 같은 이유로 주소가 홈이 아니게 된 뒤의 스크롤은 버린다.
+   * 되살리기 전(목록을 받는 중)의 스크롤도 적지 않는다. 그 사이 떠나면 앞서 적은 자리를 지킨다.
+   */
+  useEffect(() => {
+    const key = location.key
+    // 객체는 갈아끼우지 않고 안의 값만 고친다. 정리 함수에서도 마지막 값을 읽는다
+    const view = viewRef.current
+    function record() {
+      if (window.location.pathname !== '/' || pendingScrollRef.current !== null) {
+        return
+      }
+      view.scrollY = window.scrollY
+    }
+    window.addEventListener('scroll', record, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', record)
+      savedViews.set(key, { ...view })
+    }
+  }, [location.key])
+
+  // 행이 다 그려진 직후, 그리기 전에 내려 둔다. effect로 하면 맨 위가 한 번 보였다가 튄다
+  useLayoutEffect(() => {
+    if (list.kind !== 'ready' || pendingScrollRef.current === null) return
+    window.scrollTo(0, pendingScrollRef.current)
+    pendingScrollRef.current = null
+  }, [list.kind])
 
   const stocks = list.kind === 'ready' ? list.stocks : EMPTY_STOCKS
   /* 검색 후보는 거래대금 순. 서버 목록은 가나다순이라 그대로 주면 삼성전자가 삼성전기 뒤로 밀린다 */
