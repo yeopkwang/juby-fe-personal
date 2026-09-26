@@ -61,11 +61,20 @@ export async function ask(
   stockName: string,
   sessionId?: number,
 ): Promise<AskResult> {
-  const { answer } = await post<{ answer: string }>('/api/open-ai/ask', {
-    question,
-    // 빈 문자열을 보내면 서버가 "종목명 있음"으로 오해할 수 있다. 없으면 null로 비운다
-    stockName: stockName === '' ? null : stockName,
-  })
+  const { answer } = await post<{ answer: string }>(
+    '/api/open-ai/ask',
+    {
+      question,
+      // 빈 문자열을 보내면 서버가 "종목명 있음"으로 오해할 수 있다. 없으면 null로 비운다
+      stockName: stockName === '' ? null : stockName,
+    },
+    /*
+     * 제한 시간을 두지 않고 답이 올 때까지 기다린다. 서버가 AI를 두 번 차례로 부르고(질문 분류 → 답)
+     * 자세히 쓰라고 시키므로 기본 12초를 넘기기 쉽다. 12초에 끊으면 서버는 계속 답을 만드는데
+     * 화면은 실패로 뜨고, 다시 시도까지 끊기면 차단기(client.ts)가 걸려 15초 동안 홈 시세표까지 막힌다.
+     */
+    { timeoutMs: null },
+  )
 
   return {
     sessionId: sessionId ?? nextSessionId++,

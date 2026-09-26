@@ -44,6 +44,7 @@ const API_DISABLED = false
  *
  * 12초는 가장 느린 요청(일봉 1.5~2.4초)에 맞춘 값이다. 빠른 API를 부르는 쪽은
  * timeoutMs로 훨씬 짧게 잡는다 — 56ms짜리를 12초씩 기다릴 이유가 없다.
+ * AI 질문만은 거꾸로 제한을 두지 않는다(ai.ts). 원래 오래 걸리는 요청이라 무응답과 가를 수 없다.
  */
 const DEFAULT_TIMEOUT = 12_000
 
@@ -136,8 +137,11 @@ interface RequestOptions {
    * 로그아웃처럼 어차피 나가는 길이라 튕겨낼 이유가 없는 요청에만 쓴다.
    */
   ignoreUnauthorized?: boolean
-  /** 이 요청만 다른 제한 시간을 쓴다(ms) */
-  timeoutMs?: number
+  /**
+   * 이 요청만 다른 제한 시간을 쓴다(ms). null이면 제한 없이 백엔드가 답할 때까지 기다린다 —
+   * 원래 오래 걸리는 요청(AI 질문)용이다. 연결이 끊기는 실패는 그대로 곧바로 온다.
+   */
+  timeoutMs?: number | null
 }
 
 /**
@@ -179,14 +183,16 @@ async function requestJson<T>(
     throw new Error(`서버 무응답 상태 ${path}`)
   }
 
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT
+  // ?? 로 쓰면 null(제한 없음)까지 기본값으로 바뀐다
+  const timeoutMs =
+    options?.timeoutMs === undefined ? DEFAULT_TIMEOUT : options.timeoutMs
   let response: Response
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       ...init,
       // 토큰 헤더는 항상 붙이고, 호출부가 더 넣고 싶은 헤더는 뒤에 합친다
       headers: { ...authHeaders(), ...init?.headers },
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: timeoutMs === null ? undefined : AbortSignal.timeout(timeoutMs),
     })
   } catch (error: unknown) {
     // 제한 시간 초과든 연결 실패든 '서버에 닿지 못했다'는 점은 같다
