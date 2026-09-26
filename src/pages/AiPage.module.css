@@ -202,8 +202,12 @@
     font-size: 27px;
   }
 
+  /*
+   * 1fr만 쓰면 열이 칸의 최소 폭 아래로 줄지 않는다. 사파리는 입력칸의 기본 폭을 크롬보다 넓게 잡아
+   * (216px 대 158px) 320px 화면에서 열이 346px로 밀리고 페이지가 가로로 스크롤됐다
+   */
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
