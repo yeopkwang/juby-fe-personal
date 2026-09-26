@@ -1,5 +1,6 @@
 import { get, malformedResponse } from './client'
 import { fromDashedYmd } from '../utils/date'
+import { sortStocks } from '../utils/sort'
 import type {
   Candle,
   Period,
@@ -228,7 +229,10 @@ export function searchStocks(stocks: StockInfo[], keyword: string): StockInfo[] 
     .slice(0, MAX_RESULTS)
 }
 
-/** 거래대금 큰 순. 검색 후보와 목록 기본 순서에 쓴다 — 찾는 종목이 위에 오게 */
+/**
+ * 거래대금 큰 순. 검색 후보에 쓴다 — 찾는 종목이 위에 오게.
+ * 홈 시세표 정렬과 같은 규칙이라 거래대금이 빈 종목은 맨 뒤로 간다(sortStocks)
+ */
 export function byTradingValue(stocks: Stock[]): Stock[] {
-  return [...stocks].sort((a, b) => b.tradingValue - a.tradingValue)
+  return sortStocks(stocks, { key: 'tradingValue', direction: 'desc' })
 }
