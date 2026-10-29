@@ -439,6 +439,13 @@
   }
 }
 
+/* 넓은 화면은 본문이 넓어진 만큼 오른쪽 열(바로 가기·시세 요약)을 넓힌다(index.css --content-max) */
+@media (min-width: 1600px) {
+  .detailGrid {
+    --detail-side: 400px;
+  }
+}
+
 @media (max-width: 900px) {
   .section {
     margin-top: var(--space-8);
