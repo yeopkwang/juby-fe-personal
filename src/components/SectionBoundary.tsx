@@ -11,6 +11,8 @@ interface Props {
    * 없으면 구역을 다시 그리기만 한다 — 안쪽이 마운트될 때 스스로 불러오는 경우엔 그걸로 충분하다.
    */
   onRetry?: () => void
+  /** 멈추면 안내 없이 그 자리를 비운다. 없어도 되는 구역(아래 지수 띠)에 쓴다 */
+  quiet?: boolean
 }
 
 interface State {
@@ -53,6 +55,7 @@ export default class SectionBoundary extends Component<Props, State> {
     if (!this.state.hasError) {
       return this.props.children
     }
+    if (this.props.quiet === true) return null
 
     return (
       <div className={styles.wrap} role="alert">

@@ -27,6 +27,9 @@
   /* 차트 거래량 막대 */
   --color-up-soft: rgba(240, 68, 82, 0.35);
   --color-down-soft: rgba(49, 130, 246, 0.35);
+  /* 진한 초록 띠(아래 지수 띠) 위의 등락 글자. 기본값은 띠 위에서 대비가 모자라 밝혔다(띠 위 4.8:1·5.1:1) */
+  --color-up-on-dark: #ffa3ab;
+  --color-down-on-dark: #9cc3ff;
 
   /* 바탕은 차가운 옅은 회색, 카드는 흰색으로 띄운다 */
   --color-page-bg: #f6f8f7;

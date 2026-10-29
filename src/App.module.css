@@ -1,12 +1,18 @@
 /*
  * 바탕은 body가 칠한다. 예전엔 여기서 1200px 흰 판을 깔아 판 안의 카드·표가 흰 바탕 위 흰색이었다.
- * 머리글은 화면 끝까지 초록 띠로 두고(Header.module.css), 본문만 가운데 --content-max 안에 놓는다
+ * 머리글과 아래 지수 띠는 화면 끝까지 초록 띠로 두고(Header·MarketIndexBar), 본문만 가운데 --content-max 안에 놓는다.
+ * 세로 flex로 본문이 남는 높이를 가져가, 내용이 짧은 화면에서도 지수 띠가 화면 맨 아래에 온다
  */
 .page {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
 .main {
+  flex: 1 0 auto;
+  /* flex 항목에 좌우 auto 여백을 주면 내용 폭으로 줄어든다. 폭을 채운 뒤 최대 폭에서 멈추게 한다 */
+  width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
   padding: 0 var(--space-20) var(--space-20);

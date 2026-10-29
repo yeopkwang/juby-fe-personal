@@ -9,7 +9,9 @@ import {
 } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
+import MarketIndexBar from './components/MarketIndexBar'
 import ScrollToTop from './components/ScrollToTop'
+import SectionBoundary from './components/SectionBoundary'
 import HomePage from './pages/HomePage'
 import { setNavigator } from './utils/navigation'
 import { loadStockChartPage } from './utils/preload'
@@ -120,6 +122,14 @@ function Layout() {
           </Suspense>
         </ErrorBoundary>
       </main>
+
+      {/*
+        머리글처럼 화면 경계 밖에 한 번만 둔다 — 화면을 옮겨도 다시 그리거나 다시 묻지 않는다.
+        띠가 그리다 멈추면 안내 없이 띠만 빠진다(quiet). 화면 경계 밖이라 이게 없으면 앱 전체가 흰 화면이 된다
+      */}
+      <SectionBoundary quiet>
+        <MarketIndexBar />
+      </SectionBoundary>
     </div>
   )
 }
