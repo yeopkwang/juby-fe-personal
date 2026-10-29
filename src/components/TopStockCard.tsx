@@ -18,11 +18,12 @@ interface Props {
 }
 
 /**
- * 테마별 대표 종목 카드. 큰 숫자와 그래프는 1년 주가 흐름, 맨 아래 줄은 그 그래프가 끝나는 날의 종가다.
+ * 테마별 대표 종목 칸. 이름 아래 그래프가 끝나는 날의 종가, 그 아래 1년 그래프와 "1년 전보다 ±x%"다.
+ * 2026-10-30 재정비: "큰 % + 작은 라벨 + 그래프"를 담은 타일은 AI가 만든 화면의 흔한 꼴이라 걷고, 같은 값을 한 줄씩 적는다.
  * 1년인 까닭: 한 달 등락을 크게 적으면 그 한 달 때문에 뽑힌 것처럼 읽혔다(2026-10-04 사용자 지적). 종목은 백테스트 결과로
  * 고르지 않는다 — 백엔드가 테마마다 정해 둔 종목이다(JUBY-BE LeadingStockTheme, 2026-10-29 확인).
  *
- * 큰 숫자는 언제나 1년간 주가 변화(라벨 "1년간 주가 변화")다. 전략 수익률이 아니다. 그래프가 없을 때 다른 숫자(전일 대비 등)로 갈아 끼우면 카드마다
+ * "1년 전보다" 숫자는 언제나 1년간 주가 변화다. 전략 수익률이 아니다. 그래프가 없을 때 다른 숫자(전일 대비 등)로 갈아 끼우면 카드마다
  * 같은 자리의 뜻이 달라진다 — 그때는 비워 두고, 전일 대비는 맨 아래 줄에서 본다.
  */
 export default function TopStockCard({ theme, series, quote }: Props) {
@@ -48,8 +49,18 @@ export default function TopStockCard({ theme, series, quote }: Props) {
       )}
       className={styles.card}
     >
-      <p className={styles.theme}>{theme.theme}</p>
+      <p className={styles.top}>
+        <span className={styles.theme}>{theme.theme}</span>
+        <span className={styles.quoteLabel}>{date === '' ? '종가' : `${date} 종가`}</span>
+      </p>
       <p className={styles.name}>{theme.stockName}</p>
+      {/* 그래프가 끝나는 날의 종가. 그래프를 못 그린 카드도 이 줄은 있다 */}
+      <p className={styles.quote}>
+        {formatPrice(quote?.closePrice)}{' '}
+        <span className={toneClass(quote?.fluctuate ?? null)}>
+          {formatChangeRate(quote?.fluctuate)}
+        </span>
+      </p>
 
       {series === null ? (
         <CardPlaceholder />
@@ -58,17 +69,6 @@ export default function TopStockCard({ theme, series, quote }: Props) {
       ) : (
         <CardChart stock={series} />
       )}
-
-      {/* 그래프가 끝나는 날의 종가. 그래프를 못 그린 카드도 이 줄은 있다 */}
-      <p className={styles.quote}>
-        <span className={styles.quoteLabel}>{date === '' ? '종가' : `${date} 종가`}</span>
-        <span className={styles.quoteValue}>
-          {formatPrice(quote?.closePrice)}{' '}
-          <span className={toneClass(quote?.fluctuate ?? null)}>
-            {formatChangeRate(quote?.fluctuate)}
-          </span>
-        </span>
-      </p>
     </Link>
   )
 }
@@ -77,11 +77,11 @@ export default function TopStockCard({ theme, series, quote }: Props) {
 function CardPlaceholder() {
   return (
     <>
-      <p className={styles.rateRow}>
-        <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
-        <span className={styles.caption}>1년간 주가 변화</span>
-      </p>
       <div className={`${styles.chart} ${styles.chartEmpty}`} />
+      <p className={styles.yearRow}>
+        <span className={styles.caption}>1년 전보다</span>
+        <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
+      </p>
     </>
   )
 }
@@ -93,14 +93,14 @@ function CardPlaceholder() {
 function CardUnavailable() {
   return (
     <>
-      <p className={styles.rateRow}>
-        <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
-        <span className={styles.caption}>1년간 주가 변화</span>
-      </p>
       <div className={`${styles.chart} ${styles.chartMessage}`}>
         <span>지금은 그래프를 불러올 수 없어요</span>
         <span className={styles.chartHint}>눌러서 차트 보기 ›</span>
       </div>
+      <p className={styles.yearRow}>
+        <span className={styles.caption}>1년 전보다</span>
+        <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
+      </p>
     </>
   )
 }

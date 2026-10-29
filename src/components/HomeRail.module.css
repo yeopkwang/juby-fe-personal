@@ -1,0 +1,195 @@
+/*
+ * 홈 오른쪽 열. 칸마다 제목 줄이 굵은 먹 선으로 구역을 열고(HomePage .sectionHead와 같은 모양), 줄 사이는 가는 선이다
+ */
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* 선(2px) 안쪽으로 탭·링크가 44px을 채운다 */
+  min-height: 46px;
+  border-bottom: 2px solid var(--color-rule);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.more {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin-left: auto;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+
+.more:hover {
+  color: var(--color-text);
+}
+
+.intro {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+}
+
+.steps {
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 64px;
+  padding: var(--space-3) 0;
+}
+
+.stepLink:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 차례 번호. 정말 차례가 있는 글이라 번호를 단다 */
+.stepNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-100);
+  color: var(--color-brand-800);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.stepText strong {
+  display: block;
+  font-size: var(--font-base);
+}
+
+.stepText small {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+.chevron {
+  font-size: var(--font-xl);
+  color: var(--color-text-sub);
+}
+
+/* 커뮤니티 */
+.sampleTag {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-sub);
+  color: var(--color-text-sub);
+  font-size: var(--font-xs);
+  font-weight: 700;
+}
+
+.tabs {
+  display: flex;
+  align-self: stretch;
+  gap: var(--space-4);
+  margin-left: auto;
+}
+
+.tab {
+  position: relative;
+  min-width: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-sub);
+  font-size: var(--font-md);
+  font-weight: 600;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tab[aria-pressed='true'] {
+  color: var(--color-text);
+}
+
+.tab[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+  left: 0;
+  height: 2px;
+  background: var(--color-brand-700);
+}
+
+.posts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.post {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.postTitle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-base);
+  font-weight: 600;
+}
+
+.postTag {
+  flex: none;
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--color-brand-700);
+}
+
+.postText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-3);
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+.notice {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}

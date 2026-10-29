@@ -1,19 +1,18 @@
 /*
- * 행마다 카드를 띄우던 것을 한 덩어리 표로 바꿨다.
- * 100종목이 세로로 늘어서는 화면이라 행마다 그림자와 여백을 주면
- * 한 화면에 열 줄도 안 들어오고 시선도 줄마다 끊긴다(토스증권 시세 목록과 같은 결).
+ * 시세표(2026-10-30 재정비). 테두리 상자 없이 칸 머리 한 줄 + 가는 선으로 나눈 줄 목록이다 — 구역의 굵은 먹 선은 홈의
+ * 제목 줄(HomePage .sectionHead)이 긋는다. 줄마다 순번·하트·종목(이름 옆 종목코드)·종가·등락률·거래대금.
+ * 100종목이 세로로 늘어서는 화면이라 줄 높이를 낮게 두고, 숫자 칸은 오른쪽에 붙여 자릿수를 위아래로 견준다
  */
 .table {
-  --columns: 48px 2fr 1.3fr 1fr 1fr;
-  margin-top: var(--space-4);
+  --columns: 32px 32px minmax(0, 2.2fr) minmax(110px, 1fr) minmax(84px, 0.8fr) minmax(84px, 0.8fr);
 }
 
 .head,
 .row {
   display: grid;
   grid-template-columns: var(--columns);
+  column-gap: var(--space-3);
   align-items: center;
-  padding: 0 16px;
 }
 
 /*
@@ -24,11 +23,10 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  height: 46px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  background: var(--color-surface);
-  font-size: var(--font-md);
+  height: 44px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-page-bg);
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
 
@@ -36,14 +34,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid var(--color-border);
-  border-top: 0;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  /* 마지막 행의 모서리를 컨테이너 곡률에 맞춰 잘라낸다 */
-  overflow: hidden;
-  background: var(--color-surface);
-  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
-  box-shadow: var(--shadow-card);
 }
 
 .row {
@@ -53,18 +43,23 @@
    * 높이는 최소값이다. 고정하면 긴 종목명("KODEX CD금리액티브(합성)")이 320px에서 네 줄로 꺾여
    * 아래 행 위에 그려지고, 칸을 채우는 하트가 행 밖으로 나가 아래 행의 하트가 눌렸다
    */
-  min-height: 52px;
+  min-height: 54px;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--font-base);
   transition: background 0.12s;
 }
 
-.row:last-child {
-  border-bottom: 0;
-}
-
 .row:hover {
   background: var(--color-bg-hover);
+}
+
+/* 지금 정렬의 차례. 표의 진짜 칸이라 숫자로 적는다 */
+.rank {
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--color-brand-700);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .sortButton {
@@ -72,7 +67,7 @@
   align-items: center;
   gap: 2px;
   justify-self: start;
-  /* 머리글 높이(46px)를 다 채우고 폭도 44px 이상. 글자 크기(16px)로 두면 휴대폰에서 누르기 어렵다 */
+  /* 머리글 높이(44px)를 다 채우고 폭도 44px 이상. 글자 크기로 두면 휴대폰에서 누르기 어렵다 */
   align-self: stretch;
   min-width: 44px;
   padding: 0;
@@ -91,9 +86,21 @@
   cursor: progress;
 }
 
+/* 지금 정렬 기준. 먹 글자 + 아래 초록 막대(다른 화면의 밑줄 탭과 같은 모양) */
 .sortButtonActive {
+  position: relative;
   color: var(--color-text);
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.sortButtonActive::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--color-brand-700);
 }
 
 .sortIcon {
@@ -115,14 +122,15 @@
   align-self: stretch;
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 0;
   border: none;
   background: none;
   /*
-   * 외곽선 하트(안 담음) ↔ 채운 하트(담음). 종목 상세의 관심종목 토글과 같은 규칙이다 — 본문 색, 담으면 브랜드 초록.
+   * 외곽선 하트(안 담음) ↔ 채운 하트(담음). 종목 상세의 관심종목 토글과 같은 규칙이다 — 보조 글자색, 담으면 브랜드 초록.
    * 빨강은 상승으로 읽혀 쓰지 않는다
    */
-  color: var(--color-text);
+  color: var(--color-text-sub);
 }
 
 .heart:hover {
@@ -133,10 +141,11 @@
   color: var(--color-brand-700);
 }
 
-/* 종목명과 그 아래 종목코드 */
+/* 종목명과 그 옆 종목코드. 넓은 화면은 한 줄, 휴대폰은 이름 아래 */
 .name {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  gap: var(--space-2);
   min-width: 0;
   padding: var(--space-2) 0;
   font-weight: 600;
@@ -153,6 +162,10 @@
   inset: 0;
 }
 
+.nameLink:focus-visible {
+  outline: none;
+}
+
 .nameLink:focus-visible::after {
   outline: 2px solid var(--color-brand-700);
   outline-offset: -2px;
@@ -163,6 +176,7 @@
 .numeric {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .numericHead {
@@ -195,23 +209,12 @@
 }
 
 /*
- * 좁아지면 덜 중요한 칸부터 접는다(거래대금, 아래 600px). 종목코드는 이름 아래에 있어 접지 않는다.
- * 접는 칸 수만큼 --columns도 함께 줄여야 머리글과 행이 어긋나지 않는다.
+ * 휴대폰: 거래대금 칸을 접고, 종목코드는 이름 아래로. 숫자 두 칸은 고정 폭(가장 긴 값 1,500,000원·+29.99%가 한 줄에 드는 폭)이다 —
+ * 머리글과 줄이 따로 된 격자라 칸 폭을 행마다 따로 재면 어긋난다. 긴 종목명은 두 줄로 넘어간다
  */
-@media (max-width: 900px) {
-  .table {
-    --columns: 44px 1.6fr 1.3fr 1fr 1fr;
-  }
-}
-
 @media (max-width: 600px) {
-  /*
-   * 숫자 두 칸은 고정 폭, 남는 폭은 종목명. 비율로 나누면 320px에서 가격이 "1,025,000 / 원"으로 쪼개지고
-   * 등락률이 가격에 붙었다. 칸 폭을 행마다 따로 재면 머리글과 줄이 어긋나므로 고정 폭으로 맞춘다.
-   * 가장 긴 값(1,025,000원, +29.99%)이 한 줄에 들어가는 폭이다. 긴 종목명은 두 줄로 넘어간다
-   */
   .table {
-    --columns: 38px minmax(0, 1fr) 84px 64px;
+    --columns: 20px 28px minmax(0, 1fr) 92px 62px;
   }
 
   .head,
@@ -219,22 +222,22 @@
     column-gap: 6px;
   }
 
-  .numeric {
-    white-space: nowrap;
-  }
-
   .colVolume {
     display: none;
   }
 
-  .head,
-  .row {
-    padding: 0 12px;
+  .name {
+    flex-direction: column;
+    gap: 0;
   }
 
   .row {
-    min-height: 52px;
+    min-height: 56px;
     font-size: var(--font-md);
+  }
+
+  .rank {
+    font-size: var(--font-xs);
   }
 }
 

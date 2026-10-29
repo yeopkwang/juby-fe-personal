@@ -75,6 +75,8 @@ export default function StockTable({
   return (
     <div className={styles.table}>
       <div className={styles.head}>
+        {/* 순번·하트 칸 머리는 비운다. 순번은 지금 정렬의 차례라 "순위"라고 하면 종목명 순에서 틀린 말이 된다 */}
+        <span />
         <span />
 
         {SORTABLE_COLUMNS.map((column) => {
@@ -102,11 +104,12 @@ export default function StockTable({
       </div>
 
       <ul className={styles.body}>
-        {stocks.map((stock) => {
+        {stocks.map((stock, index) => {
           const isFavorite = favoriteCodes.has(stock.stockCode)
 
           return (
             <li key={stock.stockCode} className={styles.row}>
+              <span className={styles.rank}>{index + 1}</span>
               <button
                 type="button"
                 className={

@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import { Link, useLocation, useNavigationType } from 'react-router-dom'
+import HomeRail from '../components/HomeRail'
 import SearchBar from '../components/SearchBar'
 import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
@@ -316,10 +317,18 @@ export default function HomePage() {
 
   return (
     <>
+      {/*
+        왼쪽 열: 검색 → 테마별 대표 종목 → 현재 주가 보기, 오른쪽 열: 사용설명서·커뮤니티(HomeRail).
+        16:9에서 좌우가 비어 보인다는 말에 넓힌 본문을 두 열로 쓴다(2026-10-30 재정비)
+      */}
+      <div className={styles.home}>
       {/* 목록이 오기 전에는 로컬 사본으로 검색한다. 도착하면 서버 목록으로 바꾼다 */}
-      <SearchBar stocks={searchable} />
+      <div className={styles.search}>
+        <SearchBar stocks={searchable} />
+      </div>
 
-      <section className={styles.section}>
+      <section className={styles.themes}>
+        <div className={styles.sectionHead}>
         {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
         <h1 className={styles.heading}>테마별 대표 종목</h1>
         {/*
@@ -328,6 +337,7 @@ export default function HomePage() {
           큰 숫자는 그 종목의 1년 주가 변화다(CardChart)
         */}
         <p className={styles.lede}>테마마다 대표 종목을 하나씩 골라 1년 주가 흐름을 보여드려요</p>
+        </div>
 
         {/*
           카드를 그리다 멈춰도 검색·시세표는 남는다. 경계가 없을 땐 카드 한 장 때문에 홈 전체가
@@ -349,8 +359,8 @@ export default function HomePage() {
         </SectionBoundary>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.headingRow}>
+      <section className={styles.list}>
+        <div className={styles.sectionHead}>
           <h2 className={styles.heading}>현재 주가 보기</h2>
           {/*
             16시 배치 전에는 전 거래일 종가가 뜬다. 언제 것인지 밝혀둔다.
@@ -362,8 +372,7 @@ export default function HomePage() {
             </span>
           )}
           {/*
-            좁은 화면에서는 거래대금 열이 숨는데 기본 정렬이 거래대금이라 무엇 순인지 안 보인다.
-            그 폭에서만 글로 적는다(CSS). 넓은 화면은 머리글 화살표가 알려 준다
+            무엇 순인지 글로도 적는다. 좁은 화면에서는 거래대금 열이 숨는데 기본 정렬이 거래대금이라 칸 머리로는 안 보인다
           */}
           {list.kind === 'ready' && (
             <span className={styles.sortNote}>{describeSort(sort)}</span>
@@ -407,6 +416,11 @@ export default function HomePage() {
           </SectionBoundary>
         )}
       </section>
+
+      <div className={styles.rail}>
+        <HomeRail />
+      </div>
+      </div>
 
       <Modal
         isOpen={isLoginModalOpen}

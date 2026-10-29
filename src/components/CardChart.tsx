@@ -160,18 +160,18 @@ export default function CardChart({ stock }: { stock: CardSeries }) {
 
   return (
     <>
-      <p className={styles.rateRow}>
-        <span className={`${styles.rate} ${rateClass}`}>
-          {formatChangeRate(stock.changeRate, 1)}
-        </span>
-        {/* 상세 API의 일봉에서 마지막 1년(주 단위). 머리말의 "1년 기준"과 기간을 맞춘다. api/cardSeries.ts 참고 */}
-        <span className={styles.caption}>1년간 주가 변화</span>
-      </p>
-
       {/* 크기를 잰 뒤에야 그릴 수 있다. 첫 그림 전에는 빈 칸이고 높이는 CSS가 잡아 둔다 */}
       <div className={styles.chart} ref={boxRef}>
         {size !== null && <Sparkline stock={stock} size={size} />}
       </div>
+
+      {/* 상세 API의 일봉에서 마지막 1년(주 단위). 머리말의 "1년 주가 흐름"과 기간을 맞춘다. api/cardSeries.ts 참고 */}
+      <p className={styles.yearRow}>
+        <span className={styles.caption}>1년 전보다</span>
+        <span className={`${styles.rate} ${rateClass}`}>
+          {formatChangeRate(stock.changeRate, 1)}
+        </span>
+      </p>
     </>
   )
 }

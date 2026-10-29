@@ -143,6 +143,10 @@ export default function SearchBar({ stocks }: Props) {
   return (
     <form className={styles.form} onSubmit={handleSubmit} onBlur={handleBlur}>
       <div className={styles.box}>
+        <svg className={styles.icon} width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2.2" />
+          <path d="m20 20-3.5-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
         <input
           ref={inputRef}
           className={styles.input}

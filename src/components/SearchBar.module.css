@@ -1,7 +1,5 @@
 .form {
   position: relative;
-  max-width: 660px;
-  margin: var(--space-6) auto 0;
 }
 
 .box {
@@ -10,12 +8,17 @@
   gap: 12px;
   height: 52px;
   /* 오른쪽은 검색 버튼이 안쪽에 앉을 만큼만 띄운다 */
-  padding: 0 7px 0 22px;
-  /* 아이보리 바탕 위에 흰 칸으로 띄운다. 예전엔 흰 판 위의 회색 칸이었다 */
-  border: 1px solid var(--color-border);
+  padding: 0 6px 0 16px;
+  /* 흰 바탕 위 흰 칸이라 테두리를 한 단계 진하게 둔다(2026-10-30) */
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   transition: border-color 0.15s;
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--color-text-sub);
 }
 
 .box:focus-within {
@@ -103,13 +106,9 @@
 }
 
 @media (max-width: 600px) {
-  .form {
-    margin-top: 28px;
-  }
-
   .box {
     height: 50px;
-    padding: 0 6px 0 16px;
+    padding: 0 6px 0 14px;
     gap: 8px;
   }
 
