@@ -118,8 +118,11 @@
   padding: 0;
   border: none;
   background: none;
-  /* 누를 수 있는 것이라 흰 바탕 대비 3 이상이어야 한다. 예전 #c9cfd6은 1.6이라 거의 안 보였다 */
-  color: var(--color-text-sub);
+  /*
+   * 외곽선 하트(안 담음) ↔ 채운 하트(담음). 종목 상세의 관심종목 토글과 같은 규칙이다 — 본문 색, 담으면 브랜드 초록.
+   * 빨강은 상승으로 읽혀 쓰지 않는다
+   */
+  color: var(--color-text);
 }
 
 .heart:hover {

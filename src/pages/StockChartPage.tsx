@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
 import Modal from '../components/Modal'
 import NewsList from '../components/NewsList'
@@ -227,7 +227,6 @@ export default function StockChartPage() {
   }, [stockCode, hasValidCode, retryCount])
 
   const loggedIn = useIsLoggedIn()
-  const navigate = useNavigate()
   const [like, setLike] = useState<LikeState>({ kind: 'loading' })
   /** 관심종목 목록의 '다시 시도'가 올린다 */
   const [likeRetryCount, setLikeRetryCount] = useState(0)
@@ -360,16 +359,36 @@ export default function StockChartPage() {
     }
   }
 
-  const actions = (
-    <QuickActions
-      stockCode={stockCode}
-      stockName={knownName}
-      like={likeView}
-      likeNotice={likeNotice?.stockCode === stockCode ? likeNotice.text : null}
-      onHeart={() => void handleHeartClick()}
-      onRetryLike={() => setLikeRetryCount((count) => count + 1)}
-      onBacktest={(stock) => navigate('/backtest', { state: toStockHandoff(stock) })}
-      onAskAi={(stock) => navigate('/ai', { state: toStockHandoff(stock) })}
+  const stock: StockInfo | null =
+    knownName === null ? null : { stockCode, stockName: knownName }
+  /** 로그인하면 이 상세로 돌아온다(비로그인 바로 가기·하트 안내) */
+  const loginPath = loginPathFrom(`${location.pathname}${location.search}`)
+
+  const likeToggle = <LikeToggle like={likeView} onToggle={() => void handleHeartClick()} />
+
+  const likeStatus =
+    likeView.kind === 'error' ? (
+      <p className={styles.likeStatus} role="status">
+        관심종목을 불러오지 못했습니다.
+        <button
+          type="button"
+          className={styles.retryButton}
+          onClick={() => setLikeRetryCount((count) => count + 1)}
+        >
+          다시 시도
+        </button>
+      </p>
+    ) : likeNotice?.stockCode === stockCode ? (
+      <p className={styles.likeStatus} role="status">
+        {likeNotice.text}
+      </p>
+    ) : null
+
+  const actionPanel = (
+    <ActionPanel
+      title={`${knownName ?? '이 종목'}, 이렇게 살펴보세요`}
+      stock={stock}
+      loginPath={loggedIn ? null : loginPath}
     />
   )
 
@@ -405,7 +424,9 @@ export default function StockChartPage() {
           waiting={view.kind === 'waiting' ? view : null}
           failed={view.kind === 'error'}
           onRetry={retry}
-          actions={actions}
+          likeToggle={likeToggle}
+          likeStatus={likeStatus}
+          actionPanel={actionPanel}
         />
       </SectionBoundary>
 
@@ -421,10 +442,7 @@ export default function StockChartPage() {
       >
         <p className={styles.modalMessage}>로그인 후 이용 가능한 기능입니다</p>
         <div className={styles.modalButtons}>
-          <Link
-            to={loginPathFrom(`${location.pathname}${location.search}`)}
-            className={styles.modalPrimary}
-          >
+          <Link to={loginPath} className={styles.modalPrimary}>
             로그인
           </Link>
           <button
@@ -440,106 +458,199 @@ export default function StockChartPage() {
   )
 }
 
-interface QuickActionsProps {
-  stockCode: string
-  /** 아직 모르면 null. 백테스트·AI는 이름을 실어 가야 해서 그때까지 누를 수 없다 */
-  stockName: string | null
-  like: LikeView
-  /** 하트를 서버에 반영하지 못해 되돌렸을 때의 안내(이 종목 것만) */
-  likeNotice: string | null
-  onHeart: () => void
-  onRetryLike: () => void
-  onBacktest: (stock: StockInfo) => void
-  onAskAi: (stock: StockInfo) => void
+/** 관심종목 토글. 종목명 옆의 아이콘 단추다 */
+function LikeToggle({ like, onToggle }: { like: LikeView; onToggle: () => void }) {
+  const liked = like.kind === 'ready' && like.liked
+  return (
+    <button
+      type="button"
+      className={liked ? styles.likeOn : styles.like}
+      onClick={onToggle}
+      // 받는 중이거나 못 받았으면 켜져 있는지 모른다. 모르는 채로 바꾸지 않는다. 비로그인은 눌러서 로그인 안내를 본다
+      disabled={like.kind === 'loading' || like.kind === 'error'}
+      aria-pressed={liked}
+      aria-label={liked ? '관심종목 해제' : '관심종목 추가'}
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} aria-hidden="true">
+        <path
+          d="M12 20.3 4.1 12.4a4.9 4.9 0 0 1 6.9-6.9l1 1 1-1a4.9 4.9 0 0 1 6.9 6.9z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  )
+}
+
+/** 바로 가기 두 줄. 백테스트가 주 행동이라 브랜드로 강조한다 */
+const ACTIONS = [
+  {
+    to: '/backtest',
+    name: '이 종목 백테스트',
+    desc: '전략을 과거 주가에 적용해 점수로 보여드려요',
+    primary: true,
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 19h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path
+          d="M5 15.5 9.5 11l3 3L19 7.5M15 7.5h4v4"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    to: '/ai',
+    name: 'AI에게 물어보기',
+    desc: '왜 올랐는지, 나와 맞는지 물어보세요',
+    primary: false,
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-7.5L7 20.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path d="M8.5 11.2h.01M12 11.2h.01M15.5 11.2h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+] as const
+
+const CHEVRON = (
+  <svg className={styles.chevron} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+interface ActionPanelProps {
+  title: string
+  /** 실어 갈 종목. 종목명을 아직 모르면 null — 두 줄을 링크로 두지 않는다 */
+  stock: StockInfo | null
+  /** 비로그인이면 로그인 주소(로그인하면 이 상세로 돌아온다). 로그인했으면 null */
+  loginPath: string | null
 }
 
 /**
- * 종목 상세의 바로 가기 셋. 관심종목은 그 자리에서 바꾸고, 백테스트·AI는 이 종목을 실어 그 화면으로 가서 곧바로
- * 실행한다(받는 화면이 한 번만 읽는다 — hooks/useStockHandoff). 셋 다 DB·서버 AI만 쓰고 증권사를 부르지 않는다.
- * 넓은 화면은 차트 오른쪽에 세로로, 900px 이하는 가격 바로 아래 한 줄로 놓인다(CSS .chartArea).
+ * 오른쪽 열의 바로 가기 카드. 줄 전체가 링크다 — 이 종목을 실어 그 화면으로 가서 곧바로 실행한다
+ * (받는 화면이 한 번만 읽는다 — hooks/useStockHandoff). DB·서버 AI만 쓰고 증권사를 부르지 않는다.
+ * 비로그인은 두 화면 다 결과를 못 보므로 "로그인 필요"를 달고 로그인으로 보낸다
  */
-function QuickActions({
-  stockCode,
-  stockName,
-  like,
-  likeNotice,
-  onHeart,
-  onRetryLike,
-  onBacktest,
-  onAskAi,
-}: QuickActionsProps) {
-  const liked = like.kind === 'ready' && like.liked
-  const stock = stockName === null ? null : { stockCode, stockName }
+function ActionPanel({ title, stock, loginPath }: ActionPanelProps) {
+  const titleId = useId()
+  return (
+    <section className={styles.actionPanel} aria-labelledby={titleId}>
+      <h2 id={titleId} className={styles.actionTitle}>
+        {title}
+      </h2>
+      <ul className={styles.actionList}>
+        {ACTIONS.map((action) => (
+          <li key={action.to}>
+            <ActionRow action={action} stock={stock} loginPath={loginPath} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function ActionRow({
+  action,
+  stock,
+  loginPath,
+}: {
+  action: (typeof ACTIONS)[number]
+  stock: StockInfo | null
+  loginPath: string | null
+}) {
+  const nameId = useId()
+  const descId = useId()
+  const content = (
+    <>
+      <span className={styles.actionIcon}>{action.icon}</span>
+      <span className={styles.actionText}>
+        <span id={nameId} className={styles.actionName}>
+          {action.name}
+          {loginPath !== null && <span className={styles.actionBadge}>로그인 필요</span>}
+        </span>
+        <span id={descId} className={styles.actionDesc}>
+          {action.desc}
+        </span>
+      </span>
+      {CHEVRON}
+    </>
+  )
+  const className = action.primary ? `${styles.actionRow} ${styles.actionRowPrimary}` : styles.actionRow
+  // 이름은 제목(과 배지), 설명은 따로 읽힌다 — 줄 전체 글이 이름이 되면 길어서 무엇인지 늦게 들린다
+  const a11y = { 'aria-labelledby': nameId, 'aria-describedby': descId }
+
+  if (loginPath !== null) {
+    return (
+      <Link to={loginPath} className={className} {...a11y}>
+        {content}
+      </Link>
+    )
+  }
+  if (stock === null) {
+    return (
+      <div className={`${styles.actionRow} ${styles.actionRowDisabled}`} aria-disabled="true">
+        {content}
+      </div>
+    )
+  }
+  return (
+    <Link to={action.to} state={toStockHandoff(stock)} className={className} {...a11y}>
+      {content}
+    </Link>
+  )
+}
+
+/**
+ * 마지막 거래일의 시·고·저·거래량. 현재가 API는 이 값을 안 주고(현재가·등락률뿐), 일봉 테이블은 장 마감 후 확정값만
+ * 들어가므로 "오늘"이 아니라 어느 날인지 함께 적는다. 응답 전에는 같은 칸을 뼈대로 그려 둔다.
+ * 고가·저가는 등락이 아니라 색을 주지 않는다(빨강·파랑은 등락 전용)
+ */
+function SummaryCard({ lastCandle, loading }: { lastCandle: Candle | null; loading: boolean }) {
+  const date = lastCandle === null ? '' : toKoreanDate(lastCandle.date)
+  const values =
+    lastCandle === null
+      ? null
+      : [formatPrice(lastCandle.open), formatPrice(lastCandle.high), formatPrice(lastCandle.low), formatVolume(lastCandle.volume)]
+
+  if (!loading && values === null) return null
 
   return (
-    <div className={styles.quickActions}>
-      <div className={styles.quickButtons}>
-        <button
-          type="button"
-          className={liked ? `${styles.quickButton} ${styles.heartOn}` : styles.quickButton}
-          onClick={onHeart}
-          // 받는 중이거나 못 받았으면 켜져 있는지 모른다. 모르는 채로 바꾸지 않는다. 비로그인은 눌러서 로그인 안내를 본다
-          disabled={like.kind === 'loading' || like.kind === 'error'}
-          aria-pressed={liked}
-          aria-label={`${stockName ?? stockCode} 관심종목 ${liked ? '해제' : '추가'}`}
-        >
-          <svg
-            className={styles.heartIcon}
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill={liked ? 'currentColor' : 'none'}
-            aria-hidden="true"
-          >
-            <path
-              d="M12 20.3 4.1 12.4a4.9 4.9 0 0 1 6.9-6.9l1 1 1-1a4.9 4.9 0 0 1 6.9 6.9z"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinejoin="round"
-            />
-          </svg>
-          관심종목
-        </button>
-        <button
-          type="button"
-          className={styles.quickPrimary}
-          disabled={stock === null}
-          onClick={() => {
-            if (stock !== null) onBacktest(stock)
-          }}
-        >
-          이 종목 백테스트
-        </button>
-        <button
-          type="button"
-          className={styles.quickButton}
-          disabled={stock === null}
-          onClick={() => {
-            if (stock !== null) onAskAi(stock)
-          }}
-        >
-          AI에게 물어보기
-        </button>
+    <section className={styles.summaryCard} aria-label="시세 요약">
+      <div className={styles.summaryHead}>
+        <h2 className={styles.summaryTitle}>시세 요약</h2>
+        {loading ? (
+          <span className={styles.summaryDate}>
+            <span className={`${styles.textSkeleton} ${styles.dateSkeleton}`} />
+          </span>
+        ) : (
+          date !== '' && <span className={styles.summaryDate}>{date} 마감 기준</span>
+        )}
       </div>
-
-      {like.kind === 'error' && (
-        <p className={styles.quickNotice} role="status">
-          관심종목을 불러오지 못했습니다.
-          <button
-            type="button"
-            className={`${styles.retryButton} ${styles.quickRetry}`}
-            onClick={onRetryLike}
-          >
-            다시 시도
-          </button>
-        </p>
-      )}
-      {likeNotice !== null && (
-        <p className={`${styles.quickNotice} ${styles.likeNotice}`} role="status">
-          {likeNotice}
-        </p>
-      )}
-    </div>
+      <dl className={styles.summary}>
+        {SUMMARY_LABELS.map((label, index) => (
+          <div key={label}>
+            <dt className={styles.summaryLabel}>{label}</dt>
+            <dd className={styles.summaryValue}>
+              {values === null ? (
+                <span className={`${styles.textSkeleton} ${styles.valueSkeleton}`} />
+              ) : (
+                values[index]
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   )
 }
 
@@ -556,11 +667,15 @@ interface PriceSectionProps {
   /** 종목 정보를 못 받았다. 가격·탭·차트 자리를 안내 상자 하나로 바꾼다 */
   failed: boolean
   onRetry: () => void
-  /** 바로 가기 버튼(QuickActions). 차트 옆, 좁은 화면은 가격 아래에 놓는다 */
-  actions: ReactNode
+  /** 종목명 옆 관심종목 토글(LikeToggle) */
+  likeToggle: ReactNode
+  /** 관심종목 목록을 못 받았거나 토글을 되돌렸을 때의 안내. 없으면 null */
+  likeStatus: ReactNode
+  /** 오른쪽 열 바로 가기 카드(ActionPanel) */
+  actionPanel: ReactNode
 }
 
-/** 이름·현재가·기간 탭·차트·마지막 거래일 요약. 구역 오류 경계 안에서 그려진다 */
+/** 이름·현재가·차트 카드(기간 탭 포함)·오른쪽 열(바로 가기·시세 요약). 구역 오류 경계 안에서 그려진다 */
 function PriceSection({
   stockCode,
   detail,
@@ -570,7 +685,9 @@ function PriceSection({
   waiting,
   failed,
   onRetry,
-  actions,
+  likeToggle,
+  likeStatus,
+  actionPanel,
 }: PriceSectionProps) {
   const shown = detail === null ? [] : sliceByPeriod(detail.candles, period)
   const lastCandle = shown.at(-1) ?? null
@@ -578,7 +695,7 @@ function PriceSection({
 
   /*
    * 실패는 이 구역 안에서만 알린다. 예전엔 화면 전체를 안내 한 줄로 바꿔, 따로 받는 뉴스까지 사라지고
-   * 안내가 왼쪽 위에 붙었다. 이름 줄(모르면 종목코드)과 홈 링크는 두고, 가격·탭·차트 자리를 정상 차트 상자와
+   * 안내가 왼쪽 위에 붙었다. 이름 줄(모르면 종목코드)과 홈 링크는 두고, 탭·차트 자리를 정상 차트 카드와
    * 같은 높이의 상자 하나로 바꿔 가운데에 알린다. 다시 시도는 종목 정보만 다시 받는다(뉴스는 그대로).
    */
   if (failed) {
@@ -598,17 +715,20 @@ function PriceSection({
         <Link to="/" className={styles.back}>
           <span aria-hidden="true">‹</span> 홈으로 돌아가기
         </Link>
-        {/* 이름을 모르면 종목코드를 이름 자리에 한 번만 적는다 */}
-        <h1 className={styles.identity}>
-          <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
-          {preview !== null && <span className={styles.code}>{stockCode}</span>}
-        </h1>
+        <div className={styles.identityRow}>
+          {/* 이름을 모르면 종목코드를 이름 자리에 한 번만 적는다 */}
+          <h1 className={styles.identity}>
+            <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
+            {preview !== null && <span className={styles.code}>{stockCode}</span>}
+          </h1>
+          {likeToggle}
+        </div>
+        {likeStatus}
 
         {hasPreviewPrice && <PriceLines detail={null} preview={preview} />}
 
         {/* 상세가 실패해도(대개 증권사 쪽) 바로 가기는 DB·서버 AI라 쓸 수 있다 */}
-        <div className={styles.chartArea}>
-          {actions}
+        <div className={styles.detailGrid}>
           <div className={`${styles.chartBox} ${styles.failBox}`} role="alert">
             {/* 가격을 적어 뒀으면 못 받은 건 차트뿐이다. 다 못 받은 것처럼 말하지 않는다 */}
             <p className={styles.failText}>
@@ -620,6 +740,7 @@ function PriceSection({
               다시 시도
             </button>
           </div>
+          <div className={styles.side}>{actionPanel}</div>
         </div>
       </section>
     )
@@ -632,122 +753,68 @@ function PriceSection({
         <span aria-hidden="true">‹</span> 홈으로 돌아가기
       </Link>
 
-      <h1 className={styles.identity}>
-        {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다 */}
-        <span className={styles.name}>
-          {detail !== null ? (
-            displayName
-          ) : preview !== null ? (
-            preview.stockName
-          ) : (
-            <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
-          )}
-        </span>
-        {/* 이름이 비어 종목코드로 대신했으면 코드를 두 번 적지 않는다 */}
-        {displayName !== stockCode && <span className={styles.code}>{stockCode}</span>}
-      </h1>
+      <div className={styles.identityRow}>
+        <h1 className={styles.identity}>
+          {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다 */}
+          <span className={styles.name}>
+            {detail !== null ? (
+              displayName
+            ) : preview !== null ? (
+              preview.stockName
+            ) : (
+              <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
+            )}
+          </span>
+          {/* 이름이 비어 종목코드로 대신했으면 코드를 두 번 적지 않는다 */}
+          {displayName !== stockCode && <span className={styles.code}>{stockCode}</span>}
+        </h1>
+        {likeToggle}
+      </div>
+      {likeStatus}
 
       <PriceLines detail={detail} preview={preview} />
 
-      {/*
-        바로 가기를 먼저 둔다. 좁은 화면에서는 그대로 가격 아래 한 줄이 되고, 넓은 화면은 격자가 차트 오른쪽으로 옮긴다.
-        문서 순서(탭 키 순서)는 어느 폭에서나 가격 → 바로 가기 → 기간 탭 → 차트다
-      */}
-      <div className={styles.chartArea}>
-        {actions}
+      <div className={styles.detailGrid}>
+        <div className={styles.chartBox}>
+          {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다 */}
+          <div className={styles.periodTabs} role="tablist" aria-label="기간">
+            {PERIOD_TABS.map((tab) => (
+              <button
+                key={tab.period}
+                type="button"
+                role="tab"
+                aria-selected={tab.period === period}
+                className={
+                  tab.period === period
+                    ? styles.periodTabActive
+                    : styles.periodTab
+                }
+                onClick={() => onPeriodChange(tab.period)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-        {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다 */}
-        <div className={styles.periodTabs} role="tablist" aria-label="기간">
-          {PERIOD_TABS.map((tab) => (
-            <button
-              key={tab.period}
-              type="button"
-              role="tab"
-              aria-selected={tab.period === period}
-              className={
-                tab.period === period
-                  ? styles.periodTabActive
-                  : styles.periodTab
-              }
-              onClick={() => onPeriodChange(tab.period)}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <div className={styles.plot}>
+            {detail === null && waiting !== null && (
+              <WaitNotice until={waiting.until} />
+            )}
+            {detail === null && waiting === null && <div className={styles.chartSkeleton} />}
+
+            {detail !== null && shown.length === 0 && (
+              <p className={styles.chartMessage}>이 기간에는 거래일이 없습니다.</p>
+            )}
+
+            {shown.length > 0 && <CandleChart candles={shown} />}
+          </div>
         </div>
 
-        <div className={styles.chartBox}>
-          {detail === null && waiting !== null && (
-            <WaitNotice until={waiting.until} />
-          )}
-          {detail === null && waiting === null && <div className={styles.chartSkeleton} />}
-
-          {detail !== null && shown.length === 0 && (
-            <p className={styles.chartMessage}>이 기간에는 거래일이 없습니다.</p>
-          )}
-
-          {shown.length > 0 && <CandleChart candles={shown} />}
+        <div className={styles.side}>
+          {actionPanel}
+          <SummaryCard lastCandle={lastCandle} loading={detail === null} />
         </div>
       </div>
-
-      {/*
-        마지막 거래일의 시·고·저·거래량. 현재가 API는 이 값을 안 주고(현재가·등락률뿐),
-        일봉 테이블은 장 마감 후 확정값만 들어가므로 "오늘"이 아니라 어느 날인지 함께 적는다.
-        응답 전에는 같은 칸을 뼈대로 그려 둔다. 비워 두면 응답이 오는 순간 아래 뉴스가 밀려 내려간다.
-      */}
-      {detail === null && (
-        <>
-          <p className={styles.summaryDate}>
-            <span className={`${styles.textSkeleton} ${styles.dateSkeleton}`} />
-          </p>
-          <dl className={styles.summary}>
-            {SUMMARY_LABELS.map((label) => (
-              <div key={label} className={styles.summaryItem}>
-                <dt className={styles.summaryLabel}>{label}</dt>
-                <dd className={styles.summaryValue}>
-                  <span className={`${styles.textSkeleton} ${styles.valueSkeleton}`} />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </>
-      )}
-
-      {lastCandle !== null && (
-        <>
-          {toKoreanDate(lastCandle.date) !== '' && (
-            <p className={styles.summaryDate}>
-              {toKoreanDate(lastCandle.date)} 마감 기준
-            </p>
-          )}
-          <dl className={styles.summary}>
-            <div className={styles.summaryItem}>
-              <dt className={styles.summaryLabel}>시가</dt>
-              <dd className={styles.summaryValue}>
-                {formatPrice(lastCandle.open)}
-              </dd>
-            </div>
-            <div className={styles.summaryItem}>
-              <dt className={styles.summaryLabel}>고가</dt>
-              <dd className={`${styles.summaryValue} ${styles.up}`}>
-                {formatPrice(lastCandle.high)}
-              </dd>
-            </div>
-            <div className={styles.summaryItem}>
-              <dt className={styles.summaryLabel}>저가</dt>
-              <dd className={`${styles.summaryValue} ${styles.down}`}>
-                {formatPrice(lastCandle.low)}
-              </dd>
-            </div>
-            <div className={styles.summaryItem}>
-              <dt className={styles.summaryLabel}>거래량</dt>
-              <dd className={styles.summaryValue}>
-                {formatVolume(lastCandle.volume)}
-              </dd>
-            </div>
-          </dl>
-        </>
-      )}
     </section>
   )
 }
