@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
+import Modal from '../components/Modal'
 import NewsList from '../components/NewsList'
 import SectionBoundary from '../components/SectionBoundary'
 import { ApiError } from '../api/client'
+import { getLikeStocksOnPublicPage, likeStock, unlikeStock } from '../api/member'
 import {
   detailWaitMs,
   getStockDetail,
@@ -13,6 +16,8 @@ import {
   primeKisToken,
 } from '../api/stock'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import { toStockHandoff } from '../hooks/useStockHandoff'
 import { periodStart, toKoreanDate } from '../utils/date'
 import {
   formatChangeRate,
@@ -21,8 +26,9 @@ import {
   isFiniteNumber,
   isFlatRate,
 } from '../utils/format'
+import { loginPathFrom } from '../utils/navigation'
 import { readPreview } from '../utils/stockPreview'
-import type { Candle, Period, StockDetail, StockPreview } from '../types/stock'
+import type { Candle, Period, StockDetail, StockInfo, StockPreview } from '../types/stock'
 import styles from './StockChartPage.module.css'
 
 /** 백엔드 Period enum 순서 그대로. 화면 탭도 이 순서로 놓는다 */
@@ -55,6 +61,19 @@ type State =
   /** 백엔드 stock 테이블에 없는 종목코드 */
   | { kind: 'notFound'; stockCode: string }
   | { kind: 'error'; stockCode: string }
+
+/**
+ * 이 종목이 내 관심종목인가. 상세 응답에는 관심 여부가 없어, 로그인했으면 관심종목 목록(DB)을 한 번 받아 가린다.
+ * 어느 종목의 것인지 함께 든다 — 위 State와 같은 이유로, 종목을 갈아타면 앞 종목의 하트가 한 번 비친다.
+ */
+type LikeState =
+  | { kind: 'loading' }
+  /** 목록을 못 받았다. 켜져 있는지 모르니 누를 수 없게 두고 다시 시도를 준다 */
+  | { kind: 'error'; stockCode: string }
+  | { kind: 'ready'; stockCode: string; liked: boolean }
+
+/** 화면이 보는 하트 상태. 비로그인은 목록을 부르지 않고, 누르면 로그인 안내를 띄운다 */
+type LikeView = LikeState | { kind: 'loggedOut' }
 
 /**
  * 기간 탭은 서버에 기간마다 다시 묻지 않고 받아 둔 전체 일봉을 여기서 자른다. 상세 API는 일봉은 DB에서 주지만
@@ -207,6 +226,49 @@ export default function StockChartPage() {
     }
   }, [stockCode, hasValidCode, retryCount])
 
+  const loggedIn = useIsLoggedIn()
+  const navigate = useNavigate()
+  const [like, setLike] = useState<LikeState>({ kind: 'loading' })
+  /** 관심종목 목록의 '다시 시도'가 올린다 */
+  const [likeRetryCount, setLikeRetryCount] = useState(0)
+  /** 하트 요청이 진행 중인 종목. 연타로 등록·해제가 겹쳐 서버와 어긋나는 걸 막는다(홈과 같다) */
+  const pendingLikes = useRef(new Set<string>())
+  /** 하트를 서버에 반영하지 못해 되돌렸을 때 알리는 말. 어느 종목의 것인지 함께 든다 */
+  const [likeNotice, setLikeNotice] = useState<{ stockCode: string; text: string } | null>(null)
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+
+  /*
+   * 하트의 처음 상태. 로그인했을 때만 관심종목 목록(DB, 증권사 무관)을 받고, 로그인·로그아웃(다른 탭 포함)을 따라간다.
+   * 이 화면에 새로 생긴 요청은 이것 하나다 — 토큰 심기·상세·뉴스는 그대로 나간다.
+   * 공개 화면이 들어오자마자 부르는 요청이라 401이면 로그인 화면으로 끌고 가지 않는다(getLikeStocksOnPublicPage).
+   */
+  useEffect(() => {
+    if (stockCode === undefined || !hasValidCode || !loggedIn) return
+    let isStale = false
+    const code = stockCode
+    setLike({ kind: 'loading' })
+
+    getLikeStocksOnPublicPage()
+      .then((list) => {
+        // null이면 토큰이 만료돼 지웠다. 로그인 구독이 이 화면을 비로그인으로 바꾼다
+        if (isStale || list === null) return
+        setLike({
+          kind: 'ready',
+          stockCode: code,
+          liked: list.likeStockList.some((item) => item.stockCode === code),
+        })
+      })
+      .catch((error: unknown) => {
+        if (isStale) return
+        console.warn('관심종목 목록 조회 실패', error)
+        setLike({ kind: 'error', stockCode: code })
+      })
+
+    return () => {
+      isStale = true
+    }
+  }, [stockCode, hasValidCode, loggedIn, likeRetryCount])
+
   /*
    * 탭 제목에 종목명을 넣는다. 종목 여러 개를 띄워 두고 비교할 때 탭이 다 'JUBY'면
    * 어느 게 어느 종목인지 알 수 없다. 받아오는 중이면 들고 온 이름을 쓰고,
@@ -226,7 +288,8 @@ export default function StockChartPage() {
         : '종목',
   )
 
-  if (!hasValidCode || view.kind === 'notFound') {
+  // 없는 종목에는 바로 가기 버튼도 두지 않는다
+  if (stockCode === undefined || !hasValidCode || view.kind === 'notFound') {
     return (
       <section className={styles.section}>
         <h1 className={styles.heading}>목록에 없는 종목입니다</h1>
@@ -238,6 +301,77 @@ export default function StockChartPage() {
   }
 
   const detail = view.kind === 'ready' ? view.detail : null
+
+  /*
+   * 백테스트·AI로 실어 갈 종목명. 응답의 이름, 아직이면 목록에서 실어 온 이름이다. 응답이 이름을 비워 종목코드로
+   * 대신했으면(nameOrCode) 모르는 것으로 본다 — AI에 "005930의 주가에 대해서…"로 묻게 된다. 모르면 두 버튼을 잠근다
+   */
+  const knownName =
+    detail !== null && nameOrCode(detail.stockName, stockCode) !== stockCode
+      ? detail.stockName
+      : (preview?.stockName ?? null)
+
+  // 앞 종목의 상태면 아직 이 종목을 받는 중이다
+  const likeView: LikeView = !loggedIn
+    ? { kind: 'loggedOut' }
+    : like.kind !== 'loading' && like.stockCode === stockCode
+      ? like
+      : { kind: 'loading' }
+
+  /**
+   * 하트는 홈과 같은 규칙이다. 먼저 바꾸고 서버에 알리며, 실패하면 되돌리고 알린다(조용히 되돌리면 누른 게 무시된 것처럼 보인다).
+   * 처음 상태를 모르면(받는 중·못 받음) 버튼이 잠겨 여기 오지 않는다.
+   */
+  async function handleHeartClick() {
+    if (!loggedIn) {
+      setIsLoginModalOpen(true)
+      return
+    }
+    if (likeView.kind !== 'ready') return
+    const { stockCode: code, liked: wasLiked } = likeView
+    if (pendingLikes.current.has(code)) return
+
+    // 기다리는 사이 다른 종목으로 갔으면 그 종목의 하트는 건드리지 않는다
+    const apply = (liked: boolean) =>
+      setLike((previous) =>
+        previous.kind === 'ready' && previous.stockCode === code
+          ? { ...previous, liked }
+          : previous,
+      )
+
+    pendingLikes.current.add(code)
+    setLikeNotice(null)
+    apply(!wasLiked)
+
+    try {
+      if (wasLiked) await unlikeStock(code)
+      else await likeStock(code)
+    } catch (error: unknown) {
+      console.warn('관심종목 반영 실패', error)
+      apply(wasLiked)
+      setLikeNotice({
+        stockCode: code,
+        text: wasLiked
+          ? '관심종목을 해제하지 못했어요. 잠시 후 다시 시도해 주세요.'
+          : '관심종목에 추가하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      })
+    } finally {
+      pendingLikes.current.delete(code)
+    }
+  }
+
+  const actions = (
+    <QuickActions
+      stockCode={stockCode}
+      stockName={knownName}
+      like={likeView}
+      likeNotice={likeNotice?.stockCode === stockCode ? likeNotice.text : null}
+      onHeart={() => void handleHeartClick()}
+      onRetryLike={() => setLikeRetryCount((count) => count + 1)}
+      onBacktest={(stock) => navigate('/backtest', { state: toStockHandoff(stock) })}
+      onAskAi={(stock) => navigate('/ai', { state: toStockHandoff(stock) })}
+    />
+  )
 
   /*
    * 다시 시도. 받아 둔 값을 먼저 버리고(불러오는 중) 새로 받는다. 구역 경계는 누르는 순간 안쪽을 다시 그리는데,
@@ -271,15 +405,141 @@ export default function StockChartPage() {
           waiting={view.kind === 'waiting' ? view : null}
           failed={view.kind === 'error'}
           onRetry={retry}
+          actions={actions}
         />
       </SectionBoundary>
 
-      {stockCode !== undefined && (
-        <section className={styles.section}>
-          <NewsList stockCode={stockCode} />
-        </section>
-      )}
+      <section className={styles.section}>
+        <NewsList stockCode={stockCode} />
+      </section>
+
+      {/* 홈 하트와 같은 안내. 로그인하면 이 상세로 돌아온다 */}
+      <Modal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        label="로그인 안내"
+      >
+        <p className={styles.modalMessage}>로그인 후 이용 가능한 기능입니다</p>
+        <div className={styles.modalButtons}>
+          <Link
+            to={loginPathFrom(`${location.pathname}${location.search}`)}
+            className={styles.modalPrimary}
+          >
+            로그인
+          </Link>
+          <button
+            type="button"
+            className={styles.modalSecondary}
+            onClick={() => setIsLoginModalOpen(false)}
+          >
+            닫기
+          </button>
+        </div>
+      </Modal>
     </>
+  )
+}
+
+interface QuickActionsProps {
+  stockCode: string
+  /** 아직 모르면 null. 백테스트·AI는 이름을 실어 가야 해서 그때까지 누를 수 없다 */
+  stockName: string | null
+  like: LikeView
+  /** 하트를 서버에 반영하지 못해 되돌렸을 때의 안내(이 종목 것만) */
+  likeNotice: string | null
+  onHeart: () => void
+  onRetryLike: () => void
+  onBacktest: (stock: StockInfo) => void
+  onAskAi: (stock: StockInfo) => void
+}
+
+/**
+ * 종목 상세의 바로 가기 셋. 관심종목은 그 자리에서 바꾸고, 백테스트·AI는 이 종목을 실어 그 화면으로 가서 곧바로
+ * 실행한다(받는 화면이 한 번만 읽는다 — hooks/useStockHandoff). 셋 다 DB·서버 AI만 쓰고 증권사를 부르지 않는다.
+ * 넓은 화면은 차트 오른쪽에 세로로, 900px 이하는 가격 바로 아래 한 줄로 놓인다(CSS .chartArea).
+ */
+function QuickActions({
+  stockCode,
+  stockName,
+  like,
+  likeNotice,
+  onHeart,
+  onRetryLike,
+  onBacktest,
+  onAskAi,
+}: QuickActionsProps) {
+  const liked = like.kind === 'ready' && like.liked
+  const stock = stockName === null ? null : { stockCode, stockName }
+
+  return (
+    <div className={styles.quickActions}>
+      <div className={styles.quickButtons}>
+        <button
+          type="button"
+          className={liked ? `${styles.quickButton} ${styles.heartOn}` : styles.quickButton}
+          onClick={onHeart}
+          // 받는 중이거나 못 받았으면 켜져 있는지 모른다. 모르는 채로 바꾸지 않는다. 비로그인은 눌러서 로그인 안내를 본다
+          disabled={like.kind === 'loading' || like.kind === 'error'}
+          aria-pressed={liked}
+          aria-label={`${stockName ?? stockCode} 관심종목 ${liked ? '해제' : '추가'}`}
+        >
+          <svg
+            className={styles.heartIcon}
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill={liked ? 'currentColor' : 'none'}
+            aria-hidden="true"
+          >
+            <path
+              d="M12 20.3 4.1 12.4a4.9 4.9 0 0 1 6.9-6.9l1 1 1-1a4.9 4.9 0 0 1 6.9 6.9z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+            />
+          </svg>
+          관심종목
+        </button>
+        <button
+          type="button"
+          className={`${styles.quickButton} ${styles.quickPrimary}`}
+          disabled={stock === null}
+          onClick={() => {
+            if (stock !== null) onBacktest(stock)
+          }}
+        >
+          이 종목 백테스트
+        </button>
+        <button
+          type="button"
+          className={styles.quickButton}
+          disabled={stock === null}
+          onClick={() => {
+            if (stock !== null) onAskAi(stock)
+          }}
+        >
+          AI에게 물어보기
+        </button>
+      </div>
+
+      {like.kind === 'error' && (
+        <p className={styles.quickNotice} role="status">
+          관심종목을 불러오지 못했습니다.
+          <button
+            type="button"
+            className={`${styles.retryButton} ${styles.quickRetry}`}
+            onClick={onRetryLike}
+          >
+            다시 시도
+          </button>
+        </p>
+      )}
+      {likeNotice !== null && (
+        <p className={`${styles.quickNotice} ${styles.likeNotice}`} role="status">
+          {likeNotice}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -296,6 +556,8 @@ interface PriceSectionProps {
   /** 종목 정보를 못 받았다. 가격·탭·차트 자리를 안내 상자 하나로 바꾼다 */
   failed: boolean
   onRetry: () => void
+  /** 바로 가기 버튼(QuickActions). 차트 옆, 좁은 화면은 가격 아래에 놓는다 */
+  actions: ReactNode
 }
 
 /** 이름·현재가·기간 탭·차트·마지막 거래일 요약. 구역 오류 경계 안에서 그려진다 */
@@ -308,6 +570,7 @@ function PriceSection({
   waiting,
   failed,
   onRetry,
+  actions,
 }: PriceSectionProps) {
   const shown = detail === null ? [] : sliceByPeriod(detail.candles, period)
   const lastCandle = shown.at(-1) ?? null
@@ -343,16 +606,20 @@ function PriceSection({
 
         {hasPreviewPrice && <PriceLines detail={null} preview={preview} />}
 
-        <div className={`${styles.chartBox} ${styles.failBox}`} role="alert">
-          {/* 가격을 적어 뒀으면 못 받은 건 차트뿐이다. 다 못 받은 것처럼 말하지 않는다 */}
-          <p className={styles.failText}>
-            {hasPreviewPrice
-              ? '차트를 불러오지 못했습니다'
-              : '종목 정보를 불러오지 못했습니다'}
-          </p>
-          <button type="button" className={styles.retryButton} onClick={onRetry}>
-            다시 시도
-          </button>
+        {/* 상세가 실패해도(대개 증권사 쪽) 바로 가기는 DB·서버 AI라 쓸 수 있다 */}
+        <div className={styles.chartArea}>
+          {actions}
+          <div className={`${styles.chartBox} ${styles.failBox}`} role="alert">
+            {/* 가격을 적어 뒀으면 못 받은 건 차트뿐이다. 다 못 받은 것처럼 말하지 않는다 */}
+            <p className={styles.failText}>
+              {hasPreviewPrice
+                ? '차트를 불러오지 못했습니다'
+                : '종목 정보를 불러오지 못했습니다'}
+            </p>
+            <button type="button" className={styles.retryButton} onClick={onRetry}>
+              다시 시도
+            </button>
+          </div>
         </div>
       </section>
     )
@@ -382,37 +649,45 @@ function PriceSection({
 
       <PriceLines detail={detail} preview={preview} />
 
-      {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다 */}
-      <div className={styles.periodTabs} role="tablist" aria-label="기간">
-        {PERIOD_TABS.map((tab) => (
-          <button
-            key={tab.period}
-            type="button"
-            role="tab"
-            aria-selected={tab.period === period}
-            className={
-              tab.period === period
-                ? `${styles.periodTab} ${styles.periodTabActive}`
-                : styles.periodTab
-            }
-            onClick={() => onPeriodChange(tab.period)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/*
+        바로 가기를 먼저 둔다. 좁은 화면에서는 그대로 가격 아래 한 줄이 되고, 넓은 화면은 격자가 차트 오른쪽으로 옮긴다.
+        문서 순서(탭 키 순서)는 어느 폭에서나 가격 → 바로 가기 → 기간 탭 → 차트다
+      */}
+      <div className={styles.chartArea}>
+        {actions}
 
-      <div className={styles.chartBox}>
-        {detail === null && waiting !== null && (
-          <WaitNotice until={waiting.until} />
-        )}
-        {detail === null && waiting === null && <div className={styles.chartSkeleton} />}
+        {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다 */}
+        <div className={styles.periodTabs} role="tablist" aria-label="기간">
+          {PERIOD_TABS.map((tab) => (
+            <button
+              key={tab.period}
+              type="button"
+              role="tab"
+              aria-selected={tab.period === period}
+              className={
+                tab.period === period
+                  ? `${styles.periodTab} ${styles.periodTabActive}`
+                  : styles.periodTab
+              }
+              onClick={() => onPeriodChange(tab.period)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-        {detail !== null && shown.length === 0 && (
-          <p className={styles.chartMessage}>이 기간에는 거래일이 없습니다.</p>
-        )}
+        <div className={styles.chartBox}>
+          {detail === null && waiting !== null && (
+            <WaitNotice until={waiting.until} />
+          )}
+          {detail === null && waiting === null && <div className={styles.chartSkeleton} />}
 
-        {shown.length > 0 && <CandleChart candles={shown} />}
+          {detail !== null && shown.length === 0 && (
+            <p className={styles.chartMessage}>이 기간에는 거래일이 없습니다.</p>
+          )}
+
+          {shown.length > 0 && <CandleChart candles={shown} />}
+        </div>
       </div>
 
       {/*

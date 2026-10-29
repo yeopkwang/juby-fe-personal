@@ -121,8 +121,10 @@ export async function unlikeStock(stockCode: string): Promise<void> {
  * 목록이 배열이 아니면 화면이 그리다 `null.length`에서 던져 구역 경계까지 올라갔다 — 여기서 응답 모양 오류로 던져
  * 화면의 "불러오지 못했습니다 + 다시 시도"를 태운다. 기준일은 비어도 된다(화면이 그 줄만 숨긴다).
  */
-export async function getLikeStocks(): Promise<LikeStockList> {
-  const result = await get<LikeStockListResponse | null>('/api/members/me/like-stocks')
+export async function getLikeStocks(options?: {
+  ignoreUnauthorized?: boolean
+}): Promise<LikeStockList> {
+  const result = await get<LikeStockListResponse | null>('/api/members/me/like-stocks', options)
   if (typeof result !== 'object' || result === null || !Array.isArray(result.likeStockList)) {
     throw malformedResponse()
   }
@@ -135,6 +137,23 @@ export async function getLikeStocks(): Promise<LikeStockList> {
     baseDate: typeof result.baseDate === 'string' ? result.baseDate : '',
     totalCount: finiteOrNull(result.totalCount) ?? likeStockList.length,
     likeStockList,
+  }
+}
+
+/**
+ * 종목 상세(로그인 없이도 쓰는 화면)가 들어오자마자 부르는 관심종목 목록 — 하트의 처음 상태를 정한다.
+ * 토큰이 만료됐으면(401) 로그인 화면으로 끌고 가지 않고 토큰만 지운 뒤 null이다(getMyPersonalityOnPublicPage와 같다).
+ * 화면은 로그인 구독을 따라 비로그인으로 바뀐다. 401이 아닌 실패는 던진다 — 부르는 쪽이 "모름"으로 두고 다시 시도를 준다.
+ */
+export async function getLikeStocksOnPublicPage(): Promise<LikeStockList | null> {
+  try {
+    return await getLikeStocks({ ignoreUnauthorized: true })
+  } catch (error: unknown) {
+    if (error instanceof ApiError && error.status === 401) {
+      clearTokens()
+      return null
+    }
+    throw error
   }
 }
 

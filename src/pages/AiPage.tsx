@@ -16,6 +16,7 @@ import SessionSidebar, { type SessionListState } from '../components/SessionSide
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useStockHandoff } from '../hooks/useStockHandoff'
 import type { ChatMessage, ChatSession } from '../types/ai'
 import styles from './AiPage.module.css'
 
@@ -30,6 +31,17 @@ const BUSY_HINT = '앞 질문의 답을 아직 만들고 있어요. 조금 뒤�
 const ROOM_GONE_HINT = '이 대화방을 찾을 수 없어요. 새 대화에서 다시 물어봐 주세요.'
 /** 서버 AskRequest의 question 최대 길이 */
 const QUESTION_MAX_LENGTH = 1000
+
+/** 종목 상세의 'AI에게 물어보기'로 왔을 때 새 대화에 바로 보내는 질문 */
+function briefingQuestion(stockName: string): string {
+  return `${stockName}의 주가에 대해서 간단하게 브리핑을 해줘`
+}
+
+/** 보낼 질문과, 함께 실을 종목명(종목 상세에서 온 첫 질문만 — api/ai.ts ask) */
+interface Question {
+  text: string
+  stockName: string | null
+}
 
 type DetailState = 'idle' | 'loading' | 'error'
 
@@ -57,8 +69,8 @@ export default function AiPage() {
    * 겹치면 React가 두 말풍선을 같은 것으로 보고 하나를 지운다.
    */
   const localIdRef = useRef(-1)
-  /** 실패한 질문. '다시 시도'가 이걸 그대로 다시 보낸다 */
-  const lastAskRef = useRef<{ text: string } | null>(null)
+  /** 실패한 질문. '다시 시도'가 이걸 그대로 다시 보낸다(실었던 종목명도 그대로) */
+  const lastAskRef = useRef<Question | null>(null)
   /*
    * 질문을 보낼 때마다 하나씩 올라가는 번호.
    * 답을 기다리는 동안 다른 대화방을 누르거나 새 대화를 열면 이 번호도 올라간다.
@@ -131,6 +143,48 @@ export default function AiPage() {
     // 로그인 여부가 바뀔 때만 돈다. 두 함수는 그 순간의 값을 쓰면 된다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn])
+
+  /*
+   * 종목 상세의 'AI에게 물어보기'로 왔으면 새 대화에 그 종목의 브리핑 질문을 한 번 보낸다(입력칸으로 보내는 것과 같은 길 — submit).
+   * 보내면 비운다. ref라서 개발 서버(StrictMode)가 effect를 두 번 돌려도 한 번만 보낸다.
+   * sendable은 비로그인으로 들어와 입력칸에 채우기만 했다는 표시다 — 나중에 다른 탭에서 로그인해도 저절로 보내지 않는다.
+   */
+  const handoff = useStockHandoff()
+  const handoffAskRef = useRef<(Question & { sendable: boolean }) | null>(
+    handoff === null
+      ? null
+      : { text: briefingQuestion(handoff.stockName), stockName: handoff.stockName, sendable: true },
+  )
+
+  /*
+   * 비로그인이면 보내지 않고 입력칸에 채운 뒤 로그인 안내를 띄운다. 위 effect(startNewChat)가 안내를 지운 뒤라 그 뒤에 둔다 —
+   * StrictMode가 둘을 다시 돌려도 같은 값을 다시 채울 뿐이다
+   */
+  useEffect(() => {
+    const handoffAsk = handoffAskRef.current
+    if (handoffAsk === null || loggedIn) return
+    handoffAskRef.current = { ...handoffAsk, sendable: false }
+    setQuestion(handoffAsk.text)
+    setNotice(LOGIN_HINT)
+  }, [loggedIn])
+
+  /*
+   * 로그인했으면 대화방 목록이 온 뒤에 보낸다(못 받았어도 보낸다 — 목록 없이도 질문은 된다). 목록을 받는 중에 방을 만들면
+   * 늦게 온 목록이 방금 만든 방을 목록에서 지운다
+   */
+  useEffect(() => {
+    const handoffAsk = handoffAskRef.current
+    if (handoffAsk === null || !loggedIn) return
+    if (!handoffAsk.sendable) {
+      handoffAskRef.current = null
+      return
+    }
+    if (sessionsState === 'loading') return
+    handoffAskRef.current = null
+    submit(handoffAsk)
+    // 로그인 여부와 목록 상태가 바뀔 때만 본다. submit은 그 순간의 화면 상태로 보낸다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn, sessionsState])
 
   /*
    * 내 성향. 토큰이 없으면 부르지 않는다(성향 영역은 어차피 숨긴다). 만료된 토큰(401)이면 토큰만 지우고
@@ -227,8 +281,8 @@ export default function AiPage() {
       })
   }
 
-  async function send(text: string) {
-    lastAskRef.current = { text }
+  async function send({ text, stockName }: Question) {
+    lastAskRef.current = { text, stockName }
     /*
      * 답이 온 뒤 대화방 목록을 다시 받을지. 서버는 방의 첫 질문으로만 제목을 짓는다 — 새로 만든 방이거나 아직 '새 대화'인 방이면
      * 받아서 지어진 제목을 쓰고, 아니면 그 방을 맨 위로 올리기만 한다(목록은 최근 대화 순). 예전엔 답마다 목록을 통째로 다시 받았다.
@@ -257,8 +311,8 @@ export default function AiPage() {
       }
 
       // 같은 방 번호를 실어 보내면 서버가 앞 대화를 맥락으로 쓴다("그 종목은?")
-      // 종목명은 싣지 않는다. 서버가 질문과 앞 대화에서 찾는다(api/ai.ts ask)
-      const result = await ask(text, roomId)
+      // 종목명은 종목 상세에서 온 첫 질문만 싣는다. 나머지는 서버가 질문과 앞 대화에서 찾는다(api/ai.ts ask)
+      const result = await ask(text, roomId, stockName)
       // 기다리는 사이 화면이 다른 대화방으로 바뀌었다. 이 답은 그 방의 것이 아니다
       if (seq !== askSeqRef.current) return
 
@@ -315,7 +369,12 @@ export default function AiPage() {
   }
 
   function handleSubmit() {
-    const text = question.trim()
+    // 입력칸으로 묻는 질문에는 종목명을 싣지 않는다
+    submit({ text: question.trim(), stockName: null })
+  }
+
+  /** 질문을 띄우고 보낸다. 입력칸(handleSubmit)과 종목 상세에서 온 첫 질문이 같은 길을 탄다 */
+  function submit({ text, stockName }: Question) {
     // 공백만 친 경우까지 걸러진다
     if (text === '' || pending === 'loading') return
     /*
@@ -343,7 +402,7 @@ export default function AiPage() {
     setQuestion('')
     setNotice('')
 
-    void send(text)
+    void send({ text, stockName })
   }
 
   /**
@@ -364,7 +423,7 @@ export default function AiPage() {
     const last = lastAskRef.current
     if (last === null) return
     if (sessionId === null) {
-      void send(last.text)
+      void send(last)
       return
     }
 
@@ -392,7 +451,7 @@ export default function AiPage() {
       // 확인을 못 해도 다시 보내기는 한다
       console.warn('AI 대화 다시 확인 실패', error)
     }
-    void send(last.text)
+    void send(last)
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {

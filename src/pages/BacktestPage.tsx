@@ -8,6 +8,7 @@ import SectionBoundary from '../components/SectionBoundary'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useStockHandoff } from '../hooks/useStockHandoff'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 import { isFiniteNumber } from '../utils/format'
@@ -37,6 +38,12 @@ import styles from './BacktestPage.module.css'
  * 사용자가 3개월을 골라도 종목 성향만은 늘 이 기간으로 비교한다.
  */
 const COMPARE_PERIOD: BacktestPeriod = 'ONE_YEAR'
+
+/**
+ * 종목 상세의 '이 종목 백테스트'로 왔을 때 채우는 기간. 비교 기간과 같아 고른 조합이 비교 다섯 건 중 하나와 겹친다
+ * (요청 6건이 5건 — loadPreset)
+ */
+const QUICK_PERIOD: BacktestPeriod = 'ONE_YEAR'
 
 /** 끝까지 들고 있던 매수가 빠진 지표(수익률·거래횟수)의 설명. 임시 — isHeldToEnd 참고 */
 const HELD_DESC = '끝까지 팔지 않은 매수는 빠진 값이에요'
@@ -140,8 +147,13 @@ export default function BacktestPage() {
   useDocumentTitle('주식 백테스트')
   const loggedIn = useIsLoggedIn()
 
-  const [query, setQuery] = useState('')
-  const [stock, setStock] = useState<StockInfo | null>(null)
+  /*
+   * 종목 상세의 '이 종목 백테스트'로 왔으면 그 종목을 고른 채로 시작한다(selectStock과 같은 상태).
+   * 전략·기간까지 채워지면 아래 effect가 한 번 실행한다
+   */
+  const handoff = useStockHandoff()
+  const [query, setQuery] = useState(handoff?.stockName ?? '')
+  const [stock, setStock] = useState<StockInfo | null>(handoff)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   /**
@@ -183,6 +195,14 @@ export default function BacktestPage() {
    * 조용히 바꾸면 고른 조합이 서버에 없을 때 "아직 계산되지 않은 조합"만 보고 이유를 모른다
    */
   const [usingFallback, setUsingFallback] = useState(false)
+  /** 기간 목록을 받았거나 못 받기로 끝났는가. 자동 실행이 1년을 고를 수 있는지는 받은 목록까지 보고 가린다 */
+  const [periodsSettled, setPeriodsSettled] = useState(false)
+
+  /**
+   * 종목 상세에서 와서 아직 자동 실행을 기다리는 중인가. 실행하거나, 성향으로 전략을 고를 수 없거나, 그 전에 사용자가
+   * 조건을 건드리면(clearResult) 내린다. ref라서 개발 서버(StrictMode)가 effect를 두 번 돌려도 한 번만 실행한다
+   */
+  const autoRunRef = useRef(handoff !== null)
 
   const [result, setResult] = useState<ResultState>({ kind: 'idle' })
   const resultRef = useRef<HTMLDivElement>(null)
@@ -238,6 +258,7 @@ export default function BacktestPage() {
         if (error instanceof ApiError && error.status === 401) return
         setUsingFallback(true)
       })
+      .finally(() => setPeriodsSettled(true))
   }, [])
 
   /** 내 성향에 맞는 전략(미리 골라 두거나 '추천 전략으로'로 되돌린 값). 로그아웃하면 이 전략이 그대로일 때만 거둔다 */
@@ -268,6 +289,35 @@ export default function BacktestPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn])
 
+  /*
+   * 종목 상세의 '이 종목 백테스트'로 왔으면 종목·추천 전략·1년이 다 채워진 순간 한 번 실행한다(손으로 누르는 handleSubmit과
+   * 같은 길). 전략은 위 effect가 성향이 오면 고른다. 성향으로 전략을 고를 수 없으면(비로그인·검사 안 함·못 불러옴) 종목만 채우고
+   * 멈춘다 — 비로그인 안내는 배너 그대로다. 그 전략의 선택지에 1년이 없으면 기간을 비워 둔 채 실행하지 않는다.
+   * 결과가 오면 결과로 내려가는 effect(아래)가 그대로 내린다.
+   */
+  useEffect(() => {
+    if (!autoRunRef.current) return
+    if (personality.kind === 'loading') return
+    if (recommended === null) {
+      autoRunRef.current = false
+      return
+    }
+    // 추천 전략이 아직 안 골라졌거나(다음 렌더) 기간 목록을 받는 중이다
+    if (investType !== recommended.investType || !periodsSettled) return
+    if (period === null) {
+      if (availablePeriods(investType, serverPeriods).includes(QUICK_PERIOD)) {
+        setPeriod(QUICK_PERIOD)
+      } else {
+        autoRunRef.current = false
+      }
+      return
+    }
+    autoRunRef.current = false
+    void handleSubmit()
+    // handleSubmit은 이 렌더의 종목·전략·기간으로 보낸다. 조건이 바뀔 때만 다시 본다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personality.kind, recommended, investType, period, periodsSettled, serverPeriods])
+
   const selected = investType === null ? null : findInvestType(investType)
 
   const periodChoices = useMemo(
@@ -291,8 +341,10 @@ export default function BacktestPage() {
   /*
    * 조건을 건드리면 이전 결과는 더 이상 그 조건의 결과가 아니다.
    * 남겨 두면 화면의 입력과 결과가 어긋난 채로 보인다. 받는 중이던 것도 버린다.
+   * 종목 상세에서 와서 자동 실행을 기다리던 중이면 그것도 거둔다 — 사용자가 고른 조건으로 바꿔 놓은 걸 덮어 실행하지 않는다.
    */
   function clearResult() {
+    autoRunRef.current = false
     runSeqRef.current += 1
     setResult({ kind: 'idle' })
   }
