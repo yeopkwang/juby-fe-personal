@@ -1,6 +1,6 @@
 /*
- * 바탕은 body가 칠한다. 예전엔 여기서 1200px 흰 판을 깔아 판 안의 카드·표가 흰 바탕 위 흰색이었다.
- * 머리글과 아래 지수 띠는 화면 끝까지 초록 띠로 두고(Header·MarketIndexBar), 본문만 가운데 --content-max 안에 놓는다.
+ * 바탕은 body가 칠한다(흰색 하나). 머리글과 아래 지수 띠는 화면 끝까지 초록 띠로 두고(Header·MarketIndexBar),
+ * 본문만 가운데 --content-max(1680px) 안에 놓는다. 좌우 여백은 --page-gutter(16~56px)이고 머리글·띠도 같은 줄이다.
  * 세로 flex로 본문이 남는 높이를 가져가, 내용이 짧은 화면에서도 지수 띠가 화면 맨 아래에 온다
  */
 .page {
@@ -13,9 +13,9 @@
   flex: 1 0 auto;
   /* flex 항목에 좌우 auto 여백을 주면 내용 폭으로 줄어든다. 폭을 채운 뒤 최대 폭에서 멈추게 한다 */
   width: 100%;
-  max-width: var(--content-max);
+  max-width: calc(var(--content-max) + var(--page-gutter) * 2);
   margin: 0 auto;
-  padding: 0 var(--space-20) var(--space-20);
+  padding: var(--space-6) var(--page-gutter) var(--space-20);
 }
 
 /*
@@ -26,18 +26,10 @@
   min-height: 60vh;
 }
 
-/*
- * 좌우 여백은 화면이 좁아질수록 줄인다. 80px을 그대로 두면
- * 태블릿에서 본문에 남는 폭이 표 여섯 칸을 감당하지 못한다.
- */
-@media (max-width: 900px) {
-  .main {
-    padding: 0 var(--space-8) var(--space-14);
-  }
-}
-
+/* 좌우 여백은 --page-gutter가 화면 폭에 따라 줄인다(1920 56px · 375 16px). 아래 여백만 좁은 화면에서 줄인다 */
 @media (max-width: 600px) {
   .main {
-    padding: 0 var(--space-4) var(--space-10);
+    padding-top: var(--space-4);
+    padding-bottom: var(--space-10);
   }
 }

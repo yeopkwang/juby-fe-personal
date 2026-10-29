@@ -1,26 +1,27 @@
 /*
- * 머리글은 진한 초록 띠다(리디자인 B안, 2026-10-29 사용자 결정). 브랜드를 넓게 칠하는 건 여기 한 곳뿐이다.
- * 로고 | 서비스 메뉴 | 계정 메뉴. 로고 칸(1fr)이 남는 폭을 다 가져가 메뉴 두 벌이 오른쪽 끝에 붙는다
+ * 머리글은 진한 초록 띠다(리디자인 B안, 2026-10-29 사용자 결정 — 2026-10-30 재정비에서도 "지금 색이 가장 깔끔"이라 그대로).
+ * 로고 | 서비스 메뉴 | 계정 메뉴. 서비스 메뉴는 로고 바로 옆에 붙여 왼쪽부터 읽히게 하고, 계정만 오른쪽 끝에 둔다
+ * (예전엔 메뉴 두 벌이 오른쪽 끝에 몰려 넓은 화면에서 로고와 메뉴 사이가 비었다)
  */
 .header {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: auto 1fr auto;
   grid-template-areas: 'logo service account';
-  /* 메뉴 링크가 띠 높이를 다 채운다 — 누르는 넓이가 띠 높이(68px)다 */
+  /* 메뉴 링크가 띠 높이를 다 채운다 — 누르는 넓이가 띠 높이(64px)다 */
   align-items: stretch;
-  /* 메뉴 사이 간격과 같게 해서 서비스·계정 메뉴가 한 줄로 이어 보이게 한다 */
-  column-gap: 28px;
-  height: 68px;
+  column-gap: var(--space-10);
+  height: 64px;
   /*
    * 띠는 화면 끝까지 칠하고, 로고·메뉴는 본문(App.module.css .main)과 같은 줄에 세운다.
    * 넓은 화면에서는 (화면 폭 - 본문 최대 폭) / 2 만큼 더 들인다
    */
-  padding: 0 max(var(--space-20), calc((100% - var(--content-max)) / 2 + var(--space-20)));
+  padding: 0 max(var(--page-gutter), calc((100% - var(--content-max)) / 2));
   background: var(--color-brand-900);
 }
 
 .service {
   grid-area: service;
+  justify-self: start;
 }
 
 .account {
@@ -29,7 +30,7 @@
 
 .menu {
   display: flex;
-  gap: 28px;
+  gap: var(--space-1);
   font-size: var(--font-base);
   white-space: nowrap;
 }
@@ -43,6 +44,7 @@
   align-items: center;
   justify-content: center;
   min-width: 44px;
+  padding: 0 14px;
   font-weight: 500;
   color: var(--color-brand-100);
 }
@@ -60,9 +62,9 @@
 .menu a[aria-current='page']::before {
   content: '';
   position: absolute;
-  right: 0;
+  right: 14px;
   bottom: 0;
-  left: 0;
+  left: 14px;
   height: 3px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   background: var(--color-brand-300);
@@ -92,8 +94,8 @@
   align-self: center;
   justify-self: start;
   padding: var(--space-2) 0;
-  font-family: 'Michroma', sans-serif;
-  font-size: var(--font-3xl);
+  font-family: var(--font-wide);
+  font-size: var(--font-2xl);
   font-weight: 400;
   letter-spacing: 0.01em;
   color: var(--color-text-on-brand);
@@ -101,19 +103,23 @@
 
 @media (max-width: 900px) {
   .header {
-    column-gap: 18px;
-    padding: 0 var(--space-8);
+    column-gap: var(--space-4);
   }
 
-  .menu {
-    gap: 18px;
+  .menu a {
+    padding: 0 10px;
+  }
+
+  .menu a[aria-current='page']::before {
+    right: 10px;
+    left: 10px;
   }
 }
 
 /*
- * 한 줄에 로고와 메뉴 다섯이 다 들어가지 않는다(320px에서는 메뉴만으로도 넘친다).
- * 윗줄(52px)에 로고와 계정 메뉴를 양끝에 두고, 서비스 메뉴 넷을 아랫줄(44px)에 놓는다. 링크가 줄 높이를 다 채워
- * 누르는 넓이가 44px 이상이고, 두 줄이 겹치지 않는다
+ * 한 줄에 로고와 메뉴가 다 들어가지 않는다. 윗줄(52px)에 로고와 계정 메뉴를 양끝에 두고, 서비스 메뉴를 아랫줄(44px)에 놓는다.
+ * 서비스 메뉴가 다섯이라 375px에서도 한 줄에 다 들어가지 않아 아랫줄만 옆으로 민다(끝을 흐려 더 있다는 걸 보인다).
+ * 링크가 줄 높이를 다 채워 누르는 넓이가 44px 이상이고, 두 줄이 겹치지 않는다
  */
 @media (max-width: 600px) {
   .header {
@@ -123,20 +129,31 @@
       'logo account'
       'service service';
     height: auto;
-    padding: 0 var(--space-4);
   }
 
   .logo {
     font-size: var(--font-2xl);
   }
 
-  .menu {
-    gap: 22px;
-    font-size: var(--font-sm);
+  .service {
+    justify-self: stretch;
+    margin: 0 calc(var(--page-gutter) * -1);
+    padding: 0 calc(var(--page-gutter) - 10px);
+    overflow-x: auto;
+    scrollbar-width: none;
+    mask-image: linear-gradient(to right, black calc(100% - var(--space-6)), transparent);
   }
 
-  /* 아랫줄 첫 칸은 왼쪽 여백 쪽으로 붙인다(글자가 44px보다 짧은 '홈') */
-  .menu .home {
-    align-items: flex-start;
+  .service::-webkit-scrollbar {
+    display: none;
+  }
+
+  .menu {
+    gap: 0;
+    font-size: var(--font-md);
+  }
+
+  .account a {
+    padding-right: 0;
   }
 }
