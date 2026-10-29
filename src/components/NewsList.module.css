@@ -7,7 +7,7 @@
 
 .heading {
   margin: 0;
-  font-size: 34px;
+  font-size: var(--font-4xl);
   font-weight: 700;
   letter-spacing: -0.03em;
 }
@@ -24,7 +24,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--color-text-sub);
 }
@@ -60,13 +60,13 @@
 }
 
 .card:hover {
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-pop);
   transform: translateY(-2px);
 }
 
 .meta {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-md);
   color: var(--color-text-sub);
 }
 
@@ -82,14 +82,14 @@
    */
   overflow-wrap: anywhere;
   margin: 6px 0 0;
-  font-size: 19px;
+  font-size: var(--font-2xl);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .description {
   margin: 8px 0 0;
-  font-size: 15px;
+  font-size: var(--font-base);
   line-height: 1.55;
   color: var(--color-text-sub);
   /* 두 줄까지만 보여주고 넘치면 자른다 */
@@ -101,13 +101,13 @@
 
 .empty {
   margin: 20px 0 0;
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--color-text-sub);
 }
 
 @media (max-width: 900px) {
   .heading {
-    font-size: 27px;
+    font-size: var(--font-3xl);
   }
 }
 
@@ -120,11 +120,11 @@
   }
 
   .heading {
-    font-size: 23px;
+    font-size: var(--font-3xl);
   }
 
   .title {
-    font-size: 17px;
+    font-size: var(--font-xl);
   }
 
   .card {
@@ -150,7 +150,7 @@
 
 .bone {
   display: block;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
   background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
@@ -224,7 +224,7 @@
 
 .errorText {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--color-text-sub);
 }
 
@@ -234,14 +234,14 @@
   border-radius: var(--radius-sm);
   background: var(--color-primary);
   color: var(--color-surface);
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 600;
 }
 
 .moreFailed {
   margin: 12px 0 0;
-  font-size: 14px;
-  color: var(--color-up);
+  font-size: var(--font-md);
+  color: var(--color-text);
   text-align: center;
 }
 
@@ -254,7 +254,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 700;
   color: var(--color-text);
 }

@@ -31,7 +31,7 @@
   outline: none;
   background: transparent;
   font: inherit;
-  font-size: 16px;
+  font-size: var(--font-lg);
   color: var(--color-text);
   /* 320px에서는 안내 글이 칸보다 길다. 말없이 끊기지 않게 말줄임표로 끝낸다 */
   text-overflow: ellipsis;
@@ -48,7 +48,7 @@
   border: none;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: var(--color-surface);
   transition: background 0.15s;
@@ -93,19 +93,19 @@
 }
 
 .optionName {
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 600;
 }
 
 .optionCode {
-  font-size: 14px;
+  font-size: var(--font-md);
   color: var(--color-text-sub);
 }
 
 .message {
   margin: 10px 0 0;
-  font-size: 14px;
-  color: var(--color-up);
+  font-size: var(--font-md);
+  color: var(--color-text);
   text-align: center;
 }
 
@@ -125,6 +125,6 @@
   .button {
     height: 38px;
     padding: 0 16px;
-    font-size: 15px;
+    font-size: var(--font-base);
   }
 }

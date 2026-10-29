@@ -15,13 +15,16 @@ import styles from './TopStockCard.module.css'
  * 카드 생김새는 TopStockCard와 이어져야 하므로 CSS는 그쪽 것을 같이 쓴다.
  */
 
-const UP_COLOR = '#f04452'
-const DOWN_COLOR = '#3182f6'
-/** 보합 글자색. index.css의 --color-text와 같은 값 */
-const FLAT_COLOR = '#191f28'
-/** 처음과 끝을 잇는 점선, 거래량 막대. index.css의 따뜻한 회색 계열에 맞춘 값 */
-const TREND_COLOR = '#bdb6aa'
-const BAR_COLOR = '#f0ece4'
+/*
+ * 색은 index.css 토큰을 그대로 쓴다(SVG는 style에 var()를 받는다). 곡선·점은 그림이라 기본 등락색이고,
+ * 옆에 적는 숫자는 글자라 대비가 맞는 -text 색이다(TopStockCard.module.css .up·.down)
+ */
+const UP_LINE = 'var(--color-up)'
+const DOWN_LINE = 'var(--color-down)'
+/** 처음과 끝을 잇는 점선 */
+const TREND_LINE = 'var(--color-chart-trend)'
+/** 거래량 막대 */
+const BAR_FILL = 'var(--color-bg-sub)'
 
 /** 그림이 테두리에 닿지 않게 두는 여백. 아래는 막대가 바닥에 붙어야 해서 0이다 */
 const PAD_TOP = 8
@@ -148,14 +151,17 @@ function monotonePath(points: { x: number; y: number }[]): string {
 export default function CardChart({ stock }: { stock: CardSeries }) {
   const [boxRef, size] = useSize()
 
-  const lineColor = stock.changeRate >= 0 ? UP_COLOR : DOWN_COLOR
   /* 선은 1년 흐름의 방향이라 그대로 두고, 숫자만 보합이면 검게 적는다 */
-  const rateColor = isFlatRate(stock.changeRate, 1) ? FLAT_COLOR : lineColor
+  const rateClass = isFlatRate(stock.changeRate, 1)
+    ? styles.flat
+    : stock.changeRate >= 0
+      ? styles.up
+      : styles.down
 
   return (
     <>
       <p className={styles.rateRow}>
-        <span className={styles.rate} style={{ color: rateColor }}>
+        <span className={`${styles.rate} ${rateClass}`}>
           {formatChangeRate(stock.changeRate, 1)}
         </span>
         {/* 상세 API의 일봉에서 마지막 1년(주 단위). 머리말의 "1년 기준"과 기간을 맞춘다. api/cardSeries.ts 참고 */}
@@ -212,7 +218,7 @@ function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
     y: toY(price),
   }))
   const lastPoint = points[points.length - 1]
-  const lineColor = stock.changeRate >= 0 ? UP_COLOR : DOWN_COLOR
+  const lineColor = stock.changeRate >= 0 ? UP_LINE : DOWN_LINE
 
   return (
     /* 숫자(등락률)가 옆에 글자로 적혀 있어 읽어주는 기기에는 그림을 숨긴다 */
@@ -231,7 +237,7 @@ function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
             <path
               key={index}
               d={`M ${x},${y} h ${barWidth} v ${h} h -${barWidth} Z`}
-              fill={BAR_COLOR}
+              style={{ fill: BAR_FILL }}
             />
           )
         })}
@@ -252,7 +258,7 @@ function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
             })
             .join('')}
           fill="none"
-          stroke={TREND_COLOR}
+          style={{ stroke: TREND_LINE }}
           strokeWidth={1}
           strokeDasharray="4 4"
         />
@@ -261,7 +267,7 @@ function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
       <path
         d={monotonePath(points)}
         fill="none"
-        stroke={lineColor}
+        style={{ stroke: lineColor }}
         strokeWidth={1.8}
       />
 
@@ -270,8 +276,7 @@ function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
         cx={lastPoint.x}
         cy={lastPoint.y}
         r={DOT_RADIUS}
-        fill="#fff"
-        stroke={lineColor}
+        style={{ fill: 'var(--color-surface)', stroke: lineColor }}
         strokeWidth={2}
       />
     </svg>

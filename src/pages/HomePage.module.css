@@ -4,14 +4,14 @@
 
 .eyebrow {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 600;
   color: var(--color-text-sub);
 }
 
 .heading {
   margin: 6px 0 0;
-  font-size: 34px;
+  font-size: var(--font-4xl);
   font-weight: 700;
   letter-spacing: -0.03em;
 }
@@ -24,8 +24,8 @@
 
 .likeNotice {
   margin: 8px 0 0;
-  font-size: 14px;
-  color: var(--color-up);
+  font-size: var(--font-md);
+  color: var(--color-text);
 }
 
 /* 제목 옆 작은 표시: 언제 값인지("9월 25일 종가 기준")와, 좁은 화면에서만 보이는 정렬 기준. 숫자보다 먼저 눈에 들어와야 한다 */
@@ -36,7 +36,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text-sub);
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -50,7 +50,7 @@
   height: 288px;
   margin: 20px 0 0;
   color: var(--color-text-sub);
-  font-size: 15px;
+  font-size: var(--font-base);
 }
 
 .sentinel {
@@ -59,12 +59,12 @@
   align-items: center;
   justify-content: center;
   color: var(--color-text-sub);
-  font-size: 14px;
+  font-size: var(--font-md);
 }
 
 .modalMessage {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--font-xl);
   font-weight: 600;
 }
 
@@ -84,7 +84,7 @@
   border: none;
   border-radius: var(--radius-md);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 600;
   cursor: pointer;
 }
@@ -116,7 +116,7 @@
   }
 
   .heading {
-    font-size: 27px;
+    font-size: var(--font-3xl);
   }
 
   /*
@@ -130,7 +130,7 @@
 
 @media (max-width: 600px) {
   .heading {
-    font-size: 23px;
+    font-size: var(--font-3xl);
   }
 
   /*
@@ -178,7 +178,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 700;
 }
 

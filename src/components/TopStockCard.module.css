@@ -8,20 +8,20 @@
 }
 
 .card:hover {
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-pop);
   transform: translateY(-2px);
 }
 
 .theme {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 500;
   color: var(--color-text-sub);
 }
 
 .name {
   margin: 4px 0 0;
-  font-size: 19px;
+  font-size: var(--font-2xl);
   font-weight: 700;
 }
 
@@ -34,13 +34,13 @@
 }
 
 .rate {
-  font-size: 34px;
+  font-size: var(--font-4xl);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .caption {
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: var(--color-text-sub);
 }
 
@@ -71,7 +71,7 @@
   padding: 0 12px;
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
   text-align: center;
 }
@@ -90,7 +90,7 @@
   margin: 12px 0 0;
   padding-top: 10px;
   border-top: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 
 .quoteLabel {
@@ -105,11 +105,11 @@
 
 /* 한국식 등락 색 — 오르면 빨강, 내리면 파랑 */
 .up {
-  color: var(--color-up);
+  color: var(--color-up-text);
 }
 
 .down {
-  color: var(--color-down);
+  color: var(--color-down-text);
 }
 
 .flat {

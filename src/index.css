@@ -1,52 +1,108 @@
 /*
- * 색·모서리·그림자 기준값. 화면 CSS는 여기 이름만 쓴다(2026-10-05 정리 — 회색만 열여덟 가지,
+ * 색·모서리·그림자·글자 크기·간격 기준값. 화면 CSS는 여기 이름만 쓴다(2026-10-05 정리 — 회색만 열여덟 가지,
  * 모서리 아홉 가지, 그림자 열한 가지가 섞여 화면마다 버튼과 카드가 조금씩 달랐다).
+ * 2026-10-29 리디자인: 베이지를 걷고 초록 브랜드를 들였다. 브랜드와 등락은 다른 토큰이다(docs/UI-리디자인-결과-2026-10-29.md).
  */
 :root {
-  /* 한국식 시세 색 — 오르면 빨강, 내리면 파랑 */
+  /*
+   * 브랜드 초록은 행동(주 버튼)·선택·활성 상태에만 쓰고 넓게 칠하지 않는다. 등락·손익의 뜻으로 쓰지 않는다.
+   * 흰 글자를 얹는 건 700 이상이다(700 위 흰 글자 5.0:1). 50·100·300은 바탕 틴트와 장식에만 쓴다
+   */
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-300: #86efac;
+  --color-brand-700: #15803d;
+  --color-brand-800: #166534;
+  /* 머리글 띠 */
+  --color-brand-900: #14532d;
+
+  /*
+   * 등락 전용 — 국내 관례대로 오르면 빨강, 내리면 파랑. 버튼·링크·하트·경고에 쓰지 않는다(빨강은 상승으로 읽힌다).
+   * 차트·막대 같은 그림은 기본값, 글자는 대비 4.5:1을 넘는 -text를 쓴다(기본값은 흰 바탕 3.7:1이라 작은 글자에 모자란다)
+   */
   --color-up: #f04452;
   --color-down: #3182f6;
+  --color-up-text: #d9283a;
+  --color-down-text: #1b64da;
+  /* 차트 거래량 막대 */
+  --color-up-soft: rgba(240, 68, 82, 0.35);
+  --color-down-soft: rgba(49, 130, 246, 0.35);
 
-  /* 바탕은 살짝 따뜻한 아이보리, 카드·머리글은 흰색으로 띄운다. 구역은 선보다 바탕 차이로 나뉜다 */
-  --color-page-bg: #f8f6f0;
+  /* 바탕은 차가운 옅은 회색, 카드는 흰색으로 띄운다 */
+  --color-page-bg: #f6f8f7;
   --color-surface: #ffffff;
-  /* 흰 카드 안에 한 겹 얹는 옅은 바탕(입력칸·알약 배지·고른 줄·막대 바탕) */
-  --color-bg-sub: #f3f0e9;
+  /* 흰 카드 안에 한 겹 얹는 옅은 바탕(입력칸·알약 배지·탭 줄·막대 바탕) */
+  --color-bg-sub: #eef2f0;
   /* 흰 카드 안에서 마우스를 올린 줄 */
-  --color-bg-hover: #faf8f4;
-  --color-border: #e8e3da;
+  --color-bg-hover: #f3f5f4;
+  --color-border: #e4e8e6;
   /* 마우스를 올렸거나 포커스가 간 테두리 */
-  --color-border-strong: #cdc6b9;
+  --color-border-strong: #c9d1cd;
 
-  --color-text: #191f28;
-  /* 보조 글자(흰 바탕 대비 4.0). 짧은 단서·숫자 단위에 쓴다 */
-  --color-text-sub: #857f75;
-  /* 글로 읽혀야 하는 회색(흰 바탕 대비 5.7). 머리글 메뉴처럼 본문만큼 읽히는 자리 */
-  --color-text-muted: #6b665d;
+  --color-text: #111827;
+  /* 보조 글자. 흰 바탕 5.6:1, 페이지 바탕 5.2:1, --color-bg-sub 4.9:1 */
+  --color-text-sub: #5f6b66;
+  --color-text-on-brand: #ffffff;
 
-  /* 주 버튼은 한 색이다. 예전엔 #191f28·#333d4b·#4e5968이 화면마다 섞였다 */
-  --color-primary: #191f28;
-  --color-primary-hover: #333d4b;
-  --color-disabled-bg: #ece8e0;
-  --color-disabled-text: #a9a296;
-  /* 되돌릴 수 없는 동작(탈퇴·대화 지우기)의 빨간 단추. 바탕은 --color-up이다 */
-  --color-danger-hover: #d93a48;
-  --color-danger-disabled: #f4a3ab;
+  /* 진한 채움 단추와 고른 칸 */
+  --color-primary: #111827;
+  --color-primary-hover: #374151;
+
+  --color-disabled-bg: #eef2f0;
+  --color-disabled-text: #8a948f;
 
   /* 값이 오기 전 뼈대의 반짝임 두 색 */
-  --color-skeleton: #f3f0ea;
-  --color-skeleton-shine: #e8e3da;
+  --color-skeleton: #eef2f0;
+  --color-skeleton-shine: #e4e8e6;
 
-  /* 모서리는 다섯 가지만 쓴다. xs: 글자 줄 안의 작은 것, sm: 작은 단추, md: 카드·입력칸·큰 단추, lg: 큰 판·모달 */
-  --radius-xs: 4px;
+  /* 모달 뒤를 덮는 막 */
+  --color-backdrop: rgba(17, 24, 39, 0.45);
+
+  /* 캔버스·SVG 차트(CandleChart·CardChart)가 꺼내 쓰는 값. 캔버스는 CSS 변수를 못 읽어 utils/cssToken.ts로 읽는다 */
+  --color-chart-grid: #f1f4f2;
+  --color-chart-trend: #b4bdb9;
+
+  /* 소셜 로그인 버튼 색은 각 회사가 정한 색이다 */
+  --color-naver: #03c75a;
+  --color-kakao: #fee500;
+
+  /* 모서리는 세 단계다. sm: 작은 단추·배지, md: 카드·입력칸·큰 단추, lg: 큰 판·모달. 알약·원은 모양이라 따로 둔다 */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-pill: 999px;
 
-  /* 카드는 테두리로 나누고 그림자를 쓰지 않는다. 그림자는 떠 있는 층과 눌러 볼 카드에 마우스를 올렸을 때만 */
-  --shadow-pop: 0 8px 24px rgba(25, 31, 40, 0.1);
-  --shadow-hover: 0 6px 16px rgba(25, 31, 40, 0.08);
+  /* 그림자는 두 단계다. 카드는 아주 옅게(테두리와 같이 쓴다), 떠 있는 층(검색 후보·눌러 볼 카드에 마우스를 올렸을 때)은 조금 진하게 */
+  --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-pop: 0 8px 24px rgba(17, 24, 39, 0.12);
+
+  /* 글자 크기. 입력칸은 16px(lg) 아래로 내리지 않는다 — 아이폰 사파리가 누르는 순간 확대한다 */
+  --font-2xs: 11px;
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-md: 14px;
+  --font-base: 15px;
+  --font-lg: 16px;
+  --font-xl: 18px;
+  --font-2xl: 20px;
+  --font-3xl: 24px;
+  --font-4xl: 28px;
+  --font-5xl: 32px;
+  --font-6xl: 40px;
+  --font-display: 60px;
+
+  /* 간격. 새로 쓰거나 다시 짠 화면은 이것만 쓴다(옛 값은 그 화면을 다시 만질 때 옮긴다) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-20: 80px;
 }
 
 * {

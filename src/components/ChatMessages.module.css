@@ -22,7 +22,7 @@
   padding: 12px 16px;
   border-radius: var(--radius-lg);
   background: var(--color-page-bg);
-  font-size: 15px;
+  font-size: var(--font-base);
   line-height: 1.6;
   /* 답변 안의 줄바꿈을 화면에 그대로 반영한다. 긴 단어는 강제로 접는다 */
   white-space: pre-wrap;
@@ -94,7 +94,7 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  color: var(--color-up);
+  color: var(--color-text);
 }
 
 /* 사용자가 멈춘 것이라 실패(빨강)와 다른 색으로 둔다 */
@@ -116,7 +116,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--color-text);
 }

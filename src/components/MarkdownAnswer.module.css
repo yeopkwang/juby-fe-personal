@@ -26,7 +26,7 @@
 .markdown h5,
 .markdown h6 {
   margin: 14px 0 6px;
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 700;
   line-height: 1.4;
 }
@@ -50,7 +50,7 @@
 }
 
 .markdown a {
-  color: var(--color-down);
+  color: var(--color-brand-700);
   text-decoration: underline;
 }
 
@@ -69,7 +69,7 @@
 
 .markdown code {
   padding: 1px 4px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
   background: var(--color-bg-sub);
   font-size: 0.9em;
 }
@@ -96,7 +96,7 @@
 
 .markdown table {
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: var(--font-md);
 }
 
 /* 칸 안의 한글은 낱말 단위로만 줄을 바꾼다(좁은 말풍선에서 "샤프/지수"처럼 음절 사이가 끊겼다). 넘치면 표가 가로로 밀린다 */

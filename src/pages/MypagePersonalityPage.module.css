@@ -35,13 +35,13 @@
 
 .messageText {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--font-xl);
   font-weight: 700;
 }
 
 .hint {
   margin: 10px 0 0;
-  font-size: 14px;
+  font-size: var(--font-md);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
@@ -53,7 +53,7 @@
   border: 0;
   border-radius: var(--radius-md);
   background: var(--color-primary);
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 700;
   color: var(--color-surface);
   transition: background 0.15s;
@@ -70,7 +70,7 @@
   padding: 12px 40px;
   border-radius: var(--radius-md);
   background: var(--color-primary);
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 700;
   color: var(--color-surface);
   transition: background 0.15s;

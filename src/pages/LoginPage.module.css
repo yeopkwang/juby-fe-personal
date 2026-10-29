@@ -1,7 +1,7 @@
 /* 마이페이지·AI와 같은 제목 규격. 예전엔 머리글 아래 흰 제목 줄(밑줄 그은 '로그인')이 따로 있었다 */
 .title {
   margin: 44px 0 24px;
-  font-size: 34px;
+  font-size: var(--font-4xl);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -22,7 +22,7 @@
 
 .headline {
   margin: 0;
-  font-size: 34px;
+  font-size: var(--font-4xl);
   font-weight: 800;
   line-height: 1.4;
   letter-spacing: -0.03em;
@@ -31,16 +31,16 @@
 
 .caption {
   margin: 20px 0 0;
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 500;
   color: var(--color-text-sub);
 }
 
 .error {
   margin: 14px 0 0;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 600;
-  color: var(--color-up);
+  color: var(--color-text);
 }
 
 .buttons {
@@ -63,16 +63,16 @@
 
 .social:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-pop);
 }
 
 /* 소셜 로그인 버튼 색은 각 회사가 정한 색이다 */
 .naver {
-  background: #03c75a;
+  background: var(--color-naver);
 }
 
 .kakao {
-  background: #fee500;
+  background: var(--color-kakao);
 }
 
 .google {
@@ -87,13 +87,13 @@
 @media (max-width: 900px) {
   .title {
     margin: 32px 0 20px;
-    font-size: 27px;
+    font-size: var(--font-3xl);
   }
 }
 
 @media (max-width: 600px) {
   .title {
-    font-size: 23px;
+    font-size: var(--font-3xl);
   }
 
   .card {
@@ -101,6 +101,6 @@
   }
 
   .headline {
-    font-size: 26px;
+    font-size: var(--font-3xl);
   }
 }

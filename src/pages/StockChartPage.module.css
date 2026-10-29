@@ -4,7 +4,7 @@
 
 .heading {
   margin: 0;
-  font-size: 34px;
+  font-size: var(--font-4xl);
   font-weight: 700;
   letter-spacing: -0.03em;
 }
@@ -13,7 +13,7 @@
 .backLink {
   display: inline-block;
   margin-top: 12px;
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--color-text-sub);
   text-decoration: underline;
 }
@@ -23,7 +23,7 @@
   /* 손가락으로 누르는 넓이를 44px로 넓힌다(애플 권장). 넓힌 만큼 바깥 여백을 빼서 배치는 그대로다 */
   padding: 14px 0;
   margin: -14px 0 -2px;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--color-text-sub);
 }
@@ -43,36 +43,36 @@
 }
 
 .name {
-  font-size: 18px;
+  font-size: var(--font-xl);
   font-weight: 700;
 }
 
 .code {
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--color-text-sub);
 }
 
 .price {
   margin: 6px 0 0;
-  font-size: 46px;
+  font-size: var(--font-6xl);
   font-weight: 700;
   letter-spacing: -0.03em;
 }
 
 .change {
   margin: 4px 0 0;
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--color-text-sub);
 }
 
 .up {
   font-weight: 600;
-  color: var(--color-up);
+  color: var(--color-up-text);
 }
 
 .down {
   font-weight: 600;
-  color: var(--color-down);
+  color: var(--color-down-text);
 }
 
 /* 보합. 이 줄 자체가 회색이라 클래스를 빼면 회색이 된다. 검은색은 따로 지정해야 한다 */
@@ -106,13 +106,13 @@
 
 .failText {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 700;
 }
 
 .chartMessage {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--color-text-sub);
 }
 
@@ -130,7 +130,7 @@
 
 .chartWaitTitle {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -155,13 +155,13 @@
 }
 
 .summaryLabel {
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
 
 .summaryValue {
   margin: 4px 0 0;
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 600;
 }
 
@@ -188,7 +188,7 @@
 .textSkeleton {
   display: inline-block;
   height: 0.9em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
   vertical-align: middle;
 }
 
@@ -239,7 +239,7 @@
   }
 
   .price {
-    font-size: 38px;
+    font-size: var(--font-5xl);
   }
 }
 
@@ -249,7 +249,7 @@
   }
 
   .price {
-    font-size: 32px;
+    font-size: var(--font-5xl);
   }
 
   .chartBox {
@@ -282,7 +282,7 @@
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--color-text-sub);
   white-space: nowrap;
@@ -311,7 +311,7 @@
 
 .summaryDate {
   margin: 20px 0 6px;
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: var(--color-text-sub);
 }
 
@@ -320,7 +320,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 700;
 }
 
@@ -385,7 +385,7 @@
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 600;
   line-height: 1.3;
   text-align: center;
@@ -396,7 +396,7 @@
 }
 
 .quickButton:focus-visible {
-  outline: 2px solid var(--color-down);
+  outline: 2px solid var(--color-brand-700);
   outline-offset: 2px;
 }
 
@@ -425,7 +425,7 @@
 }
 
 .heartOn .heartIcon {
-  color: var(--color-up);
+  color: var(--color-brand-700);
 }
 
 .quickButton:disabled .heartIcon {
@@ -438,13 +438,13 @@
   align-items: center;
   gap: 4px 8px;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
 
 /* 하트를 되돌렸다는 안내. 홈과 같은 색이다 */
 .likeNotice {
-  color: var(--color-up);
+  color: var(--color-text);
 }
 
 .quickRetry {
@@ -475,7 +475,7 @@
   .quickButton {
     gap: 4px;
     padding: 6px 4px;
-    font-size: 14px;
+    font-size: var(--font-md);
   }
 
   .heartIcon {
@@ -488,7 +488,7 @@
 
 .modalMessage {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--font-xl);
   font-weight: 600;
 }
 
@@ -508,7 +508,7 @@
   border: none;
   border-radius: var(--radius-md);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 600;
   cursor: pointer;
 }

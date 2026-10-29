@@ -1,6 +1,6 @@
 .title {
   margin: 40px 0 0;
-  font-size: 24px;
+  font-size: var(--font-3xl);
   font-weight: 700;
 }
 
@@ -32,20 +32,20 @@
   height: 26px;
   border-radius: 50%;
   background: var(--color-bg-sub);
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--color-text-sub);
 }
 
 .itemTitle {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--font-xl);
   font-weight: 700;
 }
 
 .body {
   margin: 12px 0 0 36px;
-  font-size: 14px;
+  font-size: var(--font-md);
   line-height: 1.7;
   color: var(--color-text-sub);
 }
@@ -53,8 +53,8 @@
 .skeleton {
   height: 120px;
   margin-top: 28px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -77,7 +77,7 @@
 @media (max-width: 600px) {
   .title {
     margin-top: 28px;
-    font-size: 21px;
+    font-size: var(--font-2xl);
   }
 
   .body {

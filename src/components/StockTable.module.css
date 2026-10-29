@@ -28,7 +28,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   background: var(--color-surface);
-  font-size: 14px;
+  font-size: var(--font-md);
   color: var(--color-text-sub);
 }
 
@@ -53,7 +53,7 @@
    */
   min-height: 56px;
   border-bottom: 1px solid var(--color-border);
-  font-size: 15px;
+  font-size: var(--font-base);
   transition: background 0.12s;
 }
 
@@ -121,11 +121,11 @@
 }
 
 .heart:hover {
-  color: var(--color-up);
+  color: var(--color-brand-700);
 }
 
 .heartOn {
-  color: var(--color-up);
+  color: var(--color-brand-700);
 }
 
 .name {
@@ -144,7 +144,7 @@
 }
 
 .nameLink:focus-visible::after {
-  outline: 2px solid var(--color-down);
+  outline: 2px solid var(--color-brand-700);
   outline-offset: -2px;
   border-radius: var(--radius-sm);
 }
@@ -165,12 +165,12 @@
 }
 
 .up {
-  color: var(--color-up);
+  color: var(--color-up-text);
   font-weight: 600;
 }
 
 .down {
-  color: var(--color-down);
+  color: var(--color-down-text);
   font-weight: 600;
 }
 
@@ -224,14 +224,14 @@
 
   .row {
     min-height: 52px;
-    font-size: 14px;
+    font-size: var(--font-md);
   }
 }
 
 .empty {
   margin: 0;
   padding: 40px 16px;
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--color-text-sub);
   text-align: center;
 }

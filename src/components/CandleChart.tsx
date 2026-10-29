@@ -9,14 +9,26 @@ import {
 import type { IChartApi, ISeriesApi } from 'lightweight-charts'
 import type { Candle } from '../types/stock'
 import { toDashedYmd, toKoreanDate } from '../utils/date'
+import { cssToken } from '../utils/cssToken'
 import { formatChangeRate, formatNumber, isFiniteNumber, isFlatRate } from '../utils/format'
 import styles from './CandleChart.module.css'
 
-/** 국내 시장 관례대로 오르면 빨강, 내리면 파랑 */
-const UP_COLOR = '#f04452'
-const DOWN_COLOR = '#3182f6'
-const UP_VOLUME_COLOR = 'rgba(240, 68, 82, 0.35)'
-const DOWN_VOLUME_COLOR = 'rgba(49, 130, 246, 0.35)'
+/**
+ * 캔버스에 넘길 색. 캔버스는 CSS 변수를 못 읽어 차트를 만들 때 index.css 토큰에서 꺼낸다(utils/cssToken).
+ * 국내 시장 관례대로 오르면 빨강, 내리면 파랑. 봉·막대는 그림이라 기본 등락색이다(글자는 -text — 아래 Legend)
+ */
+function readPalette() {
+  return {
+    up: cssToken('--color-up'),
+    down: cssToken('--color-down'),
+    upVolume: cssToken('--color-up-soft'),
+    downVolume: cssToken('--color-down-soft'),
+    surface: cssToken('--color-surface'),
+    textSub: cssToken('--color-text-sub'),
+    border: cssToken('--color-border'),
+    grid: cssToken('--color-chart-grid'),
+  }
+}
 
 /** 아래 거래량 칸이 차지할 높이 비율 */
 const VOLUME_PANE_RATIO = 0.26
@@ -63,6 +75,8 @@ export default function CandleChart({ candles }: Props) {
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const chartRef = useRef<IChartApi | null>(null)
+  /** 차트를 만들 때 읽어 둔 색. 거래량 막대를 칠할 때도 쓴다 */
+  const paletteRef = useRef<ReturnType<typeof readPalette> | null>(null)
 
   /** 크로스헤어가 가리키는 봉. 차트 밖으로 나가면 null이 되고 마지막 봉을 대신 보여준다 */
   const [hovered, setHovered] = useState<Point | null>(null)
@@ -78,29 +92,30 @@ export default function CandleChart({ candles }: Props) {
   useEffect(() => {
     const container = containerRef.current
     if (container === null) return
+    const palette = readPalette()
+    paletteRef.current = palette
 
     const chart = createChart(container, {
       autoSize: true,
-      // 색은 index.css의 --color-surface·--color-text-sub·--color-border와 같은 값이다(캔버스라 CSS 변수를 못 쓴다)
       layout: {
-        background: { type: ColorType.Solid, color: '#fff' },
-        textColor: '#857f75',
+        background: { type: ColorType.Solid, color: palette.surface },
+        textColor: palette.textSub,
         fontFamily: "'Pretendard', -apple-system, system-ui, sans-serif",
         fontSize: 12,
-        panes: { separatorColor: '#e8e3da', enableResize: false },
+        panes: { separatorColor: palette.border, enableResize: false },
         // 차트 안 로고는 거래량 막대 위에 얹혀 막대를 가렸다. 라이선스가 요구하는 출처·링크는 차트 아래에 적는다(아래 .credit)
         attributionLogo: false,
       },
       grid: {
-        vertLines: { color: '#f5f2ec' },
-        horzLines: { color: '#f5f2ec' },
+        vertLines: { color: palette.grid },
+        horzLines: { color: palette.grid },
       },
       rightPriceScale: {
-        borderColor: '#e8e3da',
+        borderColor: palette.border,
         scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
-        borderColor: '#e8e3da',
+        borderColor: palette.border,
         // 데이터 바깥의 빈 공간까지 밀려나가지 않도록 양끝을 막아 둔다
         fixLeftEdge: true,
         fixRightEdge: true,
@@ -123,12 +138,12 @@ export default function CandleChart({ candles }: Props) {
     })
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: UP_COLOR,
-      downColor: DOWN_COLOR,
-      borderUpColor: UP_COLOR,
-      borderDownColor: DOWN_COLOR,
-      wickUpColor: UP_COLOR,
-      wickDownColor: DOWN_COLOR,
+      upColor: palette.up,
+      downColor: palette.down,
+      borderUpColor: palette.up,
+      borderDownColor: palette.down,
+      wickUpColor: palette.up,
+      wickDownColor: palette.down,
       priceFormat: { type: 'custom', formatter: formatPriceTick, minMove: 1 },
     })
 
@@ -147,7 +162,7 @@ export default function CandleChart({ candles }: Props) {
     )
 
     volumeSeries.priceScale().applyOptions({
-      borderColor: '#e8e3da',
+      borderColor: palette.border,
       scaleMargins: { top: 0.2, bottom: 0 },
     })
 
@@ -191,7 +206,8 @@ export default function CandleChart({ candles }: Props) {
   useEffect(() => {
     const candleSeries = candleSeriesRef.current
     const volumeSeries = volumeSeriesRef.current
-    if (candleSeries === null || volumeSeries === null) return
+    const palette = paletteRef.current
+    if (candleSeries === null || volumeSeries === null || palette === null) return
 
     // 종목이 바뀌면 지난 종목의 봉이 남아 엉뚱한 값을 띄운다. 매번 새로 만든다
     pointsRef.current = new Map(
@@ -220,7 +236,7 @@ export default function CandleChart({ candles }: Props) {
               time: toDashedYmd(candle.date),
               value: candle.volume,
               color:
-                candle.close >= candle.open ? UP_VOLUME_COLOR : DOWN_VOLUME_COLOR,
+                candle.close >= candle.open ? palette.upVolume : palette.downVolume,
             }
           : { time: toDashedYmd(candle.date) },
       ),
@@ -279,12 +295,13 @@ function Legend({ point }: { point: Point }) {
       ? null
       : ((candle.close - prevClose) / prevClose) * 100
 
-  const rateColor =
+  // 글자라 대비가 맞는 -text 색이다(CandleChart.module.css .up·.down)
+  const rateClass =
     rate === null || isFlatRate(rate)
       ? undefined
       : rate > 0
-        ? UP_COLOR
-        : DOWN_COLOR
+        ? styles.up
+        : styles.down
 
   return (
     <div className={styles.legend}>
@@ -300,11 +317,11 @@ function Legend({ point }: { point: Point }) {
         저 <b>{legendPrice(candle.low)}</b>
       </span>
       <span>
-        종 <b style={{ color: rateColor }}>{legendPrice(candle.close)}</b>
+        종 <b className={rateClass}>{legendPrice(candle.close)}</b>
       </span>
 
       {rate !== null && (
-        <b style={{ color: rateColor }}>{formatChangeRate(rate)}</b>
+        <b className={rateClass}>{formatChangeRate(rate)}</b>
       )}
 
       <span className={styles.legendVolume}>

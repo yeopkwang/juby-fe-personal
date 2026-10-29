@@ -20,10 +20,10 @@
 
 .eyebrow {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
 }
 
 .image {
@@ -34,7 +34,7 @@
 
 .type {
   margin: 0;
-  font-size: 34px;
+  font-size: var(--font-4xl);
   font-weight: 800;
   letter-spacing: -0.03em;
 }
@@ -42,7 +42,7 @@
 /* 설명은 두 줄로 들어온다. 서버 문구에 줄바꿈이 없으면 그냥 이어져 흐른다 */
 .description {
   margin: 12px 0 0;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 500;
   line-height: 1.6;
   color: var(--color-text-sub);

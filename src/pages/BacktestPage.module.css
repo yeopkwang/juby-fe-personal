@@ -14,7 +14,7 @@
 /* 홈·AI·성향테스트와 같은 규격. 페이지마다 제목 크기가 다르면 화면을 옮길 때 눈이 흔들린다 */
 .title {
   margin: 0;
-  font-size: 34px;
+  font-size: var(--font-4xl);
   font-weight: 800;
   letter-spacing: -0.03em;
 }
@@ -36,7 +36,7 @@
 .myText {
   flex: 1;
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-md);
   line-height: 1.6;
 }
 
@@ -46,7 +46,7 @@
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 700;
 }
 
@@ -70,7 +70,7 @@
 /* 서버 목록 대신 기본 목록을 쓰는 중이라는 안내. 폼 바로 위에 한 줄 */
 .fallbackNote {
   margin: 16px 2px 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
@@ -84,7 +84,7 @@
   align-items: center;
   gap: 7px;
   margin-bottom: 8px;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 700;
 }
 
@@ -99,7 +99,7 @@
   border-radius: 50%;
   background: var(--color-text);
   color: var(--color-surface);
-  font-size: 11px;
+  font-size: var(--font-2xs);
   font-weight: 700;
 }
 
@@ -130,7 +130,7 @@
   color: var(--color-text);
   font: inherit;
   /* 16px 아래면 아이폰·아이패드 사파리가 누르는 순간 화면을 확대하고 되돌리지 않는다 */
-  font-size: 16px;
+  font-size: var(--font-lg);
 }
 
 .input:focus,
@@ -159,7 +159,7 @@
 .code {
   flex: 0 0 auto;
   padding-right: 8px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
   font-variant-numeric: tabular-nums;
 }
@@ -170,7 +170,7 @@
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--color-text);
 }
@@ -181,7 +181,7 @@
 
 .hint {
   margin: 8px 2px 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
@@ -216,7 +216,7 @@
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  font-size: 15px;
+  font-size: var(--font-base);
   text-align: left;
 }
 
@@ -239,7 +239,7 @@
   border-radius: var(--radius-md);
   background: var(--color-primary);
   color: var(--color-surface);
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 700;
   transition: background 0.15s;
 }
@@ -250,7 +250,7 @@
 
 .submitHint {
   margin: 10px 0 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
 
@@ -275,7 +275,7 @@
 
 .resultTitle {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--font-3xl);
   font-weight: 800;
 }
 
@@ -287,7 +287,7 @@
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 700;
 }
 
@@ -309,20 +309,20 @@
   align-items: baseline;
   gap: 4px 8px;
   margin: 0 0 20px;
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 700;
 }
 
 /* 제목 옆 단서. 제목만큼 중요하지 않아 크기와 색을 낮춘다 */
 .cardNote {
-  font-size: 12px;
+  font-size: var(--font-xs);
   font-weight: 500;
   color: var(--color-text-sub);
 }
 
-/* 한국식 색: 좋은 쪽이 빨강이다 */
+/* 잘 맞는 쪽은 브랜드 초록, 아닌 쪽은 본문 색. 빨강·파랑은 등락 전용이다 */
 .good {
-  color: var(--color-up);
+  color: var(--color-brand-700);
 }
 
 /* 중간은 색을 주지 않는다. 셋 다 물들이면 어느 쪽이 좋은 건지 되레 안 보인다 */
@@ -331,7 +331,7 @@
 }
 
 .bad {
-  color: var(--color-down);
+  color: var(--color-text);
 }
 
 /* ── 내 성향 ↔ 종목 성향 ───────────────────────────────────────────── */
@@ -347,7 +347,7 @@
 /* 결과에서 가장 먼저 읽혀야 하는 문장이라 본문보다 크게 둔다 */
 .story {
   margin: 0 0 20px;
-  font-size: 18px;
+  font-size: var(--font-xl);
   font-weight: 700;
   line-height: 1.6;
   text-align: center;
@@ -373,31 +373,31 @@
 }
 
 .matchLabel {
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
 
 .matchValue {
-  font-size: 22px;
+  font-size: var(--font-3xl);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .matchFrom {
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: var(--color-text-sub);
 }
 
 .matchSign {
   flex: 0 0 auto;
-  font-size: 20px;
+  font-size: var(--font-2xl);
   font-weight: 700;
   color: var(--color-text-sub);
 }
 
 .matchText {
   margin: 14px 0 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
   text-align: center;
@@ -425,12 +425,12 @@
 }
 
 .scoreLabel {
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
 
 .score {
-  font-size: 34px;
+  font-size: var(--font-4xl);
   font-weight: 800;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
@@ -439,13 +439,13 @@
 
 .scoreMax {
   margin-left: 4px;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 500;
   color: var(--color-text-sub);
 }
 
 .scoreVerdict {
-  font-size: 12px;
+  font-size: var(--font-xs);
   font-weight: 700;
   color: var(--color-text-sub);
 }
@@ -465,7 +465,7 @@
   align-items: baseline;
   gap: 6px;
   margin-bottom: 5px;
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 
 .axisName {
@@ -474,7 +474,7 @@
 
 .axisWeight {
   color: var(--color-text-sub);
-  font-size: 12px;
+  font-size: var(--font-xs);
 }
 
 .axisScore {
@@ -518,12 +518,12 @@
 }
 
 .metricLabel {
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: var(--color-text-sub);
 }
 
 .metricValue {
-  font-size: 22px;
+  font-size: var(--font-3xl);
   font-weight: 800;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -532,16 +532,16 @@
 
 /* 등락 색은 한국식이다 — 오르면 빨강, 내리면 파랑 */
 .up {
-  color: var(--color-up);
+  color: var(--color-up-text);
 }
 
 .down {
-  color: var(--color-down);
+  color: var(--color-down-text);
 }
 
 .metricDesc {
   margin-top: 2px;
-  font-size: 12px;
+  font-size: var(--font-xs);
   line-height: 1.5;
   color: var(--color-text-sub);
 }
@@ -553,7 +553,7 @@
   padding: 12px 14px;
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
@@ -585,20 +585,20 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 
 .crown {
   padding: 1px 6px;
   border-radius: var(--radius-pill);
-  background: var(--color-up);
+  background: var(--color-brand-700);
   color: var(--color-surface);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   font-weight: 700;
 }
 
 .rankScore {
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 700;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -607,7 +607,7 @@
 .barFillTop {
   height: 100%;
   border-radius: var(--radius-pill);
-  background: var(--color-up);
+  background: var(--color-brand-700);
 }
 
 .notes {
@@ -620,7 +620,7 @@
 }
 
 .notes li {
-  font-size: 14px;
+  font-size: var(--font-md);
   line-height: 1.6;
 }
 
@@ -634,13 +634,13 @@
 
 .meta {
   margin: 22px 0 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
 
 .sample {
   margin: 8px 0 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
 
@@ -656,7 +656,7 @@
 
 .guideTitle {
   margin: 0 0 14px;
-  font-size: 19px;
+  font-size: var(--font-2xl);
   font-weight: 800;
   line-height: 1.4;
 }
@@ -679,7 +679,7 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 10px;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 700;
 }
 
@@ -688,14 +688,14 @@
   padding: 2px 7px;
   border-radius: var(--radius-pill);
   background: var(--color-bg-sub);
-  font-size: 11px;
+  font-size: var(--font-2xs);
   font-weight: 500;
   color: var(--color-text-sub);
 }
 
 .guideBody {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.65;
   color: var(--color-text-sub);
 }
@@ -745,12 +745,12 @@
 }
 
 .strategyName {
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 700;
 }
 
 .strategyDesc {
-  font-size: 12px;
+  font-size: var(--font-xs);
   line-height: 1.55;
   color: var(--color-text-sub);
 }
@@ -761,7 +761,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-text);
   color: var(--color-surface);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -780,19 +780,19 @@
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--font-xs);
   line-height: 1.5;
   color: var(--color-text-sub);
 }
 
-/* 매수 빨강, 매도 파랑 — 표와 차트에서 쓰는 한국식 색과 같게 */
+/* 매수·매도는 사고파는 방향이지 등락이 아니라 빨강·파랑을 쓰지 않는다. 굵기로만 가른다 */
 .buy {
-  color: var(--color-up);
+  color: var(--color-text);
   font-weight: 700;
 }
 
 .sell {
-  color: var(--color-down);
+  color: var(--color-text);
   font-weight: 700;
 }
 
@@ -831,7 +831,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 4px 10px;
   margin: 10px 0 0;
-  font-size: 12px;
+  font-size: var(--font-xs);
   line-height: 1.55;
 }
 
@@ -848,7 +848,7 @@
 
 @media (max-width: 900px) {
   .title {
-    font-size: 27px;
+    font-size: var(--font-3xl);
   }
 
   .layout {
@@ -880,7 +880,7 @@
 
 @media (max-width: 600px) {
   .title {
-    font-size: 23px;
+    font-size: var(--font-3xl);
   }
 
   .myBanner {
@@ -899,7 +899,7 @@
   }
 
   .resultTitle {
-    font-size: 21px;
+    font-size: var(--font-2xl);
   }
 
   /* 점수 옆 한 줄 평가가 "비교적 잘 맞아/요"로 꺾이지 않게 한다. 자리가 없으면 통째로 다음 줄로 */
@@ -927,11 +927,11 @@
   }
 
   .metricValue {
-    font-size: 20px;
+    font-size: var(--font-2xl);
   }
 
   .story {
-    font-size: 16px;
+    font-size: var(--font-lg);
   }
 
   .axes {
@@ -963,13 +963,13 @@
   }
 
   .rankName {
-    font-size: 12px;
+    font-size: var(--font-xs);
     white-space: nowrap;
   }
 
   .crown {
     padding: 1px 4px;
-    font-size: 9px;
+    font-size: var(--font-2xs);
   }
 }
 
@@ -987,18 +987,18 @@
 
 .loadingBox {
   color: var(--color-text-sub);
-  font-size: 14px;
+  font-size: var(--font-md);
 }
 
 .errorText {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 700;
 }
 
 .errorHint {
   margin: 8px 0 0;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
 
@@ -1008,7 +1008,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 700;
 }
 
