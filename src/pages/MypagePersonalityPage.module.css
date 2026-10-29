@@ -47,37 +47,16 @@
 }
 
 .primary {
+  composes: primary lg from '../components/buttons.module.css';
   min-width: 180px;
   margin-top: 26px;
-  padding: 12px 40px;
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  font-size: var(--font-base);
-  font-weight: 700;
-  color: var(--color-surface);
-  transition: background 0.15s;
-}
-
-.primary:hover {
-  background: var(--color-primary-hover);
 }
 
 /* 카드 아래 주 버튼. 결과 화면의 '완료'와 같은 자리, 같은 무게 */
 .retest {
+  composes: primary lg from '../components/buttons.module.css';
   min-width: 180px;
   margin-top: 26px;
-  padding: 12px 40px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  font-size: var(--font-base);
-  font-weight: 700;
-  color: var(--color-surface);
-  transition: background 0.15s;
-}
-
-.retest:hover {
-  background: var(--color-primary-hover);
 }
 
 @media (max-width: 600px) {

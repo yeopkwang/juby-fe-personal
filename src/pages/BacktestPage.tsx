@@ -690,7 +690,7 @@ export default function BacktestPage() {
               )}
               {result.needsLogin ? (
                 <Link
-                  className={`${styles.errorRetry} ${styles.errorLogin}`}
+                  className={styles.errorLogin}
                   to={loginPathFrom('/backtest')}
                 >
                   로그인하기
@@ -1077,7 +1077,7 @@ function BacktestResult({
                     </span>
                     <div className={styles.bar}>
                       <div
-                        className={isTop(item) ? styles.barFillTop : styles.barFill}
+                        className={isTop(item) ? styles.barFillTop : styles.barFillRest}
                         style={{ width: `${item.score}%` }}
                       />
                     </div>

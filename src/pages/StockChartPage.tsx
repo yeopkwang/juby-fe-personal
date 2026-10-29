@@ -502,7 +502,7 @@ function QuickActions({
         </button>
         <button
           type="button"
-          className={`${styles.quickButton} ${styles.quickPrimary}`}
+          className={styles.quickPrimary}
           disabled={stock === null}
           onClick={() => {
             if (stock !== null) onBacktest(stock)
@@ -666,7 +666,7 @@ function PriceSection({
               aria-selected={tab.period === period}
               className={
                 tab.period === period
-                  ? `${styles.periodTab} ${styles.periodTabActive}`
+                  ? styles.periodTabActive
                   : styles.periodTab
               }
               onClick={() => onPeriodChange(tab.period)}

@@ -4,6 +4,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+  /* 카드는 테두리 + 아주 옅은 그림자. 눌러 볼 카드라 마우스를 올리면 떠 있는 층 그림자로 바뀐다 */
+  box-shadow: var(--shadow-card);
   transition: box-shadow 0.15s, transform 0.15s;
 }
 

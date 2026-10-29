@@ -20,12 +20,15 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   align-self: start;
+  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
+  box-shadow: var(--shadow-card);
 }
 
 .list {
   margin: 0;
   padding: 0;
   list-style: none;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .item {
@@ -45,22 +48,23 @@
 
 .itemOn,
 .itemOn:hover {
-  background: var(--color-bg-sub);
+  background: var(--color-brand-50);
   font-weight: 700;
+  color: var(--color-brand-800);
 }
 
 /*
  * 메뉴 셋과 같은 줄 높이·여백을 쓰되 글씨만 보조색으로 낮춘다.
  * 선을 굵게 긋는 대신 색으로 구분하는 이유: 로그아웃은 자주 쓰는 길이 아니라서
  * 눈에 먼저 들어오면 안 되고, 굵은 선은 사이드바를 두 덩어리로 갈라 보이게 한다.
- * (목록 마지막 항목은 border-bottom이 0이라 여기 border-top 하나만 그어진다)
+ * 메뉴와 로그아웃 사이 선은 목록(.list)의 아래 테두리다 — 단추에 테두리를 달면 ghost 단추 모양에서 벗어난다
  */
 .logout {
   display: block;
   width: 100%;
+  min-height: 44px;
   padding: 12px 16px;
   border: 0;
-  border-top: 1px solid var(--color-border);
   background: none;
   font-size: var(--font-md);
   text-align: left;
@@ -82,6 +86,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
+  box-shadow: var(--shadow-card);
 }
 
 @media (max-width: 900px) {
@@ -130,7 +136,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 40px;
+    min-height: 44px;
     padding: 0 10px;
     border: 0;
     border-radius: var(--radius-sm);
@@ -143,8 +149,8 @@
 
   .itemOn,
   .itemOn:hover {
-    background: var(--color-primary);
-    color: var(--color-surface);
+    background: var(--color-brand-700);
+    color: var(--color-text-on-brand);
   }
 
   .logout {
@@ -152,7 +158,6 @@
     min-height: 44px;
     margin-left: auto;
     padding: 0 8px;
-    border-top: 0;
     border-radius: var(--radius-sm);
   }
 }

@@ -5,6 +5,8 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   align-self: start;
+  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
+  box-shadow: var(--shadow-card);
 }
 
 /* 예전엔 회색 띠였다. 아이보리 바탕과 겹쳐 탁해 보여 흰 머리에 아래 선 하나로 가른다 */
@@ -21,20 +23,9 @@
 
 /* 새 대화는 이 목록의 주된 동작이다. 예전엔 작은 회색 글자라 버튼으로 보이지 않았다 */
 .newChat {
+  composes: secondary md from './buttons.module.css';
   width: 100%;
-  min-height: 40px;
-  margin-top: 12px;
-  padding: 0 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  font-size: var(--font-md);
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.newChat:hover {
-  border-color: var(--color-border-strong);
+  margin-top: var(--space-3);
 }
 
 .list {
@@ -217,37 +208,13 @@
   margin-top: 24px;
 }
 
-.danger,
-.cancel {
-  height: 48px;
-  border: none;
-  border-radius: var(--radius-md);
-  font: inherit;
-  font-size: var(--font-lg);
-  font-weight: 600;
-}
-
+/* 확인 상자의 확정 단추(지우기). 빨강은 상승으로 읽혀 쓰지 않는다 — 되돌릴 수 없다는 건 상자 글이 알린다 */
 .danger {
-  background: var(--color-primary);
-  color: var(--color-surface);
-}
-
-.danger:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-.danger:disabled {
-  background: var(--color-disabled-bg);
-  cursor: default;
+  composes: primary lg from './buttons.module.css';
 }
 
 .cancel {
-  background: none;
-  color: var(--color-text-sub);
-}
-
-.cancel:disabled {
-  cursor: default;
+  composes: secondary lg from './buttons.module.css';
 }
 
 /* 좁은 화면에서만 쓰는 접기 단추 */
@@ -295,19 +262,10 @@
     border-bottom: 0;
   }
 
-  /* 접힌 줄 오른쪽 끝의 작은 테두리 단추. 머리 높이(44px) 안에 들어가게 줄이고, 누르는 넓이는 투명한 덧댐으로 44px을 지킨다 */
+  /* 접힌 줄 오른쪽 끝의 작은 테두리 단추. 머리 높이(44px)를 그대로 쓴다 */
   .newChat {
-    position: relative;
     width: auto;
-    min-height: 34px;
-    margin: 5px 0;
-    font-size: var(--font-sm);
-  }
-
-  .newChat::after {
-    content: '';
-    position: absolute;
-    inset: -5px 0;
+    margin: 0;
   }
 
   .sidebar:has(.toggle[aria-expanded='true']) .head {

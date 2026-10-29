@@ -132,7 +132,7 @@ export default function NewsList({ stockCode }: Props) {
               key={tab.key}
               type="button"
               className={
-                sort === tab.key ? `${styles.tab} ${styles.tabActive}` : styles.tab
+                sort === tab.key ? styles.tabActive : styles.tab
               }
               onClick={() => setSort(tab.key)}
               aria-pressed={sort === tab.key}

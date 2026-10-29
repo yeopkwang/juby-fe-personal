@@ -1,15 +1,15 @@
 /*
- * 바탕(아이보리)은 body가 칠한다. 예전엔 여기서 1200px 흰 판을 깔아 판 안의 카드·표가 흰 바탕 위 흰색이었다.
- * 머리글은 화면 끝까지 흰 띠로 두고(Header.module.css), 본문만 가운데 1200px 안에 놓는다
+ * 바탕은 body가 칠한다. 예전엔 여기서 1200px 흰 판을 깔아 판 안의 카드·표가 흰 바탕 위 흰색이었다.
+ * 머리글은 화면 끝까지 초록 띠로 두고(Header.module.css), 본문만 가운데 --content-max 안에 놓는다
  */
 .page {
   min-height: 100vh;
 }
 
 .main {
-  max-width: 1200px;
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: 0 80px 80px;
+  padding: 0 var(--space-20) var(--space-20);
 }
 
 /*
@@ -26,12 +26,12 @@
  */
 @media (max-width: 900px) {
   .main {
-    padding: 0 32px 56px;
+    padding: 0 var(--space-8) var(--space-14);
   }
 }
 
 @media (max-width: 600px) {
   .main {
-    padding: 0 16px 40px;
+    padding: 0 var(--space-4) var(--space-10);
   }
 }

@@ -1,19 +1,22 @@
-/* 로고 | 서비스 메뉴 | 계정 메뉴. 로고 칸(1fr)이 남는 폭을 다 가져가 메뉴 두 벌이 오른쪽 끝에 붙는다 */
+/*
+ * 머리글은 진한 초록 띠다(리디자인 B안, 2026-10-29 사용자 결정). 브랜드를 넓게 칠하는 건 여기 한 곳뿐이다.
+ * 로고 | 서비스 메뉴 | 계정 메뉴. 로고 칸(1fr)이 남는 폭을 다 가져가 메뉴 두 벌이 오른쪽 끝에 붙는다
+ */
 .header {
   display: grid;
   grid-template-columns: 1fr auto auto;
   grid-template-areas: 'logo service account';
-  align-items: center;
+  /* 메뉴 링크가 띠 높이를 다 채운다 — 누르는 넓이가 띠 높이(68px)다 */
+  align-items: stretch;
   /* 메뉴 사이 간격과 같게 해서 서비스·계정 메뉴가 한 줄로 이어 보이게 한다 */
   column-gap: 28px;
-  height: 76px;
+  height: 68px;
   /*
-   * 흰 띠는 화면 끝까지 칠하고, 로고·메뉴는 본문(App.module.css .main, 가운데 1200px에 좌우 80px)과 같은 줄에 세운다.
-   * 넓은 화면에서는 (화면 폭 - 1200px) / 2 만큼 더 들인다
+   * 띠는 화면 끝까지 칠하고, 로고·메뉴는 본문(App.module.css .main)과 같은 줄에 세운다.
+   * 넓은 화면에서는 (화면 폭 - 본문 최대 폭) / 2 만큼 더 들인다
    */
-  padding: 0 max(80px, calc((100% - 1200px) / 2 + 80px));
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  padding: 0 max(var(--space-20), calc((100% - var(--content-max)) / 2 + var(--space-20)));
+  background: var(--color-brand-900);
 }
 
 .service {
@@ -27,30 +30,42 @@
 .menu {
   display: flex;
   gap: 28px;
-  font-size: var(--font-lg);
+  font-size: var(--font-base);
   white-space: nowrap;
 }
 
+/* 띠 위의 글자: 연초록(8.3:1), 지금 화면은 흰색에 아래 막대 */
 .menu a {
-  /* 손가락으로 누르는 넓이를 44px로 넓힌다(애플 권장). 넓힌 만큼 바깥 여백을 빼서 배치는 그대로다 */
+  position: relative;
+  display: flex;
+  /* 아래 ::after(굵은 글자 폭 잡기)가 글자 밑에 높이 0으로 들어간다 — 옆으로 붙으면 폭이 두 배가 된다 */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-width: 44px;
-  padding: 15px 5px;
-  margin: -15px -5px;
-  /* 글자가 44px보다 짧으면('홈') 남는 넓이를 왼쪽 빈자리로 보낸다. 메뉴 사이 간격은 그대로다 */
-  text-align: right;
-  /* 다른 화면은 회색. 보조 글자색(--color-text-sub, 4.0)은 메뉴 글자에 모자라 한 단계 진한 회색(5.7)을 쓴다 */
   font-weight: 500;
-  color: var(--color-text-sub);
+  color: var(--color-brand-100);
 }
 
 .menu a:hover {
-  color: var(--color-text);
+  color: var(--color-text-on-brand);
 }
 
 /* 지금 보고 있는 화면 */
 .menu a[aria-current='page'] {
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-text-on-brand);
+}
+
+.menu a[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--color-brand-300);
 }
 
 /* 굵은 글자 폭을 미리 잡아 둔다. 화면을 옮겨 굵기가 바뀌어도 메뉴가 밀리지 않는다(Header.tsx MenuLink) */
@@ -65,42 +80,50 @@
   font-weight: 700;
 }
 
+/* 진한 띠 위에서는 브랜드 초록 테두리가 안 보인다. 흰 테두리를 안쪽으로 그린다 */
+.header a:focus-visible {
+  outline: 2px solid var(--color-text-on-brand);
+  outline-offset: -2px;
+}
+
 /* Michroma는 굵기가 400 하나뿐이고 글자폭이 넓어서 크기와 자간을 따로 잡는다 */
 .logo {
   grid-area: logo;
+  align-self: center;
   justify-self: start;
+  padding: var(--space-2) 0;
   font-family: 'Michroma', sans-serif;
   font-size: var(--font-3xl);
   font-weight: 400;
   letter-spacing: 0.01em;
+  color: var(--color-text-on-brand);
 }
 
 @media (max-width: 900px) {
   .header {
     column-gap: 18px;
-    padding: 0 32px;
+    padding: 0 var(--space-8);
   }
 
   .menu {
     gap: 18px;
-    font-size: var(--font-base);
   }
 }
 
 /*
  * 한 줄에 로고와 메뉴 다섯이 다 들어가지 않는다(320px에서는 메뉴만으로도 넘친다).
- * 윗줄에 로고와 계정 메뉴를 양끝에 두고, 서비스 메뉴 넷을 아랫줄에 놓는다.
+ * 윗줄(52px)에 로고와 계정 메뉴를 양끝에 두고, 서비스 메뉴 넷을 아랫줄(44px)에 놓는다. 링크가 줄 높이를 다 채워
+ * 누르는 넓이가 44px 이상이고, 두 줄이 겹치지 않는다
  */
 @media (max-width: 600px) {
   .header {
     grid-template-columns: 1fr auto;
+    grid-template-rows: 52px 44px;
     grid-template-areas:
       'logo account'
       'service service';
-    /* 윗줄 계정 메뉴와 아랫줄 메뉴의 누르는 넓이(위아래 12px)가 겹치지 않을 만큼 둔다 */
-    row-gap: 18px;
     height: auto;
-    padding: 14px 16px;
+    padding: 0 var(--space-4);
   }
 
   .logo {
@@ -112,20 +135,8 @@
     font-size: var(--font-sm);
   }
 
-  .menu a {
-    padding: 12px 5px;
-    margin: -12px -5px;
-  }
-
-  /*
-   * 아랫줄 첫 칸이라 왼쪽에 빈자리가 없다. 머리글 왼쪽 여백(16px)과 다음 메뉴 사이 틈으로 넓힌다.
-   * 다음 메뉴의 누르는 넓이(5px)와 겹치지 않게 메뉴 간격(22px)을 잡았다.
-   * `.menu a`의 min-width·오른쪽 정렬을 이겨야 해서 같은 무게로 적는다 — 지면 글자가 오른쪽으로 밀린다
-   */
+  /* 아랫줄 첫 칸은 왼쪽 여백 쪽으로 붙인다(글자가 44px보다 짧은 '홈') */
   .menu .home {
-    min-width: 0;
-    text-align: left;
-    padding: 12px 17px 12px 16px;
-    margin: -12px -17px -12px -16px;
+    align-items: flex-start;
   }
 }

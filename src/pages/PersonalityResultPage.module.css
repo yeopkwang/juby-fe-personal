@@ -17,20 +17,9 @@
 }
 
 .done {
+  composes: primary lg from '../components/buttons.module.css';
   min-width: 180px;
   margin-top: 26px;
-  padding: 12px 40px;
-  border: 0;
-  background: var(--color-primary);
-  border-radius: var(--radius-md);
-  font-size: var(--font-base);
-  font-weight: 700;
-  color: var(--color-surface);
-  transition: background 0.15s;
-}
-
-.done:hover {
-  background: var(--color-primary-hover);
 }
 
 /* 주 버튼 아래 보조 링크. 다시 푸는 쪽은 눈에 덜 띄어야 한다 */

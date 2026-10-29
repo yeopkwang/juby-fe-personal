@@ -1,0 +1,105 @@
+/*
+ * 단추 세 종류(2026-10-29). 화면 CSS는 `composes: primary lg from '../components/buttons.module.css'`처럼 가져다 쓰고,
+ * 자리(폭·바깥 여백)만 따로 정한다 — 색·테두리·높이·모서리는 여기서만 정한다.
+ *
+ * - primary: 브랜드 초록 채움에 흰 글자(5.0:1). 한 화면의 주 행동. 고른 칸(기간 탭·정렬)도 이 모양이다.
+ * - secondary: 흰 바탕 + 테두리. 보조 행동, 되돌릴 수 없는 동작의 확정 단추.
+ * - ghost: 바탕·테두리 없음. 줄 안의 작은 동작(하트·정렬·메뉴).
+ *
+ * 높이는 md 40px·lg 48px이고 모서리는 같다. 600px 이하에서 md는 44px로 키운다(손가락으로 누르는 넓이).
+ */
+.base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.base:focus-visible {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: 2px;
+}
+
+.base:disabled,
+.base[aria-disabled='true'] {
+  border-color: transparent;
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+}
+
+.md {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  font-size: var(--font-md);
+}
+
+.lg {
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  font-size: var(--font-lg);
+}
+
+@media (max-width: 600px) {
+  .md {
+    min-height: 44px;
+  }
+}
+
+.primary {
+  composes: base;
+  background: var(--color-brand-700);
+  color: var(--color-text-on-brand);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-brand-800);
+}
+
+.primary:active:not(:disabled) {
+  background: var(--color-brand-900);
+}
+
+.secondary {
+  composes: base;
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-hover);
+}
+
+.secondary:active:not(:disabled) {
+  background: var(--color-bg-sub);
+}
+
+.ghost {
+  composes: base;
+  background: transparent;
+  color: var(--color-text-sub);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.ghost:active:not(:disabled) {
+  background: var(--color-bg-sub);
+}
+
+.ghost:disabled {
+  background: transparent;
+}

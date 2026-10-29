@@ -103,6 +103,15 @@
   --space-12: 48px;
   --space-14: 56px;
   --space-20: 80px;
+
+  /* 본문(App.module.css .main) 상자의 최대 폭. 좌우 여백(--space-20)이 이 안에 든다. 머리글도 이 줄에 맞춘다 */
+  --content-max: 1200px;
+}
+
+/* 키보드로 옮겨 간 자리는 늘 보이게 한다. 진한 바탕(머리글 띠)이나 입력칸 상자처럼 따로 그리는 곳은 그 화면 CSS가 덮는다 */
+:focus-visible {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: 2px;
 }
 
 * {

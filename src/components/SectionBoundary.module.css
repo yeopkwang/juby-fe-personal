@@ -8,6 +8,8 @@
   border-radius: var(--radius-md);
   background: var(--color-surface);
   text-align: center;
+  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
+  box-shadow: var(--shadow-card);
 }
 
 .text {
@@ -17,11 +19,5 @@
 }
 
 .retry {
-  padding: 9px 20px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: var(--color-surface);
-  font-size: var(--font-md);
-  font-weight: 600;
+  composes: primary md from './buttons.module.css';
 }

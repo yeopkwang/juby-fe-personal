@@ -31,6 +31,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
+  box-shadow: var(--shadow-card);
 }
 
 .myText {
@@ -41,24 +43,8 @@
 }
 
 .myAction {
+  composes: secondary md from '../components/buttons.module.css';
   flex: 0 0 auto;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  font-size: var(--font-sm);
-  font-weight: 700;
-}
-
-.myAction {
-  /* 링크와 단추가 같은 모양을 쓴다(다시 시도는 단추) */
-  color: inherit;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.myAction:hover {
-  border-color: var(--color-border-strong);
 }
 
 /* ── 입력 ──────────────────────────────────────────────────────────── */
@@ -116,8 +102,10 @@
   transition: border-color 0.15s;
 }
 
+/* 입력칸 상자의 포커스. 안쪽 입력칸은 테두리를 지우고(아래) 상자가 브랜드 테두리와 옅은 둘레로 알린다 */
 .control:focus-within {
-  border-color: var(--color-border-strong);
+  border-color: var(--color-brand-700);
+  box-shadow: 0 0 0 3px var(--color-brand-100);
 }
 
 .input,
@@ -165,18 +153,8 @@
 }
 
 .reset {
+  composes: ghost md from '../components/buttons.module.css';
   flex: 0 0 auto;
-  padding: 6px 12px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  font-size: var(--font-sm);
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.reset:hover {
-  background: var(--color-bg-sub);
 }
 
 .hint {
@@ -212,7 +190,8 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 10px 12px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -221,7 +200,7 @@
 }
 
 .match:hover {
-  background: var(--color-bg-sub);
+  background: var(--color-bg-hover);
 }
 
 /* ── 실행 버튼 ──────────────────────────────────────────────────────── */
@@ -233,31 +212,14 @@
 
 /* 다음에 할 일이 하나뿐인 자리라 폭을 채워 눈에 먼저 걸리게 한다 */
 .submit {
+  composes: primary lg from '../components/buttons.module.css';
   width: 100%;
-  padding: 15px 28px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: var(--color-surface);
-  font-size: var(--font-lg);
-  font-weight: 700;
-  transition: background 0.15s;
-}
-
-.submit:hover:not(:disabled) {
-  background: var(--color-primary-hover);
 }
 
 .submitHint {
   margin: 10px 0 0;
   font-size: var(--font-sm);
   color: var(--color-text-sub);
-}
-
-.submit:disabled {
-  background: var(--color-disabled-bg);
-  color: var(--color-disabled-text);
-  cursor: not-allowed;
 }
 
 /* ── 결과 ──────────────────────────────────────────────────────────── */
@@ -281,18 +243,8 @@
 
 /* 결과를 지우고 처음으로 돌리는 보조 동작. 바로 위 '백테스트 시작하기'와 같은 검정이면 주 버튼이 둘로 보였다 */
 .retry {
+  composes: secondary md from '../components/buttons.module.css';
   flex: 0 0 auto;
-  padding: 10px 18px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-md);
-  font-weight: 700;
-}
-
-.retry:hover {
-  border-color: var(--color-border-strong);
 }
 
 .card {
@@ -301,6 +253,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
+  box-shadow: var(--shadow-card);
 }
 
 .cardTitle {
@@ -342,6 +296,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
+  box-shadow: var(--shadow-card);
 }
 
 /* 결과에서 가장 먼저 읽혀야 하는 문장이라 본문보다 크게 둔다 */
@@ -490,10 +446,18 @@
   overflow: hidden;
 }
 
+/* 축 점수 막대. 적합도·점수는 초록 하나의 농도로 나타낸다(빨강·파랑은 등락 전용) */
 .barFill {
   height: 100%;
   border-radius: var(--radius-pill);
-  background: var(--color-text);
+  background: var(--color-brand-700);
+}
+
+/* 다섯 성향 비교에서 1위가 아닌 막대. 1위(.barFillTop)보다 옅은 초록이다 */
+.barFillRest {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-300);
 }
 
 /* ── 지표 카드 ─────────────────────────────────────────────────────── */
@@ -666,6 +630,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
+  box-shadow: var(--shadow-card);
 }
 
 .guideSection + .guideSection {
@@ -732,9 +698,11 @@
 }
 
 /* 고른 것은 테두리를 굵게 해서 목록에서 바로 튀어나오게 한다 */
+/* 고른 전략: 브랜드 테두리 두 겹에 옅은 초록 바탕 */
 .strategyOn {
-  border-color: var(--color-text);
-  box-shadow: inset 0 0 0 1px var(--color-text);
+  border-color: var(--color-brand-700);
+  background: var(--color-brand-50);
+  box-shadow: inset 0 0 0 1px var(--color-brand-700);
 }
 
 .strategyTop {
@@ -759,8 +727,8 @@
   margin-left: auto;
   padding: 2px 7px;
   border-radius: var(--radius-pill);
-  background: var(--color-text);
-  color: var(--color-surface);
+  background: var(--color-brand-100);
+  color: var(--color-brand-800);
   font-size: var(--font-2xs);
   font-weight: 700;
   white-space: nowrap;
@@ -983,6 +951,8 @@
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   text-align: center;
+  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
+  box-shadow: var(--shadow-card);
 }
 
 .loadingBox {
@@ -1003,21 +973,13 @@
 }
 
 .errorRetry {
-  margin-top: 16px;
-  padding: 10px 18px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  font-size: var(--font-md);
-  font-weight: 700;
-}
-
-.errorRetry:hover {
-  border-color: var(--color-border-strong);
+  composes: secondary md from '../components/buttons.module.css';
+  margin-top: var(--space-4);
 }
 
 /* 다시 시도 자리에 두는 로그인 링크. 단추와 같은 모양으로 보이게 */
+/* 비로그인 결과 자리의 "로그인하기". 다시 시도 대신 놓이는 주 행동이다 */
 .errorLogin {
-  display: inline-block;
-  color: var(--color-text);
+  composes: primary md from '../components/buttons.module.css';
+  margin-top: var(--space-4);
 }
