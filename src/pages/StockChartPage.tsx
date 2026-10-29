@@ -411,6 +411,11 @@ export default function StockChartPage() {
         여기(StockChartPage) 렌더에서 계산하면 경계를 지나쳐 화면 전체가 오류 화면이 된다.
       */}
       {/* 종목이 바뀌면 앞 종목에서 멈춘 상태를 푼다 */}
+      {/*
+        넓은 화면(1600px 이상)은 가격 구역 | 뉴스 두 열이다. 가격 구역 안이 다시 정보 열 | 차트로 나뉘어 화면에는 세 열로 보인다
+        (2026-10-30 재정비 — 16:9에서 좌우가 비어 보이고 뉴스가 첫 화면에 안 보였다). 그보다 좁으면 뉴스가 아래로 내려간다
+      */}
+      <div className={styles.layout}>
       <SectionBoundary
         resetKey={stockCode}
         onRetry={retry}
@@ -430,9 +435,10 @@ export default function StockChartPage() {
         />
       </SectionBoundary>
 
-      <section className={styles.section}>
+      <section className={styles.newsColumn}>
         <NewsList stockCode={stockCode} />
       </section>
+      </div>
 
       {/* 홈 하트와 같은 안내. 로그인하면 이 상세로 돌아온다 */}
       <Modal
@@ -458,7 +464,7 @@ export default function StockChartPage() {
   )
 }
 
-/** 관심종목 토글. 종목명 옆의 아이콘 단추다 */
+/** 관심종목 토글. 종목명 줄 오른쪽 끝의 작은 테두리 단추(하트 + "관심종목")다 */
 function LikeToggle({ like, onToggle }: { like: LikeView; onToggle: () => void }) {
   const liked = like.kind === 'ready' && like.liked
   return (
@@ -471,7 +477,7 @@ function LikeToggle({ like, onToggle }: { like: LikeView; onToggle: () => void }
       aria-pressed={liked}
       aria-label={liked ? '관심종목 해제' : '관심종목 추가'}
     >
-      <svg width="22" height="22" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} aria-hidden="true">
         <path
           d="M12 20.3 4.1 12.4a4.9 4.9 0 0 1 6.9-6.9l1 1 1-1a4.9 4.9 0 0 1 6.9 6.9z"
           stroke="currentColor"
@@ -479,54 +485,27 @@ function LikeToggle({ like, onToggle }: { like: LikeView; onToggle: () => void }
           strokeLinejoin="round"
         />
       </svg>
+      {/* 보이는 글은 이름("관심종목 추가/해제")에 들어 있다 */}
+      관심종목
     </button>
   )
 }
 
-/** 바로 가기 두 줄. 백테스트가 주 행동이라 브랜드로 강조한다 */
+/** 바로 가기 두 단추. 백테스트가 주 행동이라 브랜드 초록으로 채우고, AI는 먹 테두리다(2026-10-30 재정비, 시안 B) */
 const ACTIONS = [
   {
     to: '/backtest',
     name: '이 종목 백테스트',
     desc: '전략을 과거 주가에 적용해 점수로 보여드려요',
     primary: true,
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 19h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        <path
-          d="M5 15.5 9.5 11l3 3L19 7.5M15 7.5h4v4"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
   },
   {
     to: '/ai',
     name: 'AI에게 물어보기',
     desc: '왜 올랐는지, 나와 맞는지 물어보세요',
     primary: false,
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path
-          d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-7.5L7 20.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-        />
-        <path d="M8.5 11.2h.01M12 11.2h.01M15.5 11.2h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-      </svg>
-    ),
   },
 ] as const
-
-const CHEVRON = (
-  <svg className={styles.chevron} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
 
 interface ActionPanelProps {
   title: string
@@ -537,7 +516,7 @@ interface ActionPanelProps {
 }
 
 /**
- * 오른쪽 열의 바로 가기 카드. 줄 전체가 링크다 — 이 종목을 실어 그 화면으로 가서 곧바로 실행한다
+ * 정보 열의 바로 가기 두 단추. 단추가 곧 링크다 — 이 종목을 실어 그 화면으로 가서 곧바로 실행한다
  * (받는 화면이 한 번만 읽는다 — hooks/useStockHandoff). DB·서버 AI만 쓰고 증권사를 부르지 않는다.
  * 비로그인은 두 화면 다 결과를 못 보므로 "로그인 필요"를 달고 로그인으로 보낸다
  */
@@ -545,7 +524,8 @@ function ActionPanel({ title, stock, loginPath }: ActionPanelProps) {
   const titleId = useId()
   return (
     <section className={styles.actionPanel} aria-labelledby={titleId}>
-      <h2 id={titleId} className={styles.actionTitle}>
+      {/* 제목은 읽어 주는 기기에만 둔다 — 화면에서는 종목명과 단추 글이 이미 말한다 */}
+      <h2 id={titleId} className={styles.visuallyHidden}>
         {title}
       </h2>
       <ul className={styles.actionList}>
@@ -572,20 +552,18 @@ function ActionRow({
   const descId = useId()
   const content = (
     <>
-      <span className={styles.actionIcon}>{action.icon}</span>
-      <span className={styles.actionText}>
-        <span id={nameId} className={styles.actionName}>
-          {action.name}
-          {loginPath !== null && <span className={styles.actionBadge}>로그인 필요</span>}
-        </span>
-        <span id={descId} className={styles.actionDesc}>
-          {action.desc}
-        </span>
+      <span id={nameId} className={styles.actionName}>
+        {action.name}
+        {loginPath !== null && <span className={styles.actionBadge}>로그인 필요</span>}
       </span>
-      {CHEVRON}
+      {/* 설명 한 줄은 읽어 주는 기기에만 들린다(aria-describedby). 화면에서는 단추 글이 할 일을 말한다 */}
+      <span id={descId} className={styles.visuallyHidden}>
+        {action.desc}
+      </span>
     </>
   )
-  const className = action.primary ? `${styles.actionRow} ${styles.actionRowPrimary}` : styles.actionRow
+  // 단추 모양은 한 종류만 단다 — primary·secondary를 같이 달면 뒤에 정의된 쪽이 바탕을 덮는다
+  const className = action.primary ? styles.actionRowPrimary : styles.actionRow
   // 이름은 제목(과 배지), 설명은 따로 읽힌다 — 줄 전체 글이 이름이 되면 길어서 무엇인지 늦게 들린다
   const a11y = { 'aria-labelledby': nameId, 'aria-describedby': descId }
 
@@ -598,7 +576,7 @@ function ActionRow({
   }
   if (stock === null) {
     return (
-      <div className={`${styles.actionRow} ${styles.actionRowDisabled}`} aria-disabled="true">
+      <div className={styles.actionRowDisabled} aria-disabled="true">
         {content}
       </div>
     )
@@ -711,24 +689,27 @@ function PriceSection({
     const hasPreviewPrice = preview?.closePrice !== undefined
 
     return (
-      <section className={styles.section}>
-        <Link to="/" className={styles.back}>
-          <span aria-hidden="true">‹</span> 홈으로 돌아가기
-        </Link>
-        <div className={styles.identityRow}>
-          {/* 이름을 모르면 종목코드를 이름 자리에 한 번만 적는다 */}
-          <h1 className={styles.identity}>
-            <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
-            {preview !== null && <span className={styles.code}>{stockCode}</span>}
-          </h1>
-          {likeToggle}
-        </div>
-        {likeStatus}
+      <section className={styles.priceGrid}>
+        <div className={styles.head}>
+          <Link to="/" className={styles.back}>
+            <span aria-hidden="true">‹</span> 홈으로 돌아가기
+          </Link>
+          <div className={styles.identityRow}>
+            {/* 이름을 모르면 종목코드를 이름 자리에 한 번만 적는다 */}
+            <h1 className={styles.identity}>
+              <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
+              {preview !== null && <span className={styles.code}>{stockCode}</span>}
+            </h1>
+            {likeToggle}
+          </div>
+          {likeStatus}
 
-        {hasPreviewPrice && <PriceLines detail={null} preview={preview} />}
+          {hasPreviewPrice && <PriceLines detail={null} preview={preview} />}
+        </div>
 
         {/* 상세가 실패해도(대개 증권사 쪽) 바로 가기는 DB·서버 AI라 쓸 수 있다 */}
-        <div className={styles.detailGrid}>
+        <div className={styles.acts}>{actionPanel}</div>
+        <div className={styles.chartColumn}>
           <div className={`${styles.chartBox} ${styles.failBox}`} role="alert">
             {/* 가격을 적어 뒀으면 못 받은 건 차트뿐이다. 다 못 받은 것처럼 말하지 않는다 */}
             <p className={styles.failText}>
@@ -740,41 +721,48 @@ function PriceSection({
               다시 시도
             </button>
           </div>
-          <div className={styles.side}>{actionPanel}</div>
         </div>
       </section>
     )
   }
 
+  /*
+   * 정보 열(이름·가격 → 두 행동 → 시세 요약) | 차트 열(기간 탭·차트·기간별 변화). 휴대폰은 한 줄로 쌓되
+   * 이름·가격 → 두 행동 → 차트 → 시세 요약 순이다 — 격자 칸 이름으로 순서를 바꾼다(StockChartPage.module.css .priceGrid)
+   */
   return (
-    <section className={styles.section} aria-busy={detail === null}>
-      {/* 뒤로 가기 말고는 목록으로 돌아갈 길이 없었다 */}
-      <Link to="/" className={styles.back}>
-        <span aria-hidden="true">‹</span> 홈으로 돌아가기
-      </Link>
+    <section className={styles.priceGrid} aria-busy={detail === null}>
+      <div className={styles.head}>
+        {/* 뒤로 가기 말고는 목록으로 돌아갈 길이 없었다 */}
+        <Link to="/" className={styles.back}>
+          <span aria-hidden="true">‹</span> 홈으로 돌아가기
+        </Link>
 
-      <div className={styles.identityRow}>
-        <h1 className={styles.identity}>
-          {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다 */}
-          <span className={styles.name}>
-            {detail !== null ? (
-              displayName
-            ) : preview !== null ? (
-              preview.stockName
-            ) : (
-              <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
-            )}
-          </span>
-          {/* 이름이 비어 종목코드로 대신했으면 코드를 두 번 적지 않는다 */}
-          {displayName !== stockCode && <span className={styles.code}>{stockCode}</span>}
-        </h1>
-        {likeToggle}
+        <div className={styles.identityRow}>
+          <h1 className={styles.identity}>
+            {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다 */}
+            <span className={styles.name}>
+              {detail !== null ? (
+                displayName
+              ) : preview !== null ? (
+                preview.stockName
+              ) : (
+                <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
+              )}
+            </span>
+            {/* 이름이 비어 종목코드로 대신했으면 코드를 두 번 적지 않는다 */}
+            {displayName !== stockCode && <span className={styles.code}>{stockCode}</span>}
+          </h1>
+          {likeToggle}
+        </div>
+        {likeStatus}
+
+        <PriceLines detail={detail} preview={preview} />
       </div>
-      {likeStatus}
 
-      <PriceLines detail={detail} preview={preview} />
+      <div className={styles.acts}>{actionPanel}</div>
 
-      <div className={styles.detailGrid}>
+      <div className={styles.chartColumn}>
         <div className={styles.chartBox}>
           {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다 */}
           <div className={styles.periodTabs} role="tablist" aria-label="기간">
@@ -810,11 +798,70 @@ function PriceSection({
           </div>
         </div>
 
-        <div className={styles.side}>
-          {actionPanel}
-          <SummaryCard lastCandle={lastCandle} loading={detail === null} />
-        </div>
+        {detail !== null && <PeriodStats candles={detail.candles} />}
       </div>
+
+      <div className={styles.sum}>
+        <SummaryCard lastCandle={lastCandle} loading={detail === null} />
+      </div>
+    </section>
+  )
+}
+
+/** 기간별 주가 변화 칸. 기간 탭과 같은 순서·이름이다(3년·전체는 뺀다 — 1년 최고·최저가 그 자리를 쓴다) */
+const STAT_PERIODS: { period: Period; label: string }[] = PERIOD_TABS.filter(
+  (tab) => tab.period !== 'THREE_YEAR' && tab.period !== 'ALL',
+)
+
+/**
+ * 기간별 주가 변화와 1년 최고·최저(2026-10-30 사용자 결정 — 16:9에서 차트 아래가 비었다).
+ * 상세가 이미 받은 전체 일봉(period=ALL)으로 계산해 요청은 늘지 않는다. 기준은 마지막 일봉의 종가이고,
+ * 시작일은 기간 탭과 같은 규칙(periodStart)이다 — 그 날 이후 첫 거래일의 종가와 견준다.
+ * 계산할 수 없는 칸(그 기간에 일봉이 없거나 종가가 0)은 "-"다
+ */
+function PeriodStats({ candles }: { candles: Candle[] }) {
+  const last = candles.at(-1)
+  if (last === undefined) return null
+
+  const rates = STAT_PERIODS.map(({ period, label }) => {
+    const start = periodStart(last.date, period)
+    const first = start === null ? undefined : candles.find((c) => c.date >= start)
+    const rate =
+      first === undefined || first.close === 0 ? null : (last.close / first.close - 1) * 100
+    return { period, label, rate }
+  })
+
+  const yearStart = periodStart(last.date, 'ONE_YEAR')
+  const year = yearStart === null ? candles : candles.filter((c) => c.date >= yearStart)
+  const high = year.reduce((top, c) => (c.high > top.high ? c : top), year[0])
+  const low = year.reduce((bottom, c) => (c.low < bottom.low ? c : bottom), year[0])
+  const baseDate = toKoreanDate(last.date)
+
+  return (
+    <section className={styles.periodStats} aria-label="기간별 주가 변화">
+      <dl className={styles.statList}>
+        {rates.map(({ period, label, rate }) => (
+          <div key={period} className={styles.stat}>
+            <dt>{label}</dt>
+            <dd className={toRateClassName(rate)}>{formatChangeRate(rate)}</dd>
+          </div>
+        ))}
+        <div className={`${styles.stat} ${styles.statWide}`}>
+          <dt>1년 최고</dt>
+          <dd>
+            {formatPrice(high.high)}
+            <small>{toKoreanDate(high.date)}</small>
+          </dd>
+        </div>
+        <div className={`${styles.stat} ${styles.statWide}`}>
+          <dt>1년 최저</dt>
+          <dd>
+            {formatPrice(low.low)}
+            <small>{toKoreanDate(low.date)}</small>
+          </dd>
+        </div>
+      </dl>
+      {baseDate !== '' && <p className={styles.statNote}>{baseDate} 종가 기준</p>}
     </section>
   )
 }
@@ -858,7 +905,9 @@ function PriceLines({
   if (detail !== null) {
     return (
       <>
-        <p className={styles.price}>{formatPrice(detail.currentPrice)}</p>
+        <p className={styles.price}>
+          <PriceText value={detail.currentPrice} />
+        </p>
         <p className={styles.change}>
           전일 대비{' '}
           <span className={toRateClassName(detail.comparePrev)}>
@@ -877,7 +926,7 @@ function PriceLines({
     return (
       <>
         <p className={`${styles.price} ${styles.pricePending}`}>
-          {formatPrice(preview.closePrice)}
+          <PriceText value={preview.closePrice} />
         </p>
         <p className={styles.change}>
           {toKoreanDate(preview.baseDate)} 종가
@@ -902,6 +951,21 @@ function PriceLines({
       <p className={styles.change}>
         <span className={`${styles.textSkeleton} ${styles.changeSkeleton}`} />
       </p>
+    </>
+  )
+}
+
+/**
+ * 큰 가격. 숫자는 로고와 같은 넓은 글꼴(--font-wide), "원"은 본문 글꼴로 작게 적는다(시안 B).
+ * 넓은 글꼴의 % 기호·한글은 어색해 숫자만 넓은 글꼴로 둔다. 값이 없으면 "-" 그대로다
+ */
+function PriceText({ value }: { value: number | null | undefined }) {
+  const text = formatPrice(value)
+  if (!text.endsWith('원')) return text
+  return (
+    <>
+      <span className={styles.priceNumber}>{text.slice(0, -1)}</span>
+      <span className={styles.priceUnit}>원</span>
     </>
   )
 }

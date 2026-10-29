@@ -208,9 +208,8 @@ export default function NewsList({ stockCode }: Props) {
                 rel="noreferrer"
               >
                 <p className={styles.meta}>
-                  {item.source}
-                  <span className={styles.dot}>·</span>
-                  {item.timeAgo}
+                  <span className={styles.source}>{item.source}</span>
+                  <span>{item.timeAgo}</span>
                 </p>
                 <p className={styles.title}>{item.title}</p>
                 <p className={styles.description}>{item.description}</p>
