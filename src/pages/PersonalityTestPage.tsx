@@ -122,16 +122,16 @@ export default function PersonalityTestPage() {
       {/* 로그인만 하면 되는 경우와 서버가 실패한 경우를 가른다. 둘을 같은 말로 알리면 멀쩡한 서버가 장애로 읽힌다 */}
       {fallbackReason === 'login' && (
         <p className={styles.fallbackNotice} role="status">
-          지금은 임시 문항으로 진행해요. 결과는 참고로만 봐 주세요.{' '}
+          비로그인 테스트는 간단 버전({total}문항)이에요.{' '}
           <Link to={loginPathFrom(pathname + search)} className={styles.fallbackLink}>
             로그인하면
           </Link>{' '}
-          정식 문항으로 검사하고 결과를 저장해요.
+          정식 10문항으로 검사하고 결과를 저장해요.
         </p>
       )}
       {fallbackReason === 'server' && (
         <p className={styles.fallbackNotice} role="status">
-          서버 문항을 불러오지 못해 임시 문항으로 진행하고 있어요. 결과는 참고로만 봐 주세요.
+          서버 문항을 불러오지 못해 간단 버전({total}문항)으로 진행해요. 결과는 참고로만 봐 주세요.
         </p>
       )}
 

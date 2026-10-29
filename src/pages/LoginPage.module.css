@@ -14,7 +14,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 96px 24px;
+  padding: var(--space-14) var(--space-6);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -36,6 +36,30 @@
   font-size: var(--font-base);
   font-weight: 500;
   color: var(--color-text-sub);
+}
+
+/* 서비스 가치 세 줄. 가운데 판 안에서 왼쪽 정렬로 읽힌다 */
+.values {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.value {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--font-base);
+  line-height: 1.5;
+}
+
+.check {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-brand-700);
 }
 
 .error {

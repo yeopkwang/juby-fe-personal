@@ -32,6 +32,13 @@ const ROOM_GONE_HINT = '이 대화방을 찾을 수 없어요. 새 대화에서 
 /** 서버 AskRequest의 question 최대 길이 */
 const QUESTION_MAX_LENGTH = 1000
 
+/** 비로그인 첫 화면의 예시 질문. 누르면 입력칸에 채우기만 한다(보내지 않는다 — 보내려면 로그인해야 한다) */
+const EXAMPLE_QUESTIONS = [
+  '삼성전자 요즘 왜 올랐어?',
+  '나한테 맞는 전략은 뭐야?',
+  'SK하이닉스랑 삼성전자 중에 뭐가 나아?',
+]
+
 /** 종목 상세의 'AI에게 물어보기'로 왔을 때 새 대화에 바로 보내는 질문 */
 function briefingQuestion(stockName: string): string {
   return `${stockName}의 주가에 대해서 간단하게 브리핑을 해줘`
@@ -69,6 +76,8 @@ export default function AiPage() {
    * 겹치면 React가 두 말풍선을 같은 것으로 보고 하나를 지운다.
    */
   const localIdRef = useRef(-1)
+  /** 예시 질문을 누르면 입력칸으로 옮겨 간다 */
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   /** 실패한 질문. '다시 시도'가 이걸 그대로 다시 보낸다(실었던 종목명도 그대로) */
   const lastAskRef = useRef<Question | null>(null)
   /*
@@ -530,6 +539,25 @@ export default function AiPage() {
                     다시 시도
                   </button>
                 </div>
+              ) : !loggedIn ? (
+                <div className={styles.examples}>
+                  <p className={styles.examplesTitle}>이렇게 물어볼 수 있어요</p>
+                  <div className={styles.exampleList}>
+                    {EXAMPLE_QUESTIONS.map((example) => (
+                      <button
+                        key={example}
+                        type="button"
+                        className={styles.exampleChip}
+                        onClick={() => {
+                          setQuestion(example)
+                          inputRef.current?.focus()
+                        }}
+                      >
+                        {example}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ) : personality.kind === 'none' ? (
                 <div className={styles.personality}>
                   <p className={styles.personalityText}>
@@ -568,6 +596,7 @@ export default function AiPage() {
           <div className={styles.composer}>
             <div className={styles.composerBox}>
               <textarea
+                ref={inputRef}
                 className={styles.input}
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}

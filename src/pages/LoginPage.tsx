@@ -27,6 +27,13 @@ const PROVIDERS = [
   },
 ]
 
+/** 로그인하면 쓸 수 있는 것. 세 화면 모두 결과를 보려면 로그인해야 한다 */
+const VALUES = [
+  { name: '백테스트', desc: '전략을 과거 주가에 적용해 점수로 확인해요' },
+  { name: 'AI 분석', desc: '궁금한 종목을 AI에게 바로 물어봐요' },
+  { name: '성향 맞춤', desc: '내 투자성향에 맞는 전략을 골라 드려요' },
+]
+
 export default function LoginPage() {
   useDocumentTitle('로그인')
   /*
@@ -70,7 +77,21 @@ export default function LoginPage() {
           JUBY의 세계로!
         </h2>
 
-        <p className={styles.caption}>Create Your Own JUBY!</p>
+        <p className={styles.caption}>로그인하면 이런 걸 할 수 있어요</p>
+
+        {/* 판이 크고 비어 보였다. 무엇을 할 수 있는지 소셜 단추 위에 세 줄로 적는다 */}
+        <ul className={styles.values}>
+          {VALUES.map((value) => (
+            <li key={value.name} className={styles.value}>
+              <svg className={styles.check} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>
+                <b>{value.name}</b> {value.desc}
+              </span>
+            </li>
+          ))}
+        </ul>
 
         {hasLoginFailed && (
           <p className={styles.error} role="alert">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getBacktestResult, getPresetOptions } from '../api/backtest'
 import { ApiError } from '../api/client'
@@ -473,11 +473,18 @@ export default function BacktestPage() {
               <p className={styles.myText}>
                 {loggedIn
                   ? '투자성향테스트를 아직 안 하셨어요. 먼저 하면 나에게 맞는 전략을 자동으로 골라드려요.'
-                  : '로그인하고 투자성향테스트를 하면 나에게 맞는 전략을 자동으로 골라드려요.'}
+                  : '로그인하면 백테스트 결과를 볼 수 있어요. 투자성향테스트까지 하면 나에게 맞는 전략도 자동으로 골라드려요.'}
               </p>
-              <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
-                테스트하러 가기
-              </Link>
+              {/* 비로그인은 다 고른 뒤에야 "로그인하면 결과를 볼 수 있어요"가 떴다. 시작하기 전에 알리고 로그인으로 보낸다 */}
+              {loggedIn ? (
+                <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
+                  테스트하러 가기
+                </Link>
+              ) : (
+                <Link className={styles.myAction} to={loginPathFrom('/backtest')}>
+                  로그인
+                </Link>
+              )}
             </>
           ) : (
             <>
@@ -1130,6 +1137,7 @@ interface GuideProps {
  * 보이고 나머지는 한 줄 요약으로 접어 둔다.
  */
 function BacktestGuide({ investType, savedPersonality, onSelect }: GuideProps) {
+  const idBase = useId()
   return (
     <aside className={styles.guide}>
       <h2 className={styles.guideTitle}>
@@ -1159,6 +1167,11 @@ function BacktestGuide({ investType, savedPersonality, onSelect }: GuideProps) {
               const isRecommended =
                 savedPersonality !== null &&
                 item.personality === savedPersonality
+              /*
+               * 이름은 전략 이름 하나다. 단추 안 글 전체가 이름이 되면 "위험도 1단계 (5단계 중) RSI 역추세 전략 너무 많이 팔려…"처럼
+               * 길어 무엇을 고르는지 늦게 들렸다. 위험도·맞음 표시·요약은 설명으로 읽힌다
+               */
+              const id = (part: string) => `${idBase}-${part}-${item.investType}`
 
               return (
                 <li key={item.investType}>
@@ -1168,19 +1181,23 @@ function BacktestGuide({ investType, savedPersonality, onSelect }: GuideProps) {
                       isActive ? styles.strategyOn : styles.strategyOff
                     }
                     aria-pressed={isActive}
+                    aria-labelledby={id('name')}
+                    aria-describedby={[id('risk'), isRecommended ? id('fit') : '', id('desc')].filter(Boolean).join(' ')}
                     onClick={() => onSelect(item.investType)}
                   >
                     <span className={styles.strategyTop}>
-                      <RiskDots level={item.investType} />
+                      <RiskDots level={item.investType} id={id('risk')} />
                       {isRecommended && (
-                        <span className={styles.badge}>나에게 맞음</span>
+                        <span id={id('fit')} className={styles.badge}>
+                          나에게 맞음
+                        </span>
                       )}
                     </span>
 
-                    <span className={styles.strategyName}>
+                    <span id={id('name')} className={styles.strategyName}>
                       {item.strategyName}
                     </span>
-                    <span className={styles.strategyDesc}>
+                    <span id={id('desc')} className={styles.strategyDesc}>
                       {item.strategySummary}
                     </span>
 
@@ -1231,9 +1248,9 @@ function BacktestGuide({ investType, savedPersonality, onSelect }: GuideProps) {
 }
 
 /** 위험도를 점 다섯 개로. 전략 번호가 곧 위험도 순서다(1 안정 → 5 공격) */
-function RiskDots({ level }: { level: number }) {
+function RiskDots({ level, id }: { level: number; id: string }) {
   return (
-    <span className={styles.dots} aria-label={`위험도 ${level}단계 (5단계 중)`}>
+    <span id={id} className={styles.dots} role="img" aria-label={`위험도 ${level}단계 (5단계 중)`}>
       {[1, 2, 3, 4, 5].map((step) => (
         <i
           key={step}
