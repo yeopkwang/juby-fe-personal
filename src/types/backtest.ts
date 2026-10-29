@@ -50,20 +50,22 @@ export interface QuantScoring {
 }
 
 /**
- * GET /api/backtest/preset 의 응답.
+ * 백테스트 결과 한 건. 두 곳에서 온다(api/backtest.ts getBacktestResult).
  *
- * 요청 시점에 계산하는 게 아니라 매일 새벽 4시 배치가 미리 채워 둔 값을 읽어온다.
- * 그래서 startDate/endDate가 요청한 날짜가 아니라 **계산에 실제로 쓰인 날짜**이고,
- * updatedAt으로 언제 계산된 값인지 알려준다.
+ * - `preset`: GET /api/backtest/preset — 매일 새벽 4시 배치가 미리 채워 둔 값. startDate/endDate가 요청한 날짜가
+ *   아니라 **계산에 실제로 쓰인 날짜**이고, updatedAt으로 언제 계산된 값인지 알려준다.
+ * - `live`: GET /api/backtest/run — 프리셋이 아직 없을 때(BACKTEST404_5) 그 자리에서 돌린 값(2026-10-22 백엔드 추가).
+ *   같은 규칙(종료일 = 그 종목의 마지막 일봉, 시작일 = 기간으로 역산)인데 응답에 날짜가 없어 셋 다 null이다.
  */
 export interface BacktestPreset {
   stockCode: string
   investType: number
   period: BacktestPeriod
-  /** YYYY-MM-DD. 다른 화면의 YYYYMMDD와 형식이 다르다 */
-  startDate: string
-  endDate: string
-  /** ISO 날짜시각 */
-  updatedAt: string
+  source: 'preset' | 'live'
+  /** YYYY-MM-DD. 다른 화면의 YYYYMMDD와 형식이 다르다. 비어 오거나 즉석 실행이면 null */
+  startDate: string | null
+  endDate: string | null
+  /** ISO 날짜시각. 즉석 실행이면 null */
+  updatedAt: string | null
   result: QuantScoring
 }

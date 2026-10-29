@@ -1,45 +1,89 @@
-import { get, malformedResponse } from './client'
+import { ApiError, get, malformedResponse } from './client'
 import type { BacktestPeriod, BacktestPreset, QuantScoring } from '../types/backtest'
 
 /**
- * 백테스트 창구. 둘 다 DB만 읽는다 — 새벽 4시 배치가 미리 계산해 둔 값이라
- * 증권사 호출이 없고 응답도 즉시 온다. **로그인해야 한다**(JUBY-BE d7edec4, 2026-09-28부터 토큰 없으면 401) —
+ * 백테스트 창구. **로그인해야 한다**(JUBY-BE d7edec4, 2026-09-28부터 토큰 없으면 401) —
  * 비로그인 실행은 BacktestPage가 로그인 안내로 바꾼다.
+ *
+ * - `/preset`·`/preset/options`는 DB만 읽는다 — 새벽 4시 배치가 미리 계산해 둔 값이라 증권사 호출이 없고 응답도 즉시 온다.
+ * - `/run`(2026-10-22 추가)은 그 자리에서 전략을 돌린다. DB의 일봉만 쓰므로 역시 증권사 호출은 없고, 결과를 저장하지 않는다.
+ *   프리셋이 아직 없는 조합(BACKTEST404_5)에만 쓴다(getBacktestResult) — 있는 조합은 프리셋이 먼저다. AI 답변도 프리셋을 읽으므로
+ *   둘이 같은 값을 보여야 한다.
  */
 
 /**
- * 종목·성향·기간의 미리 계산된 결과.
+ * 종목·성향·기간의 결과. 프리셋이 있으면 그것, 아직 계산되지 않았으면(BACKTEST404_5) 즉석 실행으로 받는다.
  *
- * 실패 코드:
+ * 실패 코드(둘 다):
  *   - BACKTEST404_1 종목 없음
- *   - BACKTEST404_5 아직 계산되지 않은 프리셋 (배치가 그 종목을 건너뛴 경우)
- *   - BACKTEST400_1 그 성향이 지원하지 않는 기간
+ *   - BACKTEST400_1 그 성향이 지원하지 않는 기간(프리셋만. 즉석 실행은 최소 기간을 안 보고 아래 404_6으로 거른다)
+ *   - BACKTEST404_4 그 기간에 일봉이 없음(즉석 실행)
+ *   - BACKTEST404_6 시작일 앞의 일봉(지표 워밍업용)이 모자람(즉석 실행) — 더 짧은 기간이면 된다
  */
-export async function getPreset(
+export async function getBacktestResult(
   stockCode: string,
   investType: number,
   period: BacktestPeriod,
 ): Promise<BacktestPreset> {
-  const query = new URLSearchParams({
+  try {
+    return await getPreset(stockCode, investType, period)
+  } catch (error: unknown) {
+    if (!(error instanceof ApiError) || error.code !== 'BACKTEST404_5') throw error
+    return runBacktest(stockCode, investType, period)
+  }
+}
+
+function toQuery(stockCode: string, investType: number, period: BacktestPeriod): string {
+  return new URLSearchParams({ stockCode, investType: String(investType), period }).toString()
+}
+
+/** GET /api/backtest/preset — 미리 계산된 결과. 없으면 BACKTEST404_5(배치가 그 종목을 건너뛴 경우) */
+async function getPreset(
+  stockCode: string,
+  investType: number,
+  period: BacktestPeriod,
+): Promise<BacktestPreset> {
+  const response = await get<PresetResponse | null>(`/api/backtest/preset?${toQuery(stockCode, investType, period)}`)
+  const result = toScoring(response?.result)
+  if (result === null) throw malformedResponse()
+  return {
+    // 종목·성향·기간은 보낸 값을 되돌려 주는 칸이라 보낸 값을 쓴다
     stockCode,
-    investType: String(investType),
+    investType,
     period,
-  })
-  const preset = toPreset(await get<PresetResponse | null>(`/api/backtest/preset?${query}`))
-  if (preset === null) throw malformedResponse()
-  return preset
+    source: 'preset',
+    startDate: textOrNull(response?.startDate),
+    endDate: textOrNull(response?.endDate),
+    updatedAt: textOrNull(response?.updatedAt),
+    result,
+  }
+}
+
+/** GET /api/backtest/run — 그 자리에서 돌린 결과. 응답은 지표뿐이라 날짜는 비운다 */
+async function runBacktest(
+  stockCode: string,
+  investType: number,
+  period: BacktestPeriod,
+): Promise<BacktestPreset> {
+  const response = await get<ScoringResponse | null>(`/api/backtest/run?${toQuery(stockCode, investType, period)}`)
+  const result = toScoring(response)
+  if (result === null) throw malformedResponse()
+  return { stockCode, investType, period, source: 'live', startDate: null, endDate: null, updatedAt: null, result }
 }
 
 /*
  * 서버가 실제로 주는 모양. 스웨거에 필수 표시가 없어 지표 묶음과 그 안의 낱개를 비어 올 수 있게 적는다.
- * 화면 타입(types/backtest.ts)으로 옮기는 자리(toPreset)에서 걸러 낸다.
+ * 화면 타입(types/backtest.ts)으로 옮기는 자리(toScoring)에서 걸러 낸다.
  */
 
 /** 묶음 안의 낱개 지표가 전부 비어 올 수 있다 */
 type LooseMetrics<T> = { [K in keyof T]?: T[K] | null }
 
-interface ScoringResponse
-  extends Omit<QuantScoring, 'stable' | 'profit' | 'effect' | 'growth'> {
+/** QuantScoringResponse. 프리셋의 result이자 즉석 실행의 본문이다 */
+interface ScoringResponse {
+  stockCode?: string | null
+  investType?: number | null
+  finalScore?: number | null
   stable?: LooseMetrics<QuantScoring['stable']> | null
   profit?: LooseMetrics<QuantScoring['profit']> | null
   effect?: LooseMetrics<QuantScoring['effect']> | null
@@ -47,7 +91,13 @@ interface ScoringResponse
 }
 
 /** GET /api/backtest/preset */
-interface PresetResponse extends Omit<BacktestPreset, 'result'> {
+interface PresetResponse {
+  stockCode?: string | null
+  investType?: number | null
+  period?: BacktestPeriod | null
+  startDate?: string | null
+  endDate?: string | null
+  updatedAt?: string | null
   result?: ScoringResponse | null
 }
 
@@ -57,34 +107,29 @@ interface PresetResponse extends Omit<BacktestPreset, 'result'> {
  * 오류 화면이 된다(2026-09-23 검사).
  * 묶음 안의 낱개 지표는 걸러 내지 않는다 — 비면 화면이 "-"로 적고 그 축 점수를 비운다(F-2).
  */
-function toPreset(preset: PresetResponse | null): BacktestPreset | null {
-  if (preset === null || typeof preset !== 'object') return null
-  if (typeof preset.investType !== 'number') return null
-
-  const scoring = preset.result
+function toScoring(scoring: ScoringResponse | null | undefined): QuantScoring | null {
   if (scoring === null || scoring === undefined || typeof scoring !== 'object') return null
-  if (typeof scoring.finalScore !== 'number' || !Number.isFinite(scoring.finalScore)) {
-    return null
-  }
+  if (typeof scoring.finalScore !== 'number' || !Number.isFinite(scoring.finalScore)) return null
   const { stable, profit, effect, growth } = scoring
-  if (!isGroup(stable) || !isGroup(profit) || !isGroup(effect) || !isGroup(growth)) {
-    return null
-  }
+  if (!isGroup(stable) || !isGroup(profit) || !isGroup(effect) || !isGroup(growth)) return null
   return {
-    ...preset,
-    result: {
-      ...scoring,
-      // 낱개 지표는 거르지 않고 넘긴다(위 설명). 타입만 화면 쪽으로 맞춘다
-      stable: stable as QuantScoring['stable'],
-      profit: profit as QuantScoring['profit'],
-      effect: effect as QuantScoring['effect'],
-      growth: growth as QuantScoring['growth'],
-    },
+    stockCode: typeof scoring.stockCode === 'string' ? scoring.stockCode : '',
+    investType: typeof scoring.investType === 'number' ? scoring.investType : 0,
+    finalScore: scoring.finalScore,
+    // 낱개 지표는 거르지 않고 넘긴다(위 설명). 타입만 화면 쪽으로 맞춘다
+    stable: stable as QuantScoring['stable'],
+    profit: profit as QuantScoring['profit'],
+    effect: effect as QuantScoring['effect'],
+    growth: growth as QuantScoring['growth'],
   }
 }
 
 function isGroup<T extends object>(group: T | null | undefined): group is T {
   return typeof group === 'object' && group !== null
+}
+
+function textOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value : null
 }
 
 interface PresetOptions {
@@ -97,7 +142,7 @@ interface PresetOptions {
  * 성향별로 고를 수 있는 기간 목록.
  *
  * 종목과 무관한 전역 값이다(백엔드가 "어떤 종목이든 이 기간이 계산된 적 있나"로 만든다).
- * 그래서 목록에 있어도 특정 종목에는 없을 수 있고, 그때 getPreset이 BACKTEST404_5를 준다.
+ * 그래서 목록에 있어도 특정 종목에는 없을 수 있고, 그때 프리셋이 BACKTEST404_5라 즉석 실행으로 넘어간다(getBacktestResult).
  */
 export function getPresetOptions(): Promise<PresetOptions[]> {
   return get<PresetOptions[]>('/api/backtest/preset/options')

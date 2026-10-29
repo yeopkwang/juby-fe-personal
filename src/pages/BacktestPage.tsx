@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getPreset, getPresetOptions } from '../api/backtest'
+import { getBacktestResult, getPresetOptions } from '../api/backtest'
 import { ApiError } from '../api/client'
 import { byTradingValue, getStockList, searchStocks } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
@@ -67,8 +67,16 @@ interface Ranked {
 /** 다섯 전략 비교에서 못 받은 것. 이유에 따라 안내가 다르다 */
 interface CompareMiss {
   count: number
-  /** 못 받은 것이 전부 "아직 계산 안 된 조합"(BACKTEST404_5)인가 */
-  allNotComputed: boolean
+  /** 못 받은 것이 전부 "일봉이 모자라 계산할 수 없는 조합"(BACKTEST404_4·404_6)인가 */
+  allDataShort: boolean
+}
+
+/** 그 기간을 계산할 일봉이 모자란 경우. 기다려도 안 풀리고 더 짧은 기간이면 된다 */
+function isDataShort(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.code === 'BACKTEST404_4' || error.code === 'BACKTEST404_6')
+  )
 }
 
 type ResultState =
@@ -93,10 +101,21 @@ function describeFailure(error: unknown): { message: string; hint: string | null
       return { message: '로그인하면 결과를 볼 수 있어요.', hint: null, needsLogin: true }
     }
     switch (error.code) {
+      /*
+       * 프리셋이 없으면 api/backtest.ts가 즉석 실행으로 넘어가므로 보통 여기까지 오지 않는다. 즉석 실행이 거절한 이유가 온다:
+       * 404_6은 시작일 앞의 일봉(지표 워밍업용)이 모자란 것, 404_4는 그 기간에 일봉이 없는 것. 둘 다 더 짧은 기간이면 된다
+       */
+      case 'BACKTEST404_6':
+      case 'BACKTEST404_4':
+        return {
+          message: '이 종목은 그 기간을 계산할 일봉이 모자라요.',
+          hint: '더 짧은 기간을 골라 주세요.',
+          needsLogin: false,
+        }
       case 'BACKTEST404_5':
         return {
           message: '아직 계산되지 않은 조합이에요.',
-          hint: '매일 새벽 4시에 계산돼요. 이 종목은 일봉이 모자라 건너뛰었을 수 있어요.',
+          hint: '잠시 후 다시 시도해 주세요.',
           needsLogin: false,
         }
       case 'BACKTEST400_1':
@@ -170,7 +189,7 @@ export default function BacktestPage() {
   /** 실행 번호. 기다리는 사이 조건이 바뀌면 늦게 온 결과를 버린다 */
   const runSeqRef = useRef(0)
   /*
-   * 받은(받는 중인) 프리셋. 같은 조합은 이 화면에 있는 동안 한 번만 받는다(B-3, 사용자 결정 2026-09-27).
+   * 받은(받는 중인) 결과(프리셋, 없으면 즉석 실행 — api/backtest.ts). 같은 조합은 이 화면에 있는 동안 한 번만 받는다(B-3, 사용자 결정 2026-09-27).
    * 고른 전략이 1년이면 비교용 다섯 건 중 하나와 같은 요청이라 한 번에 6건이 나가며 하나가 겹쳤고,
    * 기간이나 전략만 바꿔 다시 실행해도 같은 종목의 비교 5건을 매번 다시 받았다.
    * 실패한 요청은 지워서 다시 시도가 새로 받게 한다. 값은 새벽 4시 배치로 바뀌지만 화면에 머무는 동안은 둔다.
@@ -186,7 +205,7 @@ export default function BacktestPage() {
     const saved = presetRequestsRef.current.get(key)
     if (saved !== undefined) return saved
 
-    const request = getPreset(stockCode, investType, period)
+    const request = getBacktestResult(stockCode, investType, period)
     presetRequestsRef.current.set(key, request)
     request.catch(() => presetRequestsRef.current.delete(key))
     return request
@@ -349,9 +368,7 @@ export default function BacktestPage() {
       if (failures.length > 0) console.warn('다섯 성향 비교 일부 조회 실패', failures)
       const missed: CompareMiss = {
         count: failures.length,
-        allNotComputed: failures.every(
-          (error) => error instanceof ApiError && error.code === 'BACKTEST404_5',
-        ),
+        allDataShort: failures.every(isDataShort),
       }
 
       setResult({ kind: 'ready', preset, ranking, missed })
@@ -987,8 +1004,8 @@ function BacktestResult({
 
         {ranking.length === 0 ? (
           <p className={styles.warn}>
-            {missed.allNotComputed
-              ? '1년치 결과가 아직 계산되지 않아 비교할 수 없어요.'
+            {missed.allDataShort
+              ? '1년치 일봉이 모자라 비교할 수 없어요.'
               : '비교 결과를 불러오지 못했어요.'}
           </p>
         ) : (
@@ -1024,13 +1041,23 @@ function BacktestResult({
           </>
         )}
 
-        <p className={styles.meta}>
-          {preset.startDate} ~ {preset.endDate} 일봉 기준 · 매일 새벽 4시에 다시
-          계산돼요
-        </p>
+        <p className={styles.meta}>{describeSource(preset)}</p>
       </div>
     </section>
   )
+}
+
+/**
+ * 결과가 어디서 왔는지 한 줄. 프리셋은 계산에 쓰인 날짜를, 즉석 실행은 날짜를 모르니(응답에 없다) 규칙만 적는다.
+ * 즉석 실행도 종료일은 그 종목의 마지막 일봉이라 프리셋과 같은 기준이다.
+ */
+function describeSource(preset: BacktestPreset): string {
+  if (preset.source === 'live') {
+    return '미리 계산된 결과가 없어 지금 바로 계산했어요 · 이 종목의 마지막 일봉까지 ' + periodLabel(preset.period)
+  }
+  const range =
+    preset.startDate !== null && preset.endDate !== null ? `${preset.startDate} ~ ${preset.endDate} 일봉 기준 · ` : ''
+  return `${range}매일 새벽 4시에 다시 계산돼요`
 }
 
 /* -------------------------------------------------------------------- *
