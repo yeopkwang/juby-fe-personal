@@ -322,104 +322,104 @@ export default function HomePage() {
         16:9에서 좌우가 비어 보인다는 말에 넓힌 본문을 두 열로 쓴다(2026-10-30 재정비)
       */}
       <div className={styles.home}>
-      {/* 목록이 오기 전에는 로컬 사본으로 검색한다. 도착하면 서버 목록으로 바꾼다 */}
-      <div className={styles.search}>
-        <SearchBar stocks={searchable} />
-      </div>
-
-      <section className={styles.themes}>
-        <div className={styles.sectionHead}>
-        {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
-        <h1 className={styles.heading}>테마별 대표 종목</h1>
-        {/*
-          무엇을 보여 주는지 쉬운 말로. 예전 머리말("SMA 이동평균선 전략 · 1년 기준으로 뽑은")은 사실과 달랐다 —
-          백엔드는 테마마다 정해 둔 종목을 주고(JUBY-BE LeadingStockTheme) 전략 결과로 고르지 않는다(dev 3dc3f3a 확인).
-          큰 숫자는 그 종목의 1년 주가 변화다(CardChart)
-        */}
-        <p className={styles.lede}>테마마다 대표 종목을 하나씩 골라 1년 주가 흐름을 보여드려요</p>
+        {/* 목록이 오기 전에는 로컬 사본으로 검색한다. 도착하면 서버 목록으로 바꾼다 */}
+        <div className={styles.search}>
+          <SearchBar stocks={searchable} />
         </div>
 
-        {/*
-          카드를 그리다 멈춰도 검색·시세표는 남는다. 경계가 없을 땐 카드 한 장 때문에 홈 전체가
-          오류 화면이 됐다. 다시 시도는 대장주만 새로 받는다.
-          카드는 종목·종가(DB)만으로 세 장이 늘 선다. 그래프를 못 받은 카드만 그래프 자리에 알린다 —
-          예전처럼 그래프가 실패해 구역 전체를 안내 한 줄로 바꾸는 일이 없다.
-        */}
-        <SectionBoundary onRetry={reloadLeading}>
-          <div className={styles.cards}>
-            {themes.map((theme) => (
-              <TopStockCard
-                key={theme.stockCode}
-                theme={theme}
-                series={cardSeries.get(theme.stockCode) ?? null}
-                quote={quotes.get(theme.stockCode) ?? null}
-              />
-            ))}
+        <section className={styles.themes}>
+          <div className={styles.sectionHead}>
+            {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
+            <h1 className={styles.heading}>테마별 대표 종목</h1>
+            {/*
+              무엇을 보여 주는지 쉬운 말로. 예전 머리말("SMA 이동평균선 전략 · 1년 기준으로 뽑은")은 사실과 달랐다 —
+              백엔드는 테마마다 정해 둔 종목을 주고(JUBY-BE LeadingStockTheme) 전략 결과로 고르지 않는다(dev 3dc3f3a 확인).
+              "1년 전보다" 숫자는 그 종목의 1년 주가 변화다(CardChart)
+            */}
+            <p className={styles.lede}>테마마다 대표 종목을 하나씩 골라 1년 주가 흐름을 보여드려요</p>
           </div>
-        </SectionBoundary>
-      </section>
 
-      <section className={styles.list}>
-        <div className={styles.sectionHead}>
-          <h2 className={styles.heading}>현재 주가 보기</h2>
           {/*
-            16시 배치 전에는 전 거래일 종가가 뜬다. 언제 것인지 밝혀둔다.
-            기준일이 비어 오면 줄째 숨긴다 — 시세표는 그대로 보여준다
+            카드를 그리다 멈춰도 검색·시세표는 남는다. 경계가 없을 땐 카드 한 장 때문에 홈 전체가
+            오류 화면이 됐다. 다시 시도는 대장주만 새로 받는다.
+            카드는 종목·종가(DB)만으로 세 장이 늘 선다. 그래프를 못 받은 카드만 그래프 자리에 알린다 —
+            예전처럼 그래프가 실패해 구역 전체를 안내 한 줄로 바꾸는 일이 없다.
           */}
-          {list.kind === 'ready' && toKoreanDate(list.baseDate) !== '' && (
-            <span className={styles.asOf}>
-              {toKoreanDate(list.baseDate)} 종가 기준
-            </span>
-          )}
-          {/*
-            무엇 순인지 글로도 적는다. 좁은 화면에서는 거래대금 열이 숨는데 기본 정렬이 거래대금이라 칸 머리로는 안 보인다
-          */}
-          {list.kind === 'ready' && (
-            <span className={styles.sortNote}>{describeSort(sort)}</span>
-          )}
-        </div>
-
-        {likeNotice !== '' && (
-          <p className={styles.likeNotice} role="status">
-            {likeNotice}
-          </p>
-        )}
-
-        {list.kind === 'loading' && (
-          <p className={styles.loading}>시세를 불러오는 중…</p>
-        )}
-
-        {list.kind === 'error' && (
-          <div className={styles.loading}>
-            <p>시세를 불러오지 못했습니다.</p>
-            <button type="button" className={styles.retry} onClick={load}>
-              다시 시도
-            </button>
-          </div>
-        )}
-
-        {/* 표를 그리다 멈춰도 검색·테마 카드는 남는다. 다시 시도하면 목록을 새로 받는다 */}
-        {list.kind === 'ready' && (
-          <SectionBoundary onRetry={load}>
-            <StockTable
-              stocks={sortedStocks.slice(0, visibleCount)}
-              baseDate={list.baseDate}
-              sort={sort}
-              onSort={handleSort}
-              favoriteCodes={favoriteCodes}
-              onHeartClick={(code) => void handleHeartClick(code)}
-            />
-
-            <div ref={sentinelRef} className={styles.sentinel}>
-              {visibleCount < stocks.length && '불러오는 중…'}
+          <SectionBoundary onRetry={reloadLeading}>
+            <div className={styles.cards}>
+              {themes.map((theme) => (
+                <TopStockCard
+                  key={theme.stockCode}
+                  theme={theme}
+                  series={cardSeries.get(theme.stockCode) ?? null}
+                  quote={quotes.get(theme.stockCode) ?? null}
+                />
+              ))}
             </div>
           </SectionBoundary>
-        )}
-      </section>
+        </section>
 
-      <div className={styles.rail}>
-        <HomeRail />
-      </div>
+        <section className={styles.list}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.heading}>현재 주가 보기</h2>
+            {/*
+              16시 배치 전에는 전 거래일 종가가 뜬다. 언제 것인지 밝혀둔다.
+              기준일이 비어 오면 줄째 숨긴다 — 시세표는 그대로 보여준다
+            */}
+            {list.kind === 'ready' && toKoreanDate(list.baseDate) !== '' && (
+              <span className={styles.asOf}>
+                {toKoreanDate(list.baseDate)} 종가 기준
+              </span>
+            )}
+            {/*
+              무엇 순인지 글로도 적는다. 좁은 화면에서는 거래대금 열이 숨는데 기본 정렬이 거래대금이라 칸 머리로는 안 보인다
+            */}
+            {list.kind === 'ready' && (
+              <span className={styles.sortNote}>{describeSort(sort)}</span>
+            )}
+          </div>
+
+          {likeNotice !== '' && (
+            <p className={styles.likeNotice} role="status">
+              {likeNotice}
+            </p>
+          )}
+
+          {list.kind === 'loading' && (
+            <p className={styles.loading}>시세를 불러오는 중…</p>
+          )}
+
+          {list.kind === 'error' && (
+            <div className={styles.loading}>
+              <p>시세를 불러오지 못했습니다.</p>
+              <button type="button" className={styles.retry} onClick={load}>
+                다시 시도
+              </button>
+            </div>
+          )}
+
+          {/* 표를 그리다 멈춰도 검색·테마 카드는 남는다. 다시 시도하면 목록을 새로 받는다 */}
+          {list.kind === 'ready' && (
+            <SectionBoundary onRetry={load}>
+              <StockTable
+                stocks={sortedStocks.slice(0, visibleCount)}
+                baseDate={list.baseDate}
+                sort={sort}
+                onSort={handleSort}
+                favoriteCodes={favoriteCodes}
+                onHeartClick={(code) => void handleHeartClick(code)}
+              />
+
+              <div ref={sentinelRef} className={styles.sentinel}>
+                {visibleCount < stocks.length && '불러오는 중…'}
+              </div>
+            </SectionBoundary>
+          )}
+        </section>
+
+        <div className={styles.rail}>
+          <HomeRail />
+        </div>
       </div>
 
       <Modal

@@ -1,34 +1,42 @@
 /* 마이페이지·AI와 같은 제목 규격. 예전엔 머리글 아래 흰 제목 줄(밑줄 그은 '로그인')이 따로 있었다 */
 .title {
-  margin: 44px 0 24px;
+  margin: 0 0 var(--space-8);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--color-rule);
   font-size: var(--font-4xl);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-/*
- * 문구와 버튼을 담는 흰 판. 다른 화면의 판(AI 대화창·마이페이지)과 같은 테두리·모서리다.
- * 예전엔 회색 띠가 화면 끝까지 차고 그 아래가 흰 빈칸으로 남았다
- */
+/* 왼쪽 글 | 오른쪽 소셜 단추 면. 상자 없이 제목의 먹 선 아래에 둔다 */
 .card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: clamp(32px, 4vw, 80px);
+  align-items: stretch;
+}
+
+.intro {
+  padding: var(--space-6) 0;
+}
+
+.side {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-14) var(--space-6);
-  border: 1px solid var(--color-border);
+  justify-content: center;
+  min-height: 280px;
+  padding: var(--space-10) var(--space-6);
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
-  box-shadow: var(--shadow-card);
+  background: var(--color-bg-sub);
 }
 
 .headline {
   margin: 0;
-  font-size: var(--font-4xl);
-  font-weight: 800;
-  line-height: 1.4;
+  font-size: var(--font-5xl);
+  font-weight: 700;
+  line-height: 1.35;
   letter-spacing: -0.03em;
-  text-align: center;
 }
 
 .caption {
@@ -72,7 +80,10 @@
 .buttons {
   display: flex;
   gap: 16px;
-  margin-top: 28px;
+}
+
+.error {
+  margin-bottom: var(--space-5);
 }
 
 .social {
@@ -90,6 +101,16 @@
 .social:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-pop);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social {
+    transition: none;
+  }
+
+  .social:hover {
+    transform: none;
+  }
 }
 
 /* 소셜 로그인 버튼 색은 각 회사가 정한 색이다 */
@@ -112,18 +133,28 @@
 
 @media (max-width: 900px) {
   .title {
-    margin: 32px 0 20px;
+    margin-bottom: var(--space-5);
     font-size: var(--font-3xl);
+  }
+
+  .card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .intro {
+    padding: 0;
+  }
+
+  .side {
+    min-height: 0;
+    padding: var(--space-8) var(--space-4);
   }
 }
 
 @media (max-width: 600px) {
   .title {
     font-size: var(--font-3xl);
-  }
-
-  .card {
-    padding: 56px 16px;
   }
 
   .headline {

@@ -1,11 +1,93 @@
+/*
+ * 사용설명서(2026-10-30 재정비). 제목의 굵은 먹 선 아래 왼쪽 본문 | 오른쪽 "처음이라면 이 순서로" 단계.
+ * 본문 글줄은 읽기 좋게 760px까지만 편다
+ */
 .title {
-  margin: 40px 0 0;
-  font-size: var(--font-3xl);
+  margin: 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--color-rule);
+  font-size: var(--font-4xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 24vw, 420px);
+  grid-template-areas: 'main steps';
+  gap: clamp(32px, 3vw, 56px);
+  align-items: start;
+}
+
+.main {
+  grid-area: main;
+  max-width: 760px;
+}
+
+.steps {
+  grid-area: steps;
+  margin-top: var(--space-6);
+}
+
+.stepsTitle {
+  margin: 0;
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-rule);
+  font-size: var(--font-xl);
   font-weight: 700;
 }
 
+.stepList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepList li {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 64px;
+  padding: var(--space-3) 0;
+}
+
+.stepLink:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.stepNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-100);
+  color: var(--color-brand-800);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.stepText strong {
+  display: block;
+  font-size: var(--font-base);
+}
+
+.stepText small {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
 .list {
-  margin: 28px 0 0;
+  margin: var(--space-2) 0 0;
   padding: 0;
   /* 번호를 직접 그리므로 목록 자체의 표식은 끈다 */
   list-style: none;
@@ -13,7 +95,6 @@
 
 .item {
   padding: 24px 0;
-  border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -74,10 +155,22 @@
   }
 }
 
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'steps'
+      'main';
+  }
+
+  .main {
+    margin-top: var(--space-8);
+  }
+}
+
 @media (max-width: 600px) {
   .title {
-    margin-top: 28px;
-    font-size: var(--font-2xl);
+    font-size: var(--font-3xl);
   }
 
   .body {

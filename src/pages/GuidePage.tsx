@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getGuideSections } from '../api/guide'
+import { HOME_GUIDE_INTRO, HOME_GUIDE_STEPS } from '../content/homeGuide'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { GuideSection } from '../types/guide'
 import styles from './GuidePage.module.css'
@@ -18,31 +20,72 @@ export default function GuidePage() {
       .then(setSections)
   }, [])
 
+  /*
+   * 왼쪽은 설명서 본문(src/api/guide.ts — 사용자가 채우는 글), 오른쪽은 홈과 같은 "처음이라면 이 순서로" 단계다
+   * (src/content/homeGuide.ts 한 곳에서 가져온다). 좁은 화면은 단계를 먼저 보인다 — 본문이 아직 "준비중"이라
+   * 그 화면에서 할 수 있는 일이 단계뿐이다(2026-10-30 재정비)
+   */
   return (
     <>
       <h1 className={styles.title}>JUBY 사용설명서</h1>
 
-      {sections === null ? (
-        <div className={styles.skeleton} aria-label="불러오는 중" />
-      ) : (
-        <ol className={styles.list}>
-          {sections.map((section, index) => (
-            <li key={section.guideId} className={styles.item}>
-              <div className={styles.head}>
-                {/* 번호를 글로 적어야 목차 순서가 화면 폭과 무관하게 유지된다 */}
-                <span className={styles.number}>{index + 1}</span>
-                <h2 className={styles.itemTitle}>{section.title}</h2>
-              </div>
+      <div className={styles.layout}>
+        <section className={styles.main} aria-label="설명서 본문">
+          {sections === null ? (
+            <div className={styles.skeleton} aria-label="불러오는 중" />
+          ) : (
+            <ol className={styles.list}>
+              {sections.map((section, index) => (
+                <li key={section.guideId} className={styles.item}>
+                  <div className={styles.head}>
+                    {/* 번호를 글로 적어야 목차 순서가 화면 폭과 무관하게 유지된다 */}
+                    <span className={styles.number}>{index + 1}</span>
+                    <h2 className={styles.itemTitle}>{section.title}</h2>
+                  </div>
 
-              {section.body.map((paragraph) => (
-                <p key={paragraph} className={styles.body}>
-                  {paragraph}
-                </p>
+                  {section.body.map((paragraph) => (
+                    <p key={paragraph} className={styles.body}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </li>
               ))}
-            </li>
-          ))}
-        </ol>
-      )}
+            </ol>
+          )}
+        </section>
+
+        <aside className={styles.steps} aria-labelledby="guide-steps-title">
+          <h2 id="guide-steps-title" className={styles.stepsTitle}>
+            {HOME_GUIDE_INTRO}
+          </h2>
+          <ol className={styles.stepList}>
+            {HOME_GUIDE_STEPS.map((step, index) => {
+              const body = (
+                <>
+                  <span className={styles.stepNumber} aria-hidden="true">
+                    {index + 1}
+                  </span>
+                  <span className={styles.stepText}>
+                    <strong>{step.title}</strong>
+                    <small>{step.description}</small>
+                  </span>
+                </>
+              )
+              return (
+                <li key={step.title}>
+                  {step.to === undefined ? (
+                    <div className={styles.step}>{body}</div>
+                  ) : (
+                    <Link to={step.to} className={`${styles.step} ${styles.stepLink}`}>
+                      {body}
+                    </Link>
+                  )}
+                </li>
+              )
+            })}
+          </ol>
+        </aside>
+      </div>
     </>
   )
 }

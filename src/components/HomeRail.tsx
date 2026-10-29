@@ -47,7 +47,8 @@ function GuideSteps() {
           )
           return (
             <li key={step.title}>
-              {step.to === undefined ? (
+              {/* 홈 안에서 홈으로 가는 링크는 같은 화면이라 글로만 둔다 */}
+              {step.to === undefined || step.to === '/' ? (
                 <div className={styles.step}>{body}</div>
               ) : (
                 <Link to={step.to} className={`${styles.step} ${styles.stepLink}`}>

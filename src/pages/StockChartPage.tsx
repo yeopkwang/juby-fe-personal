@@ -416,28 +416,28 @@ export default function StockChartPage() {
         (2026-10-30 재정비 — 16:9에서 좌우가 비어 보이고 뉴스가 첫 화면에 안 보였다). 그보다 좁으면 뉴스가 아래로 내려간다
       */}
       <div className={styles.layout}>
-      <SectionBoundary
-        resetKey={stockCode}
-        onRetry={retry}
-      >
-        <PriceSection
-          stockCode={stockCode}
-          detail={detail}
-          preview={preview}
-          period={period}
-          onPeriodChange={setPeriod}
-          waiting={view.kind === 'waiting' ? view : null}
-          failed={view.kind === 'error'}
+        <SectionBoundary
+          resetKey={stockCode}
           onRetry={retry}
-          likeToggle={likeToggle}
-          likeStatus={likeStatus}
-          actionPanel={actionPanel}
-        />
-      </SectionBoundary>
+        >
+          <PriceSection
+            stockCode={stockCode}
+            detail={detail}
+            preview={preview}
+            period={period}
+            onPeriodChange={setPeriod}
+            waiting={view.kind === 'waiting' ? view : null}
+            failed={view.kind === 'error'}
+            onRetry={retry}
+            likeToggle={likeToggle}
+            likeStatus={likeStatus}
+            actionPanel={actionPanel}
+          />
+        </SectionBoundary>
 
-      <section className={styles.newsColumn}>
-        <NewsList stockCode={stockCode} />
-      </section>
+        <section className={styles.newsColumn}>
+          <NewsList stockCode={stockCode} />
+        </section>
       </div>
 
       {/* 홈 하트와 같은 안내. 로그인하면 이 상세로 돌아온다 */}
