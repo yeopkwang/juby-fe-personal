@@ -6,18 +6,16 @@
   max-width: 560px;
   margin: 36px auto 0;
   padding: 34px 32px 30px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  /* 상자 대신 옅은 면(2026-10-30) */
   border-radius: var(--radius-lg);
+  background: var(--color-bg-sub);
   text-align: center;
-  /* 카드는 테두리 + 아주 옅은 그림자(index.css --shadow-card) */
-  box-shadow: var(--shadow-card);
 }
 
-/* 테두리 있는 판 안에 놓일 때(마이페이지). 판이 틀이 되므로 카드는 테두리 없이 내용만 그린다 */
+/* 마이페이지 안에 놓일 때. 그 화면의 먹 선이 틀이 되므로 면 없이 내용만 그린다 */
 .plain {
-  border: 0;
   margin-top: 28px;
+  background: none;
 }
 
 .eyebrow {
@@ -37,7 +35,7 @@
 .type {
   margin: 0;
   font-size: var(--font-4xl);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 
