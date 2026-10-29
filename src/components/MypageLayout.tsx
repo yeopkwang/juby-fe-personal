@@ -8,12 +8,11 @@ import styles from './MypageLayout.module.css'
 
 const MENU = [
   { to: '/mypage/personality', label: '투자유형 보기' },
-  { to: '/mypage/likes', label: '관심종목' },
   { to: '/mypage/profile', label: '내 정보 확인' },
 ]
 
 /**
- * 마이페이지 세 화면이 함께 쓰는 껍데기. 사이드바 + 오른쪽 내용(Outlet).
+ * 마이페이지 두 화면이 함께 쓰는 껍데기(관심종목은 2026-10-30에 머리글의 주식 모아보기로 옮겼다). 사이드바 + 오른쪽 내용(Outlet).
  *
  * 사이드바 생김새는 AI 주가분석 화면과 거의 같지만 컴포넌트를 공용화하지 않았다.
  * 그쪽 목록은 서버에서 오는 대화 세션이라 개수가 계속 변하고, 이쪽은 고정 셋에

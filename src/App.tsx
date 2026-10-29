@@ -31,8 +31,8 @@ const AiPage = lazy(() => import('./pages/AiPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'))
 /*
- * 마이페이지는 껍데기(사이드바)와 안쪽 세 화면을 **한 묶음**으로 받는다(pages/mypageBundle.ts).
- * 넷을 따로 lazy로 두면 껍데기 묶음이 온 뒤에야 안쪽 화면 묶음을 받기 시작해, 들어올 때마다
+ * 마이페이지는 껍데기(사이드바)와 안쪽 두 화면을 **한 묶음**으로 받는다(pages/mypageBundle.ts).
+ * 셋을 따로 lazy로 두면 껍데기 묶음이 온 뒤에야 안쪽 화면 묶음을 받기 시작해, 들어올 때마다
  * 왕복이 하나 더 끼었다(껍데기 → 안쪽 → 요청, 2026-10-05 측정). 셋을 합쳐도 압축 20KB 남짓이다.
  */
 const mypageBundle = () => import('./pages/mypageBundle')
@@ -41,7 +41,7 @@ const MypagePersonalityPage = lazy(() =>
   mypageBundle().then((m) => ({ default: m.MypagePersonalityPage })),
 )
 const MypageProfilePage = lazy(() => mypageBundle().then((m) => ({ default: m.MypageProfilePage })))
-const MypageLikesPage = lazy(() => mypageBundle().then((m) => ({ default: m.MypageLikesPage })))
+const LikesPage = lazy(() => import('./pages/LikesPage'))
 const GuidePage = lazy(() => import('./pages/GuidePage'))
 const BacktestPage = lazy(() => import('./pages/BacktestPage'))
 const PersonalityTestPage = lazy(() => import('./pages/PersonalityTestPage'))
@@ -86,6 +86,8 @@ function Layout() {
               <Route path="/" element={<HomePage />} />
               <Route path="/ai" element={<AiPage />} />
               <Route path="/stocks/:stockCode" element={<StockChartPage />} />
+              {/* 주식 모아보기(관심종목을 한 번에). 예전 마이페이지 관심종목 탭(/mypage/likes)이 여기로 합쳐졌다(2026-10-30) */}
+              <Route path="/likes" element={<LikesPage />} />
               {/* 사이드바는 MypageLayout이 들고, 오른쪽 내용만 자식 라우트가 갈아끼운다 */}
               <Route path="/mypage" element={<MypageLayout />}>
                 <Route
@@ -93,7 +95,8 @@ function Layout() {
                   element={<Navigate to="/mypage/personality" replace />}
                 />
                 <Route path="personality" element={<MypagePersonalityPage />} />
-                <Route path="likes" element={<MypageLikesPage />} />
+                {/* 옛 주소. 북마크·뒤로 가기로 와도 주식 모아보기로 보낸다 */}
+                <Route path="likes" element={<Navigate to="/likes" replace />} />
                 <Route path="profile" element={<MypageProfilePage />} />
               </Route>
 

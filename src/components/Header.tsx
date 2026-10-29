@@ -27,6 +27,7 @@ export default function Header() {
 
       <nav className={`${styles.menu} ${styles.service}`} aria-label="서비스">
         <MenuLink to="/" label="홈" />
+        <MenuLink to="/likes" label="주식 모아보기" />
         <MenuLink to="/backtest" label="주식 백테스트" />
         <MenuLink to="/ai" label="AI 주가분석" />
         <MenuLink to="/guide" label="사용설명서" />
