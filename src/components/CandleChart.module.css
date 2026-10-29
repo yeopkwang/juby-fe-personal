@@ -40,7 +40,11 @@
   position: absolute;
   top: 6px;
   left: 10px;
-  z-index: 1;
+  /* 차트 라이브러리가 캔버스를 z-index 1·2로 겹친다. 그보다 위여야 보인다(예전 1이라 늘 캔버스 밑에 깔렸다) */
+  z-index: 3;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;

@@ -61,6 +61,11 @@ export interface StockDetail extends StockInfo {
   period: Period
   /** 오름차순 */
   candles: Candle[]
+  /**
+   * 응답을 받은 때(ms). 상세 응답에는 시각이 없어(StockDetailRes, 2026-10-29 스웨거) 머리 가격이 언제 값인지는
+   * 받은 시각으로 적는다. 1분 캐시에서 꺼내도 처음 받은 때다
+   */
+  receivedAt: number
 }
 
 /**

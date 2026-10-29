@@ -476,6 +476,7 @@ async function fetchStockDetail(stockCode: string, period: Period, memoKey: stri
     period,
     // 서버가 오름차순으로 주지만 기대지 않는다. 차트는 순서가 어긋나면 그리지 못한다
     candles: usable.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
+    receivedAt: Date.now(),
   }
   detailMemo.set(memoKey, { savedAt: Date.now(), value: detail })
   // 받은 일봉의 마지막 한 달은 홈 카드 그래프로도 쓴다. 상세를 본 종목은 카드가 다시 묻지 않는다

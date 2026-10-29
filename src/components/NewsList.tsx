@@ -8,6 +8,12 @@ const TABS: { key: NewsSort; label: string }[] = [
   { key: 'RELEVANCE', label: '관련도순' },
 ]
 
+/**
+ * 한 번에 펼치는 기사 수. 서버는 10건씩 주지만 10건을 다 펼치면 뉴스가 1,600px 남짓이라 첫 화면에 한 건도 안 보였다.
+ * 받아 둔 기사가 남았으면 '뉴스 더 보기'가 서버에 묻지 않고 더 펼친다 — 요청 수는 그대로다
+ */
+const NEWS_STEP = 5
+
 interface Props {
   stockCode: string
 }
@@ -32,7 +38,7 @@ type State =
  *
  * 정렬은 서버가 한다(`GET /api/stocks/{code}/news?sort=`). 최신순은 발행일 순,
  * 관련도순은 벡터 검색이 매긴 순서라 화면에서 흉내 낼 수 없어 탭을 바꾸면 다시 받는다.
- * 10건씩 오고 page는 0~9까지라 최대 100건이다.
+ * 10건씩 오고 page는 0~9까지라 최대 100건이다. 화면에는 5건씩 펼친다(NEWS_STEP).
  */
 export default function NewsList({ stockCode }: Props) {
   const [sort, setSort] = useState<NewsSort>('LATEST')
@@ -42,6 +48,8 @@ export default function NewsList({ stockCode }: Props) {
   const [moreFailed, setMoreFailed] = useState(false)
   /** 첫 페이지 '다시 시도'. 올리면 아래 effect가 다시 돈다 */
   const [retryCount, setRetryCount] = useState(0)
+  /** 지금 펼친 기사 수. 받아 둔 기사(state.items)보다 적을 수 있다 */
+  const [visibleCount, setVisibleCount] = useState(NEWS_STEP)
   /*
    * 목록 번호. 종목·정렬이 바뀌거나 첫 페이지를 다시 받을 때마다 올라간다.
    * 더 보기는 누른 순간의 번호를 들고 가서, 받아 왔을 때 번호가 달라져 있으면 버린다.
@@ -54,6 +62,7 @@ export default function NewsList({ stockCode }: Props) {
     let isStale = false
     listSeqRef.current += 1
     setState({ kind: 'loading' })
+    setVisibleCount(NEWS_STEP)
     setMoreFailed(false)
     // 앞 목록의 더 보기가 아직 오는 중이어도 새 목록의 버튼은 풀어 둔다
     setIsLoadingMore(false)
@@ -83,6 +92,11 @@ export default function NewsList({ stockCode }: Props) {
 
   async function loadMore() {
     if (state.kind !== 'ready' || isLoadingMore) return
+    // 받아 둔 기사가 남았으면 서버에 묻지 않고 더 펼친다
+    if (visibleCount < state.items.length) {
+      setVisibleCount((count) => count + NEWS_STEP)
+      return
+    }
     const seq = listSeqRef.current
     const nextPage = state.page + 1
 
@@ -104,6 +118,7 @@ export default function NewsList({ stockCode }: Props) {
             }
           : current,
       )
+      setVisibleCount((count) => count + NEWS_STEP)
     } catch (error: unknown) {
       if (seq !== listSeqRef.current) return
       console.warn('뉴스 더 보기 실패', error)
@@ -114,12 +129,14 @@ export default function NewsList({ stockCode }: Props) {
     }
   }
 
-  const hasMore =
+  /** 서버에 다음 페이지가 있는가 */
+  const serverHasMore =
     state.kind === 'ready' &&
     state.page < NEWS_LAST_PAGE &&
     (state.totalCount === null
       ? state.lastReceived >= NEWS_PAGE_SIZE
       : state.received < state.totalCount)
+  const hasMore = state.kind === 'ready' && (visibleCount < state.items.length || serverHasMore)
 
   return (
     <>
@@ -181,7 +198,7 @@ export default function NewsList({ stockCode }: Props) {
 
       {state.kind === 'ready' && (
         <ul className={styles.list}>
-          {state.items.map((item, index) => (
+          {state.items.slice(0, visibleCount).map((item, index) => (
             // 같은 기사가 두 페이지에 걸쳐 올 수 있어 링크만으로는 키가 겹친다
             <li key={`${index}-${item.link}`}>
               <a

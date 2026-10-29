@@ -18,7 +18,7 @@ import {
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { toStockHandoff } from '../hooks/useStockHandoff'
-import { periodStart, toKoreanDate } from '../utils/date'
+import { periodStart, toKoreanDate, toKoreanDateTime } from '../utils/date'
 import {
   formatChangeRate,
   formatPrice,
@@ -864,6 +864,10 @@ function PriceLines({
           <span className={toRateClassName(detail.comparePrev)}>
             {formatChangeRate(detail.comparePrev)}
           </span>
+          {/* 현재가는 증권사 실시간 값이라 언제 받았는지 적는다. 아래 시세 요약은 마지막 거래일 마감 값이다 */}
+          {toKoreanDateTime(detail.receivedAt) !== '' && (
+            <span className={styles.asOf}>{toKoreanDateTime(detail.receivedAt)} 기준</span>
+          )}
         </p>
       </>
     )

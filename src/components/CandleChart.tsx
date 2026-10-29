@@ -252,22 +252,13 @@ export default function CandleChart({ candles }: Props) {
   }, [candles])
 
   /*
-   * 마우스를 올리기 전에는 가장 최근 봉을 보여준다.
-   * 빈 자리로 두면 마우스가 들어올 때마다 줄이 생겼다 사라져 차트가 흔들린다.
+   * 범례는 봉에 마우스를 올렸을 때(휴대폰은 누른 동안)만 그 봉 값을 띄운다. 기본 값(마지막 거래일)은 오른쪽 열 시세 요약이
+   * 맡는다 — 한 화면에 같은 값이 두 번, 머리 현재가와 어긋난 종가가 또 하나 보였다(2026-10-29 리디자인).
+   * 차트 위에 떠 있는 층이라 생기고 사라져도 차트가 흔들리지 않는다
    */
-  const lastIndex = candles.length - 1
-  const shown =
-    hovered ??
-    (lastIndex < 0
-      ? null
-      : {
-          candle: candles[lastIndex],
-          prevClose: lastIndex < 1 ? null : candles[lastIndex - 1].close,
-        })
-
   return (
     <div className={styles.wrap}>
-      {shown !== null && <Legend point={shown} />}
+      {hovered !== null && <Legend point={hovered} />}
       <div ref={containerRef} className={styles.chart} />
       {/*
         라이브러리 라이선스(Apache 2.0)가 요구하는 출처 표시와 https://www.tradingview.com/ 링크.

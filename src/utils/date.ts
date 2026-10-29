@@ -102,3 +102,15 @@ export function toKoreanDate(
 
   return `${prefix}${month}월 ${day}일`
 }
+
+/**
+ * 한국 시각으로 "10월 29일 11:00". 종목 상세 머리 가격의 기준 시각(응답을 받은 때)에 쓴다.
+ * 시장 시각이라 보는 사람의 시간대가 아니라 한국 시간으로 적는다. 유한한 숫자가 아니면 ""(그 줄을 숨긴다)
+ */
+export function toKoreanDateTime(ms: number): string {
+  if (!Number.isFinite(ms)) return ''
+  const kst = new Date(ms + 9 * 60 * 60 * 1000)
+  const hours = String(kst.getUTCHours()).padStart(2, '0')
+  const minutes = String(kst.getUTCMinutes()).padStart(2, '0')
+  return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hours}:${minutes}`
+}

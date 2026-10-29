@@ -54,8 +54,12 @@
 
 .meta {
   margin: 0;
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
+  /* 출처·시간은 한 줄. 출처 주소가 길면 말줄임표로 끝낸다 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dot {
@@ -69,15 +73,17 @@
    * (바로 아래 .description은 두 줄에서 잘라내므로 이 문제가 없다)
    */
   overflow-wrap: anywhere;
-  margin: 6px 0 0;
-  font-size: var(--font-2xl);
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-xl);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .description {
-  margin: 8px 0 0;
-  font-size: var(--font-base);
+  /* 넓은 화면에서도 글줄이 너무 길어지지 않게(한글 70자 안팎) */
+  max-width: 70em;
+  margin: 6px 0 0;
+  font-size: var(--font-md);
   line-height: 1.55;
   color: var(--color-text-sub);
   /* 두 줄까지만 보여주고 넘치면 자른다 */
@@ -112,7 +118,7 @@
   }
 
   .title {
-    font-size: var(--font-xl);
+    font-size: var(--font-lg);
   }
 
   .card {

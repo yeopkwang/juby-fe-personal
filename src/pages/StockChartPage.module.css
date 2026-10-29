@@ -103,6 +103,11 @@
   color: var(--color-text-sub);
 }
 
+.asOf {
+  margin-left: var(--space-2);
+  font-size: var(--font-sm);
+}
+
 .up {
   font-weight: 600;
   color: var(--color-up-text);
