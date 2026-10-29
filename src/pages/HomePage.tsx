@@ -26,7 +26,6 @@ import { describeSort, nextSort, sortStocks } from '../utils/sort'
 import type {
   CardQuote,
   CardSeries,
-  LeadingBasis,
   LeadingStocks,
   SortKey,
   SortState,
@@ -69,15 +68,6 @@ type ListState =
  * 예전에는 종목마다 현재가를 따로 불러 보이는 20개 먼저·나머지 나중·장 열림 탐지·
  * 지난 값 저장 같은 장치가 이 파일에 가득했다. 지금은 전부 없다.
  */
-/**
- * 머리말 윗줄. 서버가 어떤 전략·기간으로 대장주를 골랐는지 그대로 적는다.
- * 둘 중 하나라도 못 받으면 근거를 지어내지 않고 예전 문구로 둔다.
- */
-function describeBasis(basis: LeadingBasis): string {
-  const { strategyName, periodLabel } = basis
-  if (strategyName === null || periodLabel === null) return '백테스트 기법으로 투자한'
-  return `${strategyName} · ${periodLabel} 기준으로 뽑은`
-}
 
 export default function HomePage() {
   useDocumentTitle('초보자를 위한 주식 비서')
@@ -330,9 +320,14 @@ export default function HomePage() {
       <SearchBar stocks={searchable} />
 
       <section className={styles.section}>
-        <p className={styles.eyebrow}>{describeBasis(leading.basis)}</p>
         {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
         <h1 className={styles.heading}>테마별 대표 종목</h1>
+        {/*
+          무엇을 보여 주는지 쉬운 말로. 예전 머리말("SMA 이동평균선 전략 · 1년 기준으로 뽑은")은 사실과 달랐다 —
+          백엔드는 테마마다 정해 둔 종목을 주고(JUBY-BE LeadingStockTheme) 전략 결과로 고르지 않는다(dev 3dc3f3a 확인).
+          큰 숫자는 그 종목의 1년 주가 변화다(CardChart)
+        */}
+        <p className={styles.lede}>테마마다 대표 종목을 하나씩 골라 1년 주가 흐름을 보여드려요</p>
 
         {/*
           카드를 그리다 멈춰도 검색·시세표는 남는다. 경계가 없을 땐 카드 한 장 때문에 홈 전체가

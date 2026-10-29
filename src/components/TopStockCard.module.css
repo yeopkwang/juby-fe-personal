@@ -27,7 +27,7 @@
   font-weight: 700;
 }
 
-/* 카드의 큰 숫자. 언제나 1년 전 대비 등락률이다 */
+/* 카드의 큰 숫자. 언제나 1년간 주가 변화(1년 전 종가 대비 등락률)다 */
 .rateRow {
   display: flex;
   align-items: baseline;
@@ -47,8 +47,8 @@
 }
 
 .chart {
-  height: 150px;
-  margin-top: 10px;
+  height: 120px;
+  margin-top: var(--space-2);
 }
 
 /* 값이 오기 전 자리. 빈 칸으로 두면 카드가 찌그러져 보인다 */

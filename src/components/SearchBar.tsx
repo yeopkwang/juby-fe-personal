@@ -154,7 +154,7 @@ export default function SearchBar({ stocks }: Props) {
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="관심종목을 입력해주세요 (예 : 삼성전자)"
+          placeholder="종목명이나 종목코드로 검색 (예: 삼성전자)"
           role="combobox"
           aria-expanded={isListVisible}
           aria-controls="stock-suggestions"

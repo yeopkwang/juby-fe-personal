@@ -1,14 +1,14 @@
 .form {
   position: relative;
   max-width: 660px;
-  margin: 48px auto 0;
+  margin: var(--space-6) auto 0;
 }
 
 .box {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 58px;
+  height: 52px;
   /* 오른쪽은 검색 버튼이 안쪽에 앉을 만큼만 띄운다 */
   padding: 0 7px 0 22px;
   /* 아이보리 바탕 위에 흰 칸으로 띄운다. 예전엔 흰 판 위의 회색 칸이었다 */
@@ -25,7 +25,7 @@
 
 .input {
   flex: 1;
-  /* 상자(58px) 높이를 다 차지해 위아래 여백을 눌러도 입력이 시작된다 */
+  /* 상자(52px) 높이를 다 차지해 위아래 여백을 눌러도 입력이 시작된다 */
   align-self: stretch;
   min-width: 0;
   border: none;

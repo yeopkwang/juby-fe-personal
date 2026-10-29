@@ -165,7 +165,7 @@ export default function CardChart({ stock }: { stock: CardSeries }) {
           {formatChangeRate(stock.changeRate, 1)}
         </span>
         {/* 상세 API의 일봉에서 마지막 1년(주 단위). 머리말의 "1년 기준"과 기간을 맞춘다. api/cardSeries.ts 참고 */}
-        <span className={styles.caption}>1년 전 대비</span>
+        <span className={styles.caption}>1년간 주가 변화</span>
       </p>
 
       {/* 크기를 잰 뒤에야 그릴 수 있다. 첫 그림 전에는 빈 칸이고 높이는 CSS가 잡아 둔다 */}

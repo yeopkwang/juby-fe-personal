@@ -76,7 +76,6 @@ export default function StockTable({
     <div className={styles.table}>
       <div className={styles.head}>
         <span />
-        <span className={styles.colCode}>종목코드</span>
 
         {SORTABLE_COLUMNS.map((column) => {
           const direction =
@@ -132,10 +131,6 @@ export default function StockTable({
                 </svg>
               </button>
 
-              <span className={`${styles.code} ${styles.colCode}`}>
-                {stock.stockCode}
-              </span>
-
               {/*
                 링크는 종목명 하나뿐이고, 그 링크가 ::after로 행 전체를 덮어 어디를 눌러도 이동한다.
                 예전에는 행 전체가 <a>고 그 안에 하트 <button>이 있었는데,
@@ -156,6 +151,8 @@ export default function StockTable({
                 >
                   {stock.stockName}
                 </Link>
+                {/* 종목코드는 이름 아래 작은 글자로. 따로 칸을 두면 표가 넓은 화면에 흩어져 이름과 가격 사이가 비었다 */}
+                <span className={styles.code}>{stock.stockCode}</span>
               </span>
 
               <span className={styles.numeric}>

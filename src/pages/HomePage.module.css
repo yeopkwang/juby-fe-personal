@@ -1,19 +1,19 @@
 .section {
-  margin-top: 64px;
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: var(--font-base);
-  font-weight: 600;
-  color: var(--color-text-sub);
+  margin-top: var(--space-10);
 }
 
 .heading {
-  margin: 6px 0 0;
+  margin: 0;
   font-size: var(--font-4xl);
   font-weight: 700;
   letter-spacing: -0.03em;
+}
+
+/* 제목 아래 한 줄 설명 */
+.lede {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
 }
 
 .headingRow {

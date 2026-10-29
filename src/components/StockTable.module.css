@@ -4,8 +4,8 @@
  * 한 화면에 열 줄도 안 들어오고 시선도 줄마다 끊긴다(토스증권 시세 목록과 같은 결).
  */
 .table {
-  --columns: 48px 96px 1.5fr 1.4fr 1.1fr 1.1fr;
-  margin-top: 20px;
+  --columns: 48px 2fr 1.3fr 1fr 1fr;
+  margin-top: var(--space-4);
 }
 
 .head,
@@ -53,7 +53,7 @@
    * 높이는 최소값이다. 고정하면 긴 종목명("KODEX CD금리액티브(합성)")이 320px에서 네 줄로 꺾여
    * 아래 행 위에 그려지고, 칸을 채우는 하트가 행 밖으로 나가 아래 행의 하트가 눌렸다
    */
-  min-height: 56px;
+  min-height: 52px;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--font-base);
   transition: background 0.12s;
@@ -133,7 +133,12 @@
   color: var(--color-brand-700);
 }
 
+/* 종목명과 그 아래 종목코드 */
 .name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-2) 0;
   font-weight: 600;
 }
 
@@ -157,6 +162,7 @@
 /* 금액·비율은 오른쪽에 붙여야 자릿수를 위아래로 견주기 좋다 */
 .numeric {
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .numericHead {
@@ -166,7 +172,10 @@
 }
 
 .code {
+  font-size: var(--font-xs);
+  font-weight: 400;
   color: var(--color-text-sub);
+  font-variant-numeric: tabular-nums;
 }
 
 .up {
@@ -186,16 +195,12 @@
 }
 
 /*
- * 좁아지면 덜 중요한 칸부터 접는다. 거래량 → 종목코드 순.
+ * 좁아지면 덜 중요한 칸부터 접는다(거래대금, 아래 600px). 종목코드는 이름 아래에 있어 접지 않는다.
  * 접는 칸 수만큼 --columns도 함께 줄여야 머리글과 행이 어긋나지 않는다.
  */
 @media (max-width: 900px) {
   .table {
     --columns: 44px 1.6fr 1.3fr 1fr 1fr;
-  }
-
-  .colCode {
-    display: none;
   }
 }
 
