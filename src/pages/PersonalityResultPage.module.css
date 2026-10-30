@@ -22,6 +22,13 @@
   margin-top: 26px;
 }
 
+/* 완료 다음 할 일. 보조 단추로 같은 폭 */
+.next {
+  composes: secondary lg from '../components/buttons.module.css';
+  min-width: 180px;
+  margin-top: var(--space-2);
+}
+
 /* 주 버튼 아래 보조 링크. 다시 푸는 쪽은 눈에 덜 띄어야 한다 */
 .retry {
   /* 글자는 13px이지만 손가락으로 누를 넓이는 44px 가까이 둔다(여백으로 넓히고 음수 여백으로 자리는 그대로) */

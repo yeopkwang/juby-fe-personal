@@ -1,8 +1,11 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import PersonalityCard from '../components/PersonalityCard'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { toBacktestHandoff } from '../hooks/useStockHandoff'
+import { findByPersonality } from '../utils/backtest'
 import type { PersonalityResult } from '../types/personality'
 import { toReturnPath } from '../utils/navigation'
+import { isPersonalityType } from '../utils/personality'
 import styles from './PersonalityResultPage.module.css'
 
 /** 검사를 마친 뒤 돌아갈 곳. 들어온 문(?from=)에 따라 달라진다 */
@@ -34,6 +37,9 @@ export default function PersonalityResultPage() {
     )
   }
 
+  // 이 성향에 맞는 전략. 모르는 성향 이름이면 단추를 두지 않는다
+  const strategy = isPersonalityType(result.type) ? findByPersonality(result.type) : null
+
   return (
     <>
       <h1 className={styles.title}>나의 투자성향 테스트</h1>
@@ -56,6 +62,16 @@ export default function PersonalityResultPage() {
         <Link to={doneRoute(location.search)} className={styles.done}>
           완료
         </Link>
+        {/* 결과를 본 다음 할 일. 마이페이지의 같은 단추와 같은 이름이다 — 그 전략을 골라 둔 채 백테스트로 간다 */}
+        {strategy !== null && (
+          <Link
+            to="/backtest"
+            state={toBacktestHandoff(null, { investType: strategy.investType, period: null })}
+            className={styles.next}
+          >
+            내 전략으로 백테스트
+          </Link>
+        )}
         {/* 다시 풀 때도 들어온 문을 유지해야 끝나고 같은 자리로 돌아간다 */}
         <Link
           to={{ pathname: '/personality-test', search: location.search }}
