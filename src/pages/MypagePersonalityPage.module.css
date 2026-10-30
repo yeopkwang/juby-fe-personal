@@ -1,9 +1,7 @@
-/* 카드가 올 자리를 미리 잡아 둔다. 도착해도 화면이 흔들리지 않는다 */
+/* 내 성향 자리를 미리 잡아 둔다. 도착해도 화면이 흔들리지 않는다 */
 .skeleton {
-  max-width: 560px;
   height: 420px;
-  margin: 36px auto;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
@@ -24,13 +22,14 @@
   }
 }
 
-/* 검사 전·조회 실패가 함께 쓴다 */
+/* 검사 전·조회 실패가 함께 쓴다. 다른 칸처럼 옅은 면에 왼쪽 정렬 */
 .message {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 96px 24px;
-  text-align: center;
+  align-items: flex-start;
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
 }
 
 .messageText {
@@ -40,32 +39,260 @@
 }
 
 .hint {
-  margin: 10px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-md);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
 
-.primary {
-  composes: primary lg from '../components/buttons.module.css';
-  min-width: 180px;
-  margin-top: 26px;
+.message .primary {
+  margin-top: var(--space-5);
 }
 
-/* 카드 아래 주 버튼. 결과 화면의 '완료'와 같은 자리, 같은 무게 */
-.retest {
-  composes: primary lg from '../components/buttons.module.css';
-  min-width: 180px;
-  margin-top: 26px;
+.primary {
+  composes: primary md from '../components/buttons.module.css';
+}
+
+.secondary {
+  composes: secondary md from '../components/buttons.module.css';
+}
+
+/* ── 내 성향 ── 그림 | 이름·설명·단추 */
+.mine {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.image {
+  width: 120px;
+  height: 120px;
+}
+
+.mineText {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+
+.type {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-5xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* 설명은 두 줄로 들어온다. 서버 문구에 줄바꿈이 없으면 그냥 이어져 흐른다 */
+.description {
+  max-width: 40em;
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+  white-space: pre-line;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* ── 다섯 성향 둘러보기 ── */
+.browse {
+  margin-top: var(--space-2);
+}
+
+.message + .browse {
+  margin-top: var(--space-10);
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-rule);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--font-2xl);
+  font-weight: 700;
+}
+
+.sectionNote {
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+.panel {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.panelTitle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--font-3xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mineTag {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--color-brand-800);
+}
+
+.panelDescription {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+  white-space: pre-line;
+}
+
+/* 넓으면 전략 설명 | 점수 비중 두 칸, 좁으면 쌓는다(내용 폭으로 가른다) */
+.panelBody {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-6) clamp(24px, 4vw, 64px);
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 1100px) {
+  .panelBody {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.facts {
+  margin: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.facts div {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+
+.facts dt {
+  color: var(--color-text-sub);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.factSub {
+  display: block;
+  color: var(--color-text-sub);
+}
+
+.weightsTitle {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-md);
+  font-weight: 700;
+}
+
+.weightList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weight {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-md);
+}
+
+.weightName {
+  color: var(--color-text-sub);
+}
+
+/* 비중은 점수가 아니라 등락·적합도 색을 쓰지 않는다. 먹 막대 하나 */
+.weightTrack {
+  height: 8px;
+  background: var(--color-bg-sub);
+}
+
+.weightFill {
+  display: block;
+  height: 100%;
+  background: var(--color-rule);
+}
+
+.weightValue {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.changeNote {
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+/* 문장 안 링크. 누르는 넓이는 위아래 여백으로 넓힌다 */
+.inlineLink {
+  display: inline-block;
+  padding: 12px 2px;
+  margin: -12px 0;
+  color: var(--color-brand-700);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 @media (max-width: 600px) {
-  .message {
-    padding: 56px 16px;
+  .mine {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
   }
 
-  .skeleton {
-    height: 340px;
-    margin: 24px auto;
+  .image {
+    width: 88px;
+    height: 88px;
+  }
+
+  .type {
+    font-size: var(--font-4xl);
+  }
+
+  .facts div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .message {
+    padding: var(--space-5);
   }
 }

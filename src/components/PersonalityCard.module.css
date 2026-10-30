@@ -1,4 +1,4 @@
-/* 결과 화면과 마이페이지 투자성향 화면이 같이 쓴다. 폭과 여백은 문항 카드에 맞췄다 */
+/* 성향테스트 결과 화면이 쓴다(마이페이지 투자유형은 2026-10-30부터 따로 그린다). 폭과 여백은 문항 카드에 맞췄다 */
 .card {
   display: flex;
   flex-direction: column;
@@ -10,12 +10,6 @@
   border-radius: var(--radius-lg);
   background: var(--color-bg-sub);
   text-align: center;
-}
-
-/* 마이페이지 안에 놓일 때. 그 화면의 먹 선이 틀이 되므로 면 없이 내용만 그린다 */
-.plain {
-  margin-top: 28px;
-  background: none;
 }
 
 .eyebrow {
