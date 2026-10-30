@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { isStockCode } from '../api/stock'
+import { PERIODS } from '../utils/backtest'
+import type { BacktestPeriod } from '../types/backtest'
 import type { StockInfo } from '../types/stock'
 
 /**
@@ -12,14 +14,40 @@ export function toStockHandoff(stock: StockInfo): { handoff: StockInfo } {
   return { handoff: stock }
 }
 
-function hasHandoff(state: unknown): state is { handoff: unknown } {
-  return typeof state === 'object' && state !== null && 'handoff' in state
+/**
+ * 백테스트 화면에 종목과 함께(또는 종목 없이) 싣는 전략·기간. 마이페이지의 '최근 본 백테스트'(같은 조건으로 다시 보기)와
+ * 투자유형의 '이 전략으로 백테스트'가 싣는다. 기간이 null이면 전략만 골라 둔다
+ */
+interface BacktestPlan {
+  investType: number
+  period: BacktestPeriod | null
+}
+
+export function toBacktestHandoff(
+  stock: StockInfo | null,
+  plan: BacktestPlan,
+): { handoff?: StockInfo; plan: BacktestPlan } {
+  return stock === null ? { plan } : { handoff: stock, plan }
+}
+
+/**
+ * 마이페이지 '최근 AI 대화'가 싣는 대화방 번호. AI 화면이 목록을 받은 뒤 그 방을 연다
+ */
+export function toSessionHandoff(sessionId: number): { openSession: number } {
+  return { openSession: sessionId }
+}
+
+/** 이 파일이 싣는 state 칸. 받는 화면은 이 중 하나라도 있으면 읽은 뒤 state를 비운다 */
+const HANDOFF_KEYS = ['handoff', 'plan', 'openSession'] as const
+
+function field(state: unknown, key: (typeof HANDOFF_KEYS)[number]): unknown {
+  if (typeof state !== 'object' || state === null || !(key in state)) return undefined
+  return (state as Record<string, unknown>)[key]
 }
 
 /** 모양이 틀리면(종목코드가 여섯 자리 숫자가 아니거나 이름이 빈 문자열) 없는 셈 친다 */
 function readHandoff(state: unknown): StockInfo | null {
-  if (!hasHandoff(state)) return null
-  const handoff = state.handoff
+  const handoff = field(state, 'handoff')
   if (typeof handoff !== 'object' || handoff === null) return null
   const { stockCode, stockName } = handoff as Record<string, unknown>
   if (typeof stockCode !== 'string' || !isStockCode(stockCode)) return null
@@ -27,22 +55,51 @@ function readHandoff(state: unknown): StockInfo | null {
   return { stockCode, stockName }
 }
 
+/** 성향 번호는 1~5, 기간은 아는 값이거나 null. 틀리면 없는 셈 친다 */
+function readPlan(state: unknown): BacktestPlan | null {
+  const plan = field(state, 'plan')
+  if (typeof plan !== 'object' || plan === null) return null
+  const { investType, period } = plan as Record<string, unknown>
+  if (typeof investType !== 'number' || !Number.isInteger(investType) || investType < 1 || investType > 5) return null
+  if (period === null) return { investType, period: null }
+  const known = PERIODS.find((item) => item.period === period)
+  return known === undefined ? null : { investType, period: known.period }
+}
+
+function readSession(state: unknown): number | null {
+  const sessionId = field(state, 'openSession')
+  return typeof sessionId === 'number' && Number.isInteger(sessionId) && sessionId > 0 ? sessionId : null
+}
+
 /**
- * 종목 상세에서 실어 온 종목. 없거나 모양이 틀리면 null.
- *
  * 처음 그릴 때 한 번만 읽고, 곧바로 같은 주소로 바꿔 넣으며(replace) state를 비운다. 그대로 두면 새로고침·뒤로 갔다
  * 앞으로 오기에 같은 state가 살아 있어 백테스트가 다시 계산되고 AI 방이 또 생긴다. 읽은 값은 이 화면이 떠 있는 동안 그대로다 —
  * 언제 실행할지(성향·대화방 목록을 기다린 뒤 한 번)는 부르는 화면이 정한다.
  */
-export function useStockHandoff(): StockInfo | null {
+function useHandoffState<T>(read: (state: unknown) => T): T {
   const location = useLocation()
   const navigate = useNavigate()
-  const [handoff] = useState(() => readHandoff(location.state))
+  const [value] = useState(() => read(location.state))
 
   useEffect(() => {
-    if (!hasHandoff(location.state)) return
+    if (!HANDOFF_KEYS.some((key) => field(location.state, key) !== undefined)) return
     navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
   }, [location.pathname, location.search, location.state, navigate])
 
-  return handoff
+  return value
+}
+
+/** 종목 상세에서 실어 온 종목. 없거나 모양이 틀리면 null */
+export function useStockHandoff(): StockInfo | null {
+  return useHandoffState(readHandoff)
+}
+
+/** 백테스트 화면이 받는 종목과 전략·기간. 둘 다 없을 수 있다 */
+export function useBacktestHandoff(): { stock: StockInfo | null; plan: BacktestPlan | null } {
+  return useHandoffState((state) => ({ stock: readHandoff(state), plan: readPlan(state) }))
+}
+
+/** AI 화면이 받는 대화방 번호(마이페이지 '최근 AI 대화'). 없으면 null */
+export function useSessionHandoff(): number | null {
+  return useHandoffState(readSession)
 }

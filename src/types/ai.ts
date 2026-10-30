@@ -13,6 +13,8 @@ export interface ChatMessage {
 export interface ChatSession {
   sessionId: number
   title: string
+  /** 마지막으로 대화한 때(ISO, 시간대 없음 = 한국 시각). 비어 오면 null. 마이페이지 '최근 AI 대화'가 적는다 */
+  updatedAt: string | null
 }
 
 export interface ChatSessionDetail extends ChatSession {

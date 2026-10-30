@@ -1,5 +1,6 @@
 import { post } from './client'
 import { clearTokens } from '../utils/auth'
+import { forgetRecentBacktests } from '../utils/recentBacktests'
 
 /**
  * 로그아웃. 서버에 알리고 브라우저에 남은 토큰을 지운다.
@@ -9,6 +10,8 @@ import { clearTokens } from '../utils/auth'
  *
  * 토큰이 만료됐으면 client.ts가 재발급해 한 번 다시 보낸다 — 만료된 토큰으로는 서버가 누구의 refresh token을 지울지 몰라
  * 14일짜리 refresh token이 서버에 남는다.
+ *
+ * 이 브라우저에 남긴 최근 본 백테스트도 지운다 — 같은 브라우저를 쓰는 다른 회원에게 보이지 않게(utils/recentBacktests.ts).
  *
  * 서버 요청이 실패해도 토큰은 지운다(finally). 사용자는 이미 나가겠다고 눌렀는데
  * 서버가 응답을 못 한다고 로그인 상태로 남겨두는 편이 더 위험하다.
@@ -37,5 +40,6 @@ export async function logout(): Promise<void> {
     // 서버 쪽 실패는 삼킨다. 아래에서 어차피 로컬 토큰을 지운다
   } finally {
     clearTokens()
+    forgetRecentBacktests()
   }
 }

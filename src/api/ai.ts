@@ -56,7 +56,8 @@ function isId(value: unknown): value is number {
 function toSession(row: SessionSummaryResponse | null | undefined): ChatSession | null {
   if (typeof row !== 'object' || row === null || !isId(row.chatSessionId)) return null
   const title = typeof row.title === 'string' && row.title.trim() !== '' ? row.title : DEFAULT_TITLE
-  return { sessionId: row.chatSessionId, title }
+  const updatedAt = typeof row.updatedAt === 'string' && row.updatedAt !== '' ? row.updatedAt : null
+  return { sessionId: row.chatSessionId, title, updatedAt }
 }
 
 /** 말한 쪽이나 글이 틀린 메시지는 null(그 말풍선은 뺀다). 빈 말풍선이나 엉뚱한 쪽 말풍선을 그리지 않는다 */
@@ -104,7 +105,8 @@ export async function renameSession(sessionId: number, title: string): Promise<C
   const row = await patch<SessionSummaryResponse | null>(`/api/chat-sessions/${sessionId}`, { title: sent })
   // 200이면 서버는 이미 바꿨다. 응답에 제목이 비어 오면 보낸 제목을 쓴다
   const saved = typeof row?.title === 'string' && row.title.trim() !== '' ? row.title : sent
-  return { sessionId, title: saved }
+  const updatedAt = typeof row?.updatedAt === 'string' && row.updatedAt !== '' ? row.updatedAt : null
+  return { sessionId, title: saved, updatedAt }
 }
 
 /** 대화방과 그 안의 메시지를 모두 지운다. 되돌릴 수 없다 */

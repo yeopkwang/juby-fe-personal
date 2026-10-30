@@ -4,16 +4,18 @@ import { getBacktestResult, getPresetOptions } from '../api/backtest'
 import { ApiError } from '../api/client'
 import { byTradingValue, getStockList, searchStocks } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
+import LikeAddButton from '../components/LikeAddButton'
 import SectionBoundary from '../components/SectionBoundary'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { useStockHandoff } from '../hooks/useStockHandoff'
+import { toStockHandoff, useBacktestHandoff } from '../hooks/useStockHandoff'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 import { isFiniteNumber } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
 import { PERSONALITY_INFO, isPersonalityType } from '../utils/personality'
+import { rememberBacktest } from '../utils/recentBacktests'
 import {
   AXES,
   AXIS_LABEL,
@@ -149,9 +151,10 @@ export default function BacktestPage() {
 
   /*
    * 종목 상세의 '이 종목 백테스트'로 왔으면 그 종목을 고른 채로 시작한다(selectStock과 같은 상태).
-   * 전략·기간까지 채워지면 아래 effect가 한 번 실행한다
+   * 전략·기간까지 채워지면 아래 effect가 한 번 실행한다.
+   * 마이페이지에서 왔으면 전략·기간(plan)도 실려 온다 — '최근 본 백테스트'는 셋 다, '이 전략으로 백테스트'는 전략만이다
    */
-  const handoff = useStockHandoff()
+  const { stock: handoff, plan } = useBacktestHandoff()
   const [query, setQuery] = useState(handoff?.stockName ?? '')
   const [stock, setStock] = useState<StockInfo | null>(handoff)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -178,8 +181,8 @@ export default function BacktestPage() {
     ? findByPersonality(savedPersonality)
     : null
 
-  const [investType, setInvestType] = useState<number | null>(null)
-  const [period, setPeriod] = useState<BacktestPeriod | null>(null)
+  const [investType, setInvestType] = useState<number | null>(plan?.investType ?? null)
+  const [period, setPeriod] = useState<BacktestPeriod | null>(plan?.period ?? null)
 
   /**
    * 서버가 실제로 계산해 둔 기간(성향별). 못 받으면 null이고 로컬 표만 쓴다.
@@ -297,6 +300,21 @@ export default function BacktestPage() {
    */
   useEffect(() => {
     if (!autoRunRef.current) return
+    /*
+     * 마이페이지 '최근 본 백테스트'에서 왔으면 전략·기간이 이미 골라져 있다. 성향과 상관없이 그 조건 그대로 보되,
+     * 그 사이 서버 기간 목록에서 빠졌으면 기간을 비우고 멈춘다(changeStrategy와 같은 규칙)
+     */
+    if (plan !== null) {
+      if (!periodsSettled) return
+      autoRunRef.current = false
+      if (plan.period === null || investType !== plan.investType || period !== plan.period) return
+      if (availablePeriods(plan.investType, serverPeriods).includes(plan.period)) {
+        void handleSubmit()
+      } else {
+        setPeriod(null)
+      }
+      return
+    }
     if (personality.kind === 'loading') return
     if (recommended === null) {
       autoRunRef.current = false
@@ -316,7 +334,7 @@ export default function BacktestPage() {
     void handleSubmit()
     // handleSubmit은 이 렌더의 종목·전략·기간으로 보낸다. 조건이 바뀔 때만 다시 본다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personality.kind, recommended, investType, period, periodsSettled, serverPeriods])
+  }, [plan, personality.kind, recommended, investType, period, periodsSettled, serverPeriods])
 
   const selected = investType === null ? null : findInvestType(investType)
 
@@ -424,6 +442,13 @@ export default function BacktestPage() {
       }
 
       setResult({ kind: 'ready', preset, ranking, missed })
+      rememberBacktest({
+        stockCode: stock.stockCode,
+        stockName: stock.stockName,
+        investType,
+        period,
+        finalScore: preset.result.finalScore,
+      })
     } catch (error: unknown) {
       if (seq !== runSeqRef.current) return
       console.warn('백테스트 조회 실패', error)
@@ -721,7 +746,7 @@ export default function BacktestPage() {
                 preset={result.preset}
                 ranking={result.ranking}
                 missed={result.missed}
-                stockName={stock.stockName}
+                stock={stock}
                 savedPersonality={savedPersonality}
                 onRetry={clearResult}
               />
@@ -745,7 +770,7 @@ export default function BacktestPage() {
 
 interface ResultProps {
   preset: BacktestPreset
-  stockName: string
+  stock: StockInfo
   /** 다섯 전략의 적합도를 높은 순으로. 첫 번째가 이 종목의 성향이다. 비어 있을 수 있다 */
   ranking: Ranked[]
   /** 다섯 중 못 받은 것 */
@@ -756,7 +781,7 @@ interface ResultProps {
 
 function BacktestResult({
   preset,
-  stockName,
+  stock,
   ranking,
   missed,
   savedPersonality,
@@ -764,6 +789,7 @@ function BacktestResult({
 }: ResultProps) {
   const info = findInvestType(preset.investType)
   if (info === null) return null
+  const { stockName } = stock
 
   /*
    * 1등. 화면에 적는 점수(소수 첫째 자리)가 같으면 공동 1위다 — 예전엔 번호 작은 성향 하나를 "가장 잘 맞는"으로
@@ -1101,6 +1127,21 @@ function BacktestResult({
         )}
 
         <p className={styles.meta}>{describeSource(preset)}</p>
+      </div>
+
+      {/* 결과를 본 뒤 그 종목으로 이어 갈 곳. 상세의 바로 가기와 같은 이름을 쓴다 */}
+      <div className={styles.next}>
+        <h3 className={styles.nextTitle}>이 종목으로 이어서</h3>
+        <div className={styles.nextActions}>
+          <Link to={`/stocks/${stock.stockCode}`} className={styles.nextLink}>
+            종목 상세 보기
+          </Link>
+          <Link to="/ai" state={toStockHandoff(stock)} className={styles.nextLink}>
+            AI에게 물어보기
+          </Link>
+          {/* 종목을 바꿔 다시 실행하면 담기 상태를 처음부터 본다 */}
+          <LikeAddButton key={stock.stockCode} stock={stock} />
+        </div>
       </div>
     </section>
   )

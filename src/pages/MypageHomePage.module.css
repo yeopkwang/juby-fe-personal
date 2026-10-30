@@ -1,0 +1,322 @@
+/*
+ * 마이페이지 한눈에 보기(2026-10-30). 다른 화면과 같은 결 — 상자 없이 칸마다 제목 줄 아래 굵은 먹 선으로 열고, 줄 사이는 가는 선.
+ * 넓으면 두 칸씩 두 줄, 좁으면 한 줄로 쌓는다(오른쪽 내용 폭으로 가른다 — 사이드바가 옆에 붙어 화면 폭과 다르다).
+ */
+.home {
+  container-type: inline-size;
+}
+
+/* ── 내 정보 한 줄 ── */
+.member {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  padding-bottom: var(--space-6);
+}
+
+.memberText {
+  min-width: 0;
+}
+
+.memberName {
+  margin: 0;
+  font-size: var(--font-3xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.memberAccount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+  overflow-wrap: anywhere;
+}
+
+.social {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.memberEdit {
+  composes: secondary md from '../components/buttons.module.css';
+}
+
+.memberSkeleton {
+  height: 72px;
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--color-skeleton);
+}
+
+/* ── 네 칸 ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-10) clamp(24px, 3vw, 48px);
+}
+
+@container (max-width: 760px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8);
+  }
+}
+
+.section {
+  min-width: 0;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-rule);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--font-xl);
+  font-weight: 700;
+}
+
+/* 제목 줄 오른쪽 글자 링크. 누르는 넓이는 여백으로 넓히고 음수 여백으로 줄 높이를 지킨다 */
+.more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -12px -8px -12px 0;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
+
+.more:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.lead {
+  margin: 0;
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-sm);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+/* ── 내 투자성향 ── */
+.personality {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.personality .note {
+  margin: 0;
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.facts div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: var(--space-3);
+  font-size: var(--font-md);
+}
+
+.facts dt {
+  color: var(--color-text-sub);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.primary {
+  composes: primary md from '../components/buttons.module.css';
+}
+
+.secondary {
+  composes: secondary md from '../components/buttons.module.css';
+}
+
+/* ── 줄 목록(관심종목·백테스트·AI 대화) ── */
+.rows {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.rows li {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-2);
+  color: var(--color-text);
+}
+
+.row:hover {
+  background: var(--color-bg-hover);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--font-md);
+  font-weight: 700;
+}
+
+.rowSub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  margin-top: 2px;
+  font-size: var(--font-sm);
+  font-weight: 400;
+  color: var(--color-text-sub);
+}
+
+.rowTitle {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowNumber,
+.rowRate {
+  font-size: var(--font-md);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.rowRate {
+  min-width: 64px;
+}
+
+.rowDate {
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* AI 대화 줄은 제목 | 날짜 두 칸이다 */
+.row:has(.rowTitle) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.up {
+  color: var(--color-up-text);
+}
+
+.down {
+  color: var(--color-down-text);
+}
+
+/* ── 빈 칸·실패·불러오는 중 ── */
+.empty,
+.failed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+}
+
+.emptyText,
+.failedText {
+  margin: 0;
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+
+.emptyAction {
+  composes: secondary md from '../components/buttons.module.css';
+}
+
+.retry {
+  composes: secondary md from '../components/buttons.module.css';
+}
+
+.skeleton {
+  height: 180px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .memberName {
+    font-size: var(--font-2xl);
+  }
+
+  .lead {
+    font-size: var(--font-xl);
+  }
+
+  .row {
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+  }
+}

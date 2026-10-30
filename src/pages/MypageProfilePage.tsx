@@ -6,6 +6,7 @@ import Modal from '../components/Modal'
 import { ApiError } from '../api/client'
 import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
 import { clearTokens } from '../utils/auth'
+import { forgetRecentBacktests } from '../utils/recentBacktests'
 import { toDashedYmd, toYmd } from '../utils/date'
 import { formatBirth } from '../utils/format'
 import type { MemberInfo, ProfileImageUrl } from '../types/member'
@@ -91,6 +92,8 @@ export default function MypageProfilePage() {
        * 헤더가 '로그인'으로 돌아가는 건 clearTokens가 알아서 알린다.
        */
       clearTokens()
+      // 이 브라우저에 남긴 최근 본 백테스트도 지운다(로그아웃과 같다 — utils/recentBacktests.ts)
+      forgetRecentBacktests()
       navigate('/', { replace: true })
     } catch (error: unknown) {
       console.warn('회원 탈퇴 실패', error)

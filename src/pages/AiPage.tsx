@@ -16,7 +16,7 @@ import SessionSidebar, { type SessionListState } from '../components/SessionSide
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { useStockHandoff } from '../hooks/useStockHandoff'
+import { useSessionHandoff, useStockHandoff } from '../hooks/useStockHandoff'
 import type { ChatMessage, ChatSession } from '../types/ai'
 import styles from './AiPage.module.css'
 
@@ -192,6 +192,27 @@ export default function AiPage() {
     handoffAskRef.current = null
     submit(handoffAsk)
     // 로그인 여부와 목록 상태가 바뀔 때만 본다. submit은 그 순간의 화면 상태로 보낸다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn, sessionsState])
+
+  /*
+   * 마이페이지 '최근 AI 대화'에서 왔으면 목록이 온 뒤 그 방을 연다(사이드바에서 누른 것과 같은 길 — handleSelect).
+   * 목록을 못 받았어도 연다 — 방 하나는 목록 없이도 열린다. 지워진 방이면 handleSelect가 목록에서 빼고 알린다.
+   * 비로그인이면 열지 않는다(대화는 계정의 것이다). ref라서 StrictMode가 effect를 두 번 돌려도 한 번만 연다
+   */
+  const sessionHandoff = useSessionHandoff()
+  const openSessionRef = useRef(sessionHandoff)
+  useEffect(() => {
+    const roomId = openSessionRef.current
+    if (roomId === null) return
+    if (!loggedIn) {
+      openSessionRef.current = null
+      return
+    }
+    if (sessionsState === 'loading') return
+    openSessionRef.current = null
+    handleSelect(roomId)
+    // 로그인 여부와 목록 상태가 바뀔 때만 본다. handleSelect는 그 순간의 화면 상태로 연다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn, sessionsState])
 

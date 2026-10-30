@@ -6,13 +6,15 @@ import { isLoggedIn } from '../utils/auth'
 import { loginPathFrom } from '../utils/navigation'
 import styles from './MypageLayout.module.css'
 
+/** end: 하위 주소에서는 켜지지 않는다 — '/mypage'는 모든 마이페이지 주소의 앞부분이다 */
 const MENU = [
-  { to: '/mypage/personality', label: '투자유형 보기' },
-  { to: '/mypage/profile', label: '내 정보 확인' },
+  { to: '/mypage', label: '한눈에 보기', end: true },
+  { to: '/mypage/personality', label: '투자유형 보기', end: false },
+  { to: '/mypage/profile', label: '내 정보 확인', end: false },
 ]
 
 /**
- * 마이페이지 두 화면이 함께 쓰는 껍데기(관심종목은 2026-10-30에 머리글의 주식 모아보기로 옮겼다). 사이드바 + 오른쪽 내용(Outlet).
+ * 마이페이지 세 화면이 함께 쓰는 껍데기(관심종목은 2026-10-30에 머리글의 주식 모아보기로 옮겼다). 사이드바 + 오른쪽 내용(Outlet).
  *
  * 사이드바 생김새는 AI 주가분석 화면과 거의 같지만 컴포넌트를 공용화하지 않았다.
  * 그쪽 목록은 서버에서 오는 대화 세션이라 개수가 계속 변하고, 이쪽은 고정 셋에
@@ -68,6 +70,7 @@ export default function MypageLayout() {
                 {/* NavLink가 현재 경로를 알아서 판단한다 */}
                 <NavLink
                   to={item.to}
+                  end={item.end}
                   className={({ isActive }) =>
                     isActive ? `${styles.item} ${styles.itemOn}` : styles.item
                   }
