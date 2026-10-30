@@ -436,7 +436,7 @@ export default function StockChartPage() {
         </SectionBoundary>
 
         <section className={styles.newsColumn}>
-          <NewsList stockCode={stockCode} />
+          <NewsList stockCode={stockCode} stockName={knownName} />
         </section>
       </div>
 

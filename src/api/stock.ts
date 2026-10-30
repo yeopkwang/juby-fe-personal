@@ -671,6 +671,55 @@ function toNaverNewsItem(item: NaverNewsItemResponse): NewsItem {
   }
 }
 
+/* ── 뉴스에서 질문으로 찾기 ───────────────────────────────────────────── */
+
+/** GET /api/vectordb/search 한 건. pubDate는 네이버 형식("Mon, 11 Aug 2026 14:32:00 +0900")이다 */
+interface NewsHitResponse {
+  id?: string | null
+  score?: number | null
+  title?: string | null
+  description?: string | null
+  originalLink?: string | null
+  pubDate?: string | null
+}
+
+const askMemo = new Map<string, Memo<NewsItem[]>>()
+
+/**
+ * 종목 뉴스 가운데 질문과 가장 가까운 기사 3건(종목 상세 뉴스의 '물어서 찾기'). **로그인해야 한다.**
+ * 서버가 Pinecone에 모아 둔 그 종목 기사에서 질문 글로 찾는다 — 증권사와 무관하다. 순서는 서버가 준 가까운 순 그대로다.
+ * 같은 종목·질문은 10분 동안 다시 쓴다.
+ */
+export async function askStockNews(stockName: string, question: string): Promise<NewsItem[]> {
+  const asked = question.trim()
+  const memoKey = `${stockName}|${asked}`
+  const remembered = readMemo(askMemo, memoKey, NEWS_MEMO_AGE)
+  if (remembered !== null) return remembered
+
+  const query = new URLSearchParams({ question: asked, stockName }).toString()
+  const rows = await get<(NewsHitResponse | null)[] | null>(`/api/vectordb/search?${query}`)
+  if (!Array.isArray(rows)) throw malformedResponse()
+
+  const items = rows
+    .flatMap((row) => (typeof row === 'object' && row !== null ? [toHitItem(row)] : []))
+    .filter((item) => item.title.trim() !== '' && item.link !== '')
+  askMemo.set(memoKey, { savedAt: Date.now(), value: items })
+  return items
+}
+
+function toHitItem(row: NewsHitResponse): NewsItem {
+  const link = safeLink(row.originalLink)
+  const publishedAt = new Date(textOf(row.pubDate))
+  return {
+    title: stripHtml(textOf(row.title)),
+    description: stripHtml(textOf(row.description)),
+    link,
+    source: toSource(link),
+    timeAgo: timeAgo(publishedAt.getTime()),
+    publishedAt,
+  }
+}
+
 /* ── 검색 ─────────────────────────────────────────────────────────────── */
 
 /** 검색창 후보 목록에 한 번에 보여줄 최대 개수 */

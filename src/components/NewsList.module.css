@@ -5,8 +5,9 @@
  */
 .headingRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: 0 var(--space-3);
   min-height: 46px;
   border-bottom: 2px solid var(--color-rule);
 }
@@ -30,7 +31,10 @@
 .tabActive {
   position: relative;
   min-width: 44px;
+  /* 좁아서 탭 줄이 제목 아래로 접혀도 누르는 넓이를 지킨다(탭이 셋 — '물어서 찾기', 2026-10-30) */
+  min-height: 44px;
   padding: 0;
+  white-space: nowrap;
   border: 0;
   background: none;
   color: var(--color-text-sub);

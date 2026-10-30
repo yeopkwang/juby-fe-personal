@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NEWS_LAST_PAGE, NEWS_PAGE_SIZE, getStockNews } from '../api/stock'
+import NewsAsk from './NewsAsk'
 import type { NewsItem, NewsSort } from '../types/news'
 import styles from './NewsList.module.css'
 
@@ -16,6 +17,8 @@ const NEWS_STEP = 5
 
 interface Props {
   stockCode: string
+  /** 종목명. 아직 모르면 null — '물어서 찾기' 탭을 두지 않는다(서버가 종목명으로 찾는다) */
+  stockName: string | null
 }
 
 type State =
@@ -40,8 +43,12 @@ type State =
  * 관련도순은 벡터 검색이 매긴 순서라 화면에서 흉내 낼 수 없어 탭을 바꾸면 다시 받는다.
  * 10건씩 오고 page는 0~9까지라 최대 100건이다. 화면에는 5건씩 펼친다(NEWS_STEP).
  */
-export default function NewsList({ stockCode }: Props) {
+export default function NewsList({ stockCode, stockName }: Props) {
   const [sort, setSort] = useState<NewsSort>('LATEST')
+  /**
+   * '물어서 찾기'(NewsAsk)를 펼쳤는가(2026-10-30). 펼쳐도 정렬 목록은 받아 둔 채로 두어, 정렬 탭으로 돌아오면 다시 받지 않는다
+   */
+  const [asking, setAsking] = useState(false)
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   /** 더 보기가 실패했다. 받아 둔 목록은 두고 목록 끝에 알린 뒤 버튼을 다시 누르게 한다 */
@@ -144,27 +151,44 @@ export default function NewsList({ stockCode }: Props) {
         <h2 className={styles.heading}>뉴스 모아보기</h2>
 
         <div className={styles.tabs}>
-          {TABS.map((tab) => (
+          {TABS.map((tab) => {
+            const active = !asking && sort === tab.key
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                className={active ? styles.tabActive : styles.tab}
+                onClick={() => {
+                  setAsking(false)
+                  setSort(tab.key)
+                }}
+                aria-pressed={active}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+          {stockName !== null && (
             <button
-              key={tab.key}
               type="button"
-              className={
-                sort === tab.key ? styles.tabActive : styles.tab
-              }
-              onClick={() => setSort(tab.key)}
-              aria-pressed={sort === tab.key}
+              className={asking ? styles.tabActive : styles.tab}
+              onClick={() => setAsking(true)}
+              aria-pressed={asking}
             >
-              {tab.label}
+              물어서 찾기
             </button>
-          ))}
+          )}
         </div>
       </div>
+
+      {/* 종목이 바뀌면 적던 질문과 결과를 버린다 */}
+      {asking && stockName !== null && <NewsAsk key={stockCode} stockName={stockName} />}
 
       {/*
         기사 카드와 같은 모양의 뼈대. 한 줄짜리 "불러오는 중…"만 두면 목록 자리가 비어 있다가
         기사가 오는 순간 아래가 한꺼번에 밀린다. 읽어 주는 글은 남겨 둔다.
       */}
-      {state.kind === 'loading' && (
+      {!asking && state.kind === 'loading' && (
         <div className={styles.list} aria-busy="true">
           <p className={styles.srOnly}>불러오는 중…</p>
           {[0, 1, 2].map((index) => (
@@ -179,7 +203,7 @@ export default function NewsList({ stockCode }: Props) {
       )}
 
       {/* 실패는 목록 자리를 지키는 상자 안에 알리고, 빈 결과(아래)와 다른 문구로 둔다 */}
-      {state.kind === 'error' && (
+      {!asking && state.kind === 'error' && (
         <div className={styles.errorBox}>
           <p className={styles.errorText}>뉴스를 불러오지 못했습니다.</p>
           <button
@@ -192,11 +216,11 @@ export default function NewsList({ stockCode }: Props) {
         </div>
       )}
 
-      {state.kind === 'ready' && state.items.length === 0 && (
+      {!asking && state.kind === 'ready' && state.items.length === 0 && (
         <p className={styles.empty}>관련 뉴스를 찾지 못했습니다.</p>
       )}
 
-      {state.kind === 'ready' && (
+      {!asking && state.kind === 'ready' && (
         <ul className={styles.list}>
           {state.items.slice(0, visibleCount).map((item, index) => (
             // 같은 기사가 두 페이지에 걸쳐 올 수 있어 링크만으로는 키가 겹친다
@@ -219,13 +243,13 @@ export default function NewsList({ stockCode }: Props) {
         </ul>
       )}
 
-      {moreFailed && (
+      {!asking && moreFailed && (
         <p className={styles.moreFailed} role="status">
           더 불러오지 못했어요. 아래 버튼을 다시 눌러 주세요.
         </p>
       )}
 
-      {hasMore && (
+      {!asking && hasMore && (
         <button
           type="button"
           className={styles.more}
