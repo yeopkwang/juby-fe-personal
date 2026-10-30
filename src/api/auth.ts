@@ -17,7 +17,7 @@ import { forgetRecentBacktests } from '../utils/recentBacktests'
  * 서버가 응답을 못 한다고 로그인 상태로 남겨두는 편이 더 위험하다.
  *
  * 화면 이동은 여기서 하지 않는다. 부르는 쪽이 navigate로 갈 곳을 정한다
- * (지금은 MypageLayout 사이드바의 버튼 하나뿐이고, 홈으로 보낸다).
+ * (마이페이지 사이드바와 내 정보의 계정 관리 두 곳이고, 둘 다 홈으로 보낸다).
  * 헤더는 토큰이 사라진 걸 구독으로 알아채고 스스로 '로그인'으로 돌아간다.
  */
 export async function logout(): Promise<void> {

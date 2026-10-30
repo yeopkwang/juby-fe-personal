@@ -4,11 +4,13 @@ import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Modal from '../components/Modal'
 import { ApiError } from '../api/client'
+import { logout } from '../api/auth'
 import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
 import { clearTokens } from '../utils/auth'
 import { forgetRecentBacktests } from '../utils/recentBacktests'
 import { toDashedYmd, toYmd } from '../utils/date'
 import { formatBirth } from '../utils/format'
+import { socialLabel } from '../utils/social'
 import type { MemberInfo, ProfileImageUrl } from '../types/member'
 import styles from './MypageProfilePage.module.css'
 
@@ -56,6 +58,7 @@ export default function MypageProfilePage() {
   const navigate = useNavigate()
   const [state, setState] = useState<State>({ kind: 'loading' })
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
@@ -79,6 +82,14 @@ export default function MypageProfilePage() {
   }, [])
 
   useEffect(load, [load])
+
+  /** 사이드바의 로그아웃과 같다(MypageLayout) — 서버가 실패해도 토큰은 지우고 홈으로 간다 */
+  async function handleLogout() {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    await logout()
+    navigate('/', { replace: true })
+  }
 
   async function handleDelete() {
     setIsDeleting(true)
@@ -200,39 +211,92 @@ export default function MypageProfilePage() {
 
   const { member } = state
   const birth = formatBirth(member.birth)
+  const social = socialLabel(member.socialType)
 
   return (
     <>
-      <div className={styles.profile}>
+      <div className={styles.head}>
         {PROFILE_IMAGE_URL === null ? (
           <DefaultAvatar />
         ) : (
           <img className={styles.avatar} src={PROFILE_IMAGE_URL} alt="" />
         )}
-
-        <p className={styles.name}>{member.name}</p>
-        {/* 소셜에서 생년월일을 못 받은 계정이 있다. 그때는 줄을 지우지 않고 없다고 적는다 */}
-        <p className={styles.field}>{birth ?? '생년월일 정보 없음'}</p>
-        <p className={styles.field}>{member.email}</p>
-
-        <div className={styles.buttons}>
-          <button
-            type="button"
-            className={styles.edit}
-            onClick={() => openEdit(member)}
-          >
-            정보 수정하기
-          </button>
-          {/* 되돌릴 수 없는 동작이라 눈에 덜 띄게 둔다. 예전엔 꺼진 듯한 '정보 수정하기'보다 이쪽이 더 눈에 띄었다 */}
-          <button
-            type="button"
-            className={styles.leave}
-            onClick={() => setIsDeleteOpen(true)}
-          >
-            회원 탈퇴하기
-          </button>
+        <div className={styles.headText}>
+          <h2 className={styles.name}>{member.name}</h2>
+          {social !== null && (
+            <p className={styles.social}>
+              <img src={social.icon} alt="" width={16} height={16} />
+              {social.name}로 가입한 계정
+            </p>
+          )}
         </div>
+        <button type="button" className={styles.edit} onClick={() => openEdit(member)}>
+          정보 수정하기
+        </button>
       </div>
+
+      <section className={styles.section} aria-labelledby="profile-info-title">
+        <h3 id="profile-info-title" className={styles.sectionTitle}>
+          계정 정보
+        </h3>
+        <dl className={styles.rows}>
+          <div className={styles.row}>
+            <dt>이름</dt>
+            <dd>{member.name}</dd>
+          </div>
+          <div className={styles.row}>
+            <dt>생년월일</dt>
+            {/* 소셜에서 생년월일을 못 받은 계정이 있다. 그때는 줄을 지우지 않고 없다고 적고 넣는 길을 알린다 */}
+            <dd>
+              {birth ?? '생년월일 정보 없음'}
+              {birth === null && <span className={styles.rowHint}>정보 수정하기에서 넣을 수 있어요</span>}
+            </dd>
+          </div>
+          <div className={styles.row}>
+            <dt>이메일</dt>
+            <dd>
+              <span className={styles.email}>{member.email}</span>
+              <span className={styles.rowHint}>가입한 소셜 계정의 주소라 여기서 바꿀 수 없어요</span>
+            </dd>
+          </div>
+          <div className={styles.row}>
+            <dt>가입 경로</dt>
+            <dd>{social === null ? '-' : social.name}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className={styles.section} aria-labelledby="profile-account-title">
+        <h3 id="profile-account-title" className={styles.sectionTitle}>
+          계정 관리
+        </h3>
+        <ul className={styles.rows}>
+          <li className={styles.manageRow}>
+            <span className={styles.manageText}>
+              <b>로그아웃</b>
+              <span className={styles.rowHint}>이 브라우저에서 로그인을 풀고 최근 본 백테스트 기록을 지워요</span>
+            </span>
+            <button
+              type="button"
+              className={styles.manageButton}
+              onClick={() => void handleLogout()}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? '로그아웃 중…' : '로그아웃'}
+            </button>
+          </li>
+          <li className={styles.manageRow}>
+            <span className={styles.manageText}>
+              <b>회원 탈퇴</b>
+              <span className={styles.rowHint}>계정과 투자성향 정보가 지워지고 되돌릴 수 없어요</span>
+            </span>
+            {/* 되돌릴 수 없는 동작이라 눈에 덜 띄게 둔다. 확정은 열리는 상자에서 한 번 더 묻는다 */}
+            <button type="button" className={styles.manageButton} onClick={() => setIsDeleteOpen(true)}>
+              회원 탈퇴하기
+            </button>
+          </li>
+        </ul>
+      </section>
 
       {/* 이름·생일만 고칠 수 있다. 이메일과 가입 경로는 소셜 계정에 딸린 값이라 서버가 안 받는다 */}
       <Modal isOpen={isEditOpen} onClose={closeEdit} label="내 정보 수정">
