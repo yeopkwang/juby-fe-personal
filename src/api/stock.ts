@@ -2,7 +2,7 @@ import { ApiError, get, malformedResponse } from './client'
 import { rememberCardSeries } from './cardSeries'
 import { isLoggedIn } from '../utils/auth'
 import { readStamp, writeStamp } from '../utils/cache'
-import { fromDashedYmd } from '../utils/date'
+import { fromDashedYmd, timeAgo } from '../utils/date'
 import { finiteOrNull } from '../utils/format'
 import { safeLink } from '../utils/link'
 import { sortStocks } from '../utils/sort'
@@ -609,6 +609,65 @@ function toNewsItem(item: NewsItemResponse): NewsItem {
     source: toSource(link),
     timeAgo: textOf(item.timeAgo),
     publishedAt: new Date(textOf(item.publishedAt)),
+  }
+}
+
+/* ── 네이버 뉴스 검색 ──────────────────────────────────────────────────── */
+
+/** GET /api/news */
+interface NaverNewsResponse {
+  display?: number | null
+  items?: (NaverNewsItemResponse | null)[] | null
+}
+
+/** 네이버 응답 그대로의 이름이다(originallink는 소문자). pubDate는 "Wed, 29 Oct 2026 10:00:00 +0900" */
+interface NaverNewsItemResponse {
+  title?: string | null
+  originallink?: string | null
+  description?: string | null
+  pubDate?: string | null
+}
+
+const naverMemo = new Map<string, Memo<NewsItem[]>>()
+
+/**
+ * 검색어로 찾은 네이버 뉴스(주식 모아보기의 관심종목 뉴스). **로그인해야 한다** — 서버가 네이버 검색 API를 대신 불러 20건을 준다.
+ * 증권사와 무관하지만 네이버 호출 한도가 있어(서버는 429면 잠깐 기다렸다 몇 번 다시 부른다) 같은 검색어는 10분 동안 다시 쓴다.
+ * 네이버는 정확도순으로 주므로 화면에서는 새 기사부터 보이게 날짜순으로 다시 세운다. 같은 기사(링크)가 겹치면 하나만 둔다.
+ */
+export async function searchNews(query: string): Promise<NewsItem[]> {
+  const keyword = query.trim()
+  const remembered = readMemo(naverMemo, keyword, NEWS_MEMO_AGE)
+  if (remembered !== null) return remembered
+
+  const response = await get<NaverNewsResponse | null>(`/api/news?query=${encodeURIComponent(keyword)}`)
+  if (typeof response !== 'object' || response === null || !Array.isArray(response.items)) throw malformedResponse()
+
+  const seen = new Set<string>()
+  const items = response.items
+    .flatMap((row) => (typeof row === 'object' && row !== null ? [toNaverNewsItem(row)] : []))
+    .filter((item) => {
+      if (item.title.trim() === '' || item.link === '' || seen.has(item.link)) return false
+      seen.add(item.link)
+      return true
+    })
+    // 날짜를 못 읽은 기사는 뒤로
+    .sort((left, right) => (right.publishedAt.getTime() || 0) - (left.publishedAt.getTime() || 0))
+  naverMemo.set(keyword, { savedAt: Date.now(), value: items })
+  return items
+}
+
+function toNaverNewsItem(item: NaverNewsItemResponse): NewsItem {
+  const link = safeLink(item.originallink)
+  const publishedAt = new Date(textOf(item.pubDate))
+  return {
+    title: stripHtml(textOf(item.title)),
+    description: stripHtml(textOf(item.description)),
+    link,
+    source: toSource(link),
+    // 종목 뉴스와 달리 서버가 "3시간 전"을 지어 주지 않는다
+    timeAgo: timeAgo(publishedAt.getTime()),
+    publishedAt,
   }
 }
 

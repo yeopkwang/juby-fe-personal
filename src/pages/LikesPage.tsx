@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { getLikeStocks, unlikeStock } from '../api/member'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import KeywordNews from '../components/KeywordNews'
 import { toStockHandoff } from '../hooks/useStockHandoff'
 import { fromDashedYmd, toKoreanDate } from '../utils/date'
 import {
@@ -247,8 +248,48 @@ function LikesBoard() {
               </ul>
             </section>
           </div>
+
+          <LikesNews stocks={stocks} />
         </>
       )}
+    </section>
+  )
+}
+
+/**
+ * 관심종목 뉴스(2026-10-30). 종목을 고르면 그 이름으로 네이버 뉴스를 찾는다(`GET /api/news`, 로그인 필요, KeywordNews).
+ * 처음엔 담은 순서의 첫 종목 하나만 받는다 — 종목마다 미리 받으면 네이버 호출이 종목 수만큼 나간다.
+ * 고른 종목을 관심종목에서 빼면 첫 종목으로 돌아간다.
+ */
+function LikesNews({ stocks }: { stocks: LikeStock[] }) {
+  const [picked, setPicked] = useState<string | null>(null)
+  const selected = stocks.find((stock) => stock.stockCode === picked) ?? stocks[0]
+  if (selected === undefined) return null
+
+  return (
+    <section className={styles.newsSection} aria-labelledby="likes-news-title">
+      <div className={styles.sectionHead}>
+        <h2 id="likes-news-title" className={styles.sectionTitle}>
+          관심종목 뉴스
+        </h2>
+        <span className={styles.sectionNote}>종목 이름으로 찾은 네이버 뉴스예요</span>
+      </div>
+      <div className={styles.newsTabs} role="group" aria-label="뉴스를 볼 종목">
+        {stocks.map((stock) => (
+          <button
+            key={stock.stockCode}
+            type="button"
+            className={styles.tab}
+            aria-pressed={stock.stockCode === selected.stockCode}
+            onClick={() => setPicked(stock.stockCode)}
+          >
+            {stock.stockName}
+          </button>
+        ))}
+      </div>
+      <div className={styles.newsBody}>
+        <KeywordNews query={selected.stockName} />
+      </div>
     </section>
   )
 }

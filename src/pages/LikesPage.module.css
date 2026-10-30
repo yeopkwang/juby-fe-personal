@@ -506,3 +506,31 @@
   }
 
 }
+
+/* ── 관심종목 뉴스 ──────────────────────────────────────────────────── */
+
+.newsSection {
+  margin-top: var(--space-12);
+}
+
+/* 종목 이름 밑줄 탭. 종목이 많으면 옆으로 민다(줄을 바꾸면 탭이 기사보다 길어진다) */
+.newsTabs {
+  display: flex;
+  gap: var(--space-5);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border);
+  scrollbar-width: none;
+}
+
+.newsTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.newsTabs .tab {
+  flex: none;
+}
+
+/* 종목 상세의 뉴스 열과 같이 넓으면 두 칸(NewsList의 @container) */
+.newsBody {
+  container-type: inline-size;
+}

@@ -114,3 +114,19 @@ export function toKoreanDateTime(ms: number): string {
   const minutes = String(kst.getUTCMinutes()).padStart(2, '0')
   return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hours}:${minutes}`
 }
+
+/**
+ * 지난 때를 "방금"·"12분 전"·"3시간 전"·"2일 전"으로. 일주일이 넘으면 날짜("10월 21일")로 적는다.
+ * 네이버 뉴스처럼 서버가 "몇 분 전"을 지어 주지 않는 기사에 쓴다. 읽지 못한 때(NaN)면 ""(그 칸을 비운다)
+ */
+export function timeAgo(ms: number, now: number = Date.now()): string {
+  if (!Number.isFinite(ms)) return ''
+  const minutes = Math.floor((now - ms) / 60_000)
+  if (minutes < 1) return '방금'
+  if (minutes < 60) return `${minutes}분 전`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}시간 전`
+  const days = Math.floor(hours / 24)
+  if (days <= 7) return `${days}일 전`
+  return toKoreanDate(toYmd(new Date(ms)), new Date(now))
+}
