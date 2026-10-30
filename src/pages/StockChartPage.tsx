@@ -689,27 +689,29 @@ function PriceSection({
     const hasPreviewPrice = preview?.closePrice !== undefined
 
     return (
-      <section className={styles.priceGrid}>
-        <div className={styles.head}>
+      <>
+        <header className={styles.band}>
           <Link to="/" className={styles.back}>
             <span aria-hidden="true">‹</span> 홈으로 돌아가기
           </Link>
-          <div className={styles.identityRow}>
-            {/* 이름을 모르면 종목코드를 이름 자리에 한 번만 적는다 */}
-            <h1 className={styles.identity}>
-              <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
-              {preview !== null && <span className={styles.code}>{stockCode}</span>}
-            </h1>
-            {likeToggle}
-          </div>
+          {/* 이름을 모르면 종목코드를 이름 자리에 한 번만 적는다 */}
+          <h1 className={styles.identity}>
+            <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
+            {preview !== null && <span className={styles.code}>{stockCode}</span>}
+          </h1>
+          <div className={styles.bandLike}>{likeToggle}</div>
           {likeStatus}
+          {hasPreviewPrice && (
+            <div className={styles.bandPrice}>
+              <PriceLines detail={null} preview={preview} />
+            </div>
+          )}
+          {/* 상세가 실패해도(대개 증권사 쪽) 바로 가기는 DB·서버 AI라 쓸 수 있다 */}
+          <div className={styles.bandActs}>{actionPanel}</div>
+        </header>
 
-          {hasPreviewPrice && <PriceLines detail={null} preview={preview} />}
-        </div>
-
-        {/* 상세가 실패해도(대개 증권사 쪽) 바로 가기는 DB·서버 AI라 쓸 수 있다 */}
-        <div className={styles.acts}>{actionPanel}</div>
-        <div className={styles.chartColumn}>
+        {/* 정보 열에 그릴 값이 없다. 정보 열 자리까지 넓게 쓴다 */}
+        <div className={styles.chartColumnFull}>
           <div className={`${styles.chartBox} ${styles.failBox}`} role="alert">
             {/* 가격을 적어 뒀으면 못 받은 건 차트뿐이다. 다 못 받은 것처럼 말하지 않는다 */}
             <p className={styles.failText}>
@@ -722,49 +724,50 @@ function PriceSection({
             </button>
           </div>
         </div>
-      </section>
+      </>
     )
   }
 
   /*
-   * 정보 열(이름·가격 → 두 행동 → 시세 요약) | 차트 열(기간 탭·차트·기간별 변화). 휴대폰은 한 줄로 쌓되
-   * 이름·가격 → 두 행동 → 차트 → 시세 요약 순이다 — 격자 칸 이름으로 순서를 바꾼다(StockChartPage.module.css .priceGrid)
+   * 세 조각을 내보낸다 — 머리 띠(이름·가격·바로 가기) | 차트 열 | 정보 열(시세 요약·기간별 변화). 뉴스 열과 함께 바깥 격자
+   * (StockChartPage.module.css .layout) 하나에 놓여, 머리 띠 아래 굵은 먹 선 하나에서 세 칸이 같은 높이로 시작한다(2026-10-30 사용자
+   * 요청 "세 화면이 따로 붙인 느낌"). 순서는 휴대폰에서 쌓이는 순서(머리 띠 → 차트 → 시세 요약)이고, 넓은 화면은 격자 칸 이름으로 정보 열을
+   * 차트 왼쪽에 둔다. 정보 열에는 누를 것이 없어 Tab 순서는 보이는 순서와 어긋나지 않는다
    */
   return (
-    <section className={styles.priceGrid} aria-busy={detail === null}>
-      <div className={styles.head}>
+    <>
+      <header className={styles.band}>
         {/* 뒤로 가기 말고는 목록으로 돌아갈 길이 없었다 */}
         <Link to="/" className={styles.back}>
           <span aria-hidden="true">‹</span> 홈으로 돌아가기
         </Link>
 
-        <div className={styles.identityRow}>
-          <h1 className={styles.identity}>
-            {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다 */}
-            <span className={styles.name}>
-              {detail !== null ? (
-                displayName
-              ) : preview !== null ? (
-                preview.stockName
-              ) : (
-                <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
-              )}
-            </span>
-            {/* 이름이 비어 종목코드로 대신했으면 코드를 두 번 적지 않는다 */}
-            {displayName !== stockCode && <span className={styles.code}>{stockCode}</span>}
-          </h1>
-          {likeToggle}
-        </div>
+        <h1 className={styles.identity}>
+          {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다 */}
+          <span className={styles.name}>
+            {detail !== null ? (
+              displayName
+            ) : preview !== null ? (
+              preview.stockName
+            ) : (
+              <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
+            )}
+          </span>
+          {/* 이름이 비어 종목코드로 대신했으면 코드를 두 번 적지 않는다 */}
+          {displayName !== stockCode && <span className={styles.code}>{stockCode}</span>}
+        </h1>
+        <div className={styles.bandLike}>{likeToggle}</div>
         {likeStatus}
 
-        <PriceLines detail={detail} preview={preview} />
-      </div>
+        <div className={styles.bandPrice}>
+          <PriceLines detail={detail} preview={preview} />
+        </div>
+        <div className={styles.bandActs}>{actionPanel}</div>
+      </header>
 
-      <div className={styles.acts}>{actionPanel}</div>
-
-      <div className={styles.chartColumn}>
+      <section className={styles.chartColumn} aria-label="차트" aria-busy={detail === null}>
         <div className={styles.chartBox}>
-          {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다 */}
+          {/* 탭이 곧 확대·축소다. 받아 둔 전체 일봉을 여기서 잘라 차트에 넘긴다. 이 줄이 차트 열의 머리다 */}
           <div className={styles.periodTabs} role="tablist" aria-label="기간">
             {PERIOD_TABS.map((tab) => (
               <button
@@ -797,14 +800,13 @@ function PriceSection({
             {shown.length > 0 && <CandleChart candles={shown} />}
           </div>
         </div>
+      </section>
 
+      <div className={styles.info}>
+        <SummaryCard lastCandle={lastCandle} loading={detail === null} />
         {detail !== null && <PeriodStats candles={detail.candles} />}
       </div>
-
-      <div className={styles.sum}>
-        <SummaryCard lastCandle={lastCandle} loading={detail === null} />
-      </div>
-    </section>
+    </>
   )
 }
 
@@ -837,31 +839,33 @@ function PeriodStats({ candles }: { candles: Candle[] }) {
   const low = year.reduce((bottom, c) => (c.low < bottom.low ? c : bottom), year[0])
   const baseDate = toKoreanDate(last.date)
 
+  // 시세 요약과 같은 모양(머리 줄 + 한 줄에 이름 | 값)이다. 기준일은 머리 줄 오른쪽에 둔다
   return (
-    <section className={styles.periodStats} aria-label="기간별 주가 변화">
-      <dl className={styles.statList}>
+    <section className={styles.summaryCard} aria-label="기간별 주가 변화">
+      <div className={styles.summaryHead}>
+        <h2 className={styles.summaryTitle}>기간별 주가 변화</h2>
+        {baseDate !== '' && <span className={styles.summaryDate}>{baseDate} 종가 기준</span>}
+      </div>
+      <dl className={styles.summary}>
         {rates.map(({ period, label, rate }) => (
-          <div key={period} className={styles.stat}>
-            <dt>{label}</dt>
-            <dd className={toRateClassName(rate)}>{formatChangeRate(rate)}</dd>
+          <div key={period}>
+            <dt className={styles.summaryLabel}>{label}</dt>
+            <dd className={`${styles.summaryValue} ${toRateClassName(rate) ?? ''}`}>{formatChangeRate(rate)}</dd>
           </div>
         ))}
-        <div className={`${styles.stat} ${styles.statWide}`}>
-          <dt>1년 최고</dt>
-          <dd>
-            {formatPrice(high.high)}
-            <small>{toKoreanDate(high.date)}</small>
-          </dd>
+        <div>
+          <dt className={styles.summaryLabel}>
+            1년 최고<small className={styles.summaryWhen}>{toKoreanDate(high.date)}</small>
+          </dt>
+          <dd className={styles.summaryValue}>{formatPrice(high.high)}</dd>
         </div>
-        <div className={`${styles.stat} ${styles.statWide}`}>
-          <dt>1년 최저</dt>
-          <dd>
-            {formatPrice(low.low)}
-            <small>{toKoreanDate(low.date)}</small>
-          </dd>
+        <div>
+          <dt className={styles.summaryLabel}>
+            1년 최저<small className={styles.summaryWhen}>{toKoreanDate(low.date)}</small>
+          </dt>
+          <dd className={styles.summaryValue}>{formatPrice(low.low)}</dd>
         </div>
       </dl>
-      {baseDate !== '' && <p className={styles.statNote}>{baseDate} 종가 기준</p>}
     </section>
   )
 }

@@ -3,27 +3,30 @@
  * 놓인 칸이 넓으면(760px 이상 — 상세에서 1600px 아래는 뉴스가 차트 아래 전체 폭으로 온다) 첫 기사 아래를 두 칸으로 편다.
  * 칸 폭은 부모(StockChartPage .newsColumn)의 container 크기로 잰다
  */
+/*
+ * 제목 줄. 종목 상세의 칸 머리(시세 요약·기간 탭 줄)와 높이 44px·가는 선이 같다 — 세 칸이 같은 높이에서 시작한다(2026-10-30).
+ * 굵은 먹 선은 이 목록이 놓인 칸(StockChartPage .newsColumn·머리 띠)이 긋는다
+ */
 .headingRow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0 var(--space-3);
-  min-height: 46px;
-  border-bottom: 2px solid var(--color-rule);
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .heading {
   margin: 0;
-  font-size: var(--font-2xl);
+  font-size: var(--font-lg);
   font-weight: 700;
-  letter-spacing: -0.02em;
 }
 
 /* 정렬은 밑줄 탭(다른 화면의 탭과 같은 모양) */
 .tabs {
   display: flex;
   align-self: stretch;
-  gap: var(--space-4);
+  gap: var(--space-3);
   margin-left: auto;
 }
 
@@ -55,7 +58,7 @@
   content: '';
   position: absolute;
   right: 0;
-  bottom: 0;
+  bottom: -1px;
   left: 0;
   height: 2px;
   background: var(--color-brand-700);
