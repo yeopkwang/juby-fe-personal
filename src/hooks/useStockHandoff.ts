@@ -89,17 +89,15 @@ function useHandoffState<T>(read: (state: unknown) => T): T {
   return value
 }
 
-/** 종목 상세에서 실어 온 종목. 없거나 모양이 틀리면 null */
-export function useStockHandoff(): StockInfo | null {
-  return useHandoffState(readHandoff)
-}
-
 /** 백테스트 화면이 받는 종목과 전략·기간. 둘 다 없을 수 있다 */
 export function useBacktestHandoff(): { stock: StockInfo | null; plan: BacktestPlan | null } {
   return useHandoffState((state) => ({ stock: readHandoff(state), plan: readPlan(state) }))
 }
 
-/** AI 화면이 받는 대화방 번호(마이페이지 '최근 AI 대화'). 없으면 null */
-export function useSessionHandoff(): number | null {
-  return useHandoffState(readSession)
+/**
+ * AI 화면이 받는 종목(상세 'AI에게 물어보기')과 대화방 번호(마이페이지 '최근 AI 대화'). 둘 다 없을 수 있다.
+ * 한 훅으로 한 번에 읽는다 — 훅 둘을 따로 쓰면 state를 비우는 replace 이동이 같은 커밋에서 두 번 나갔다(2026-10-31)
+ */
+export function useAiHandoff(): { stock: StockInfo | null; session: number | null } {
+  return useHandoffState((state) => ({ stock: readHandoff(state), session: readSession(state) }))
 }

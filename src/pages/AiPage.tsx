@@ -16,7 +16,7 @@ import SessionSidebar, { type SessionListState } from '../components/SessionSide
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { useSessionHandoff, useStockHandoff } from '../hooks/useStockHandoff'
+import { useAiHandoff } from '../hooks/useStockHandoff'
 import type { ChatMessage, ChatSession } from '../types/ai'
 import styles from './AiPage.module.css'
 
@@ -102,6 +102,13 @@ export default function AiPage() {
   useEffect(() => {
     sessionIdRef.current = sessionId
   })
+  /**
+   * 보던 자리(방·새 대화)가 바뀔 때마다 올라가는 번호. askSeq는 "그만 기다리기"에도 올라가지만 자리는 그대로다 —
+   * 방을 만드는 사이 그만 기다렸어도 자리가 그대로면 만든 방을 쓴다(안 그러면 다시 시도가 방을 또 만들어 빈 방이 남았다)
+   */
+  const roomSeqRef = useRef(0)
+  /** 지금 기다리는 질문 요청. "그만 기다리기"가 끊는다(연결을 닫을 뿐 서버는 답을 계속 만든다) */
+  const abortRef = useRef<AbortController | null>(null)
 
   /**
    * 대화방 목록을 (다시) 받는다. 제목(첫 질문 앞 30자)과 순서(최근 대화 순)는 서버가 정하므로 답을 받을 때마다 조용히
@@ -158,7 +165,7 @@ export default function AiPage() {
    * 보내면 비운다. ref라서 개발 서버(StrictMode)가 effect를 두 번 돌려도 한 번만 보낸다.
    * sendable은 비로그인으로 들어와 입력칸에 채우기만 했다는 표시다 — 나중에 다른 탭에서 로그인해도 저절로 보내지 않는다.
    */
-  const handoff = useStockHandoff()
+  const { stock: handoff, session: sessionHandoff } = useAiHandoff()
   const handoffAskRef = useRef<(Question & { sendable: boolean }) | null>(
     handoff === null
       ? null
@@ -200,7 +207,6 @@ export default function AiPage() {
    * 목록을 못 받았어도 연다 — 방 하나는 목록 없이도 열린다. 지워진 방이면 handleSelect가 목록에서 빼고 알린다.
    * 비로그인이면 열지 않는다(대화는 계정의 것이다). ref라서 StrictMode가 effect를 두 번 돌려도 한 번만 연다
    */
-  const sessionHandoff = useSessionHandoff()
   const openSessionRef = useRef(sessionHandoff)
   useEffect(() => {
     const roomId = openSessionRef.current
@@ -230,6 +236,7 @@ export default function AiPage() {
 
   function startNewChat() {
     askSeqRef.current += 1
+    roomSeqRef.current += 1
     setSessionId(null)
     setMessages([])
     setDetailState('idle')
@@ -237,10 +244,14 @@ export default function AiPage() {
     setNotice('')
   }
 
-  /** 목록에서 방을 뺀다. 보던 방이면 새 대화로 돌린다 — 번호가 올라가 그 방에 기다리던 답이 늦게 와도 버린다 */
-  function removeRoom(roomId: number) {
+  /**
+   * 목록에서 방을 뺀다. 보던 방이면 새 대화로 돌린다 — 번호가 올라가 그 방에 기다리던 답이 늦게 와도 버린다.
+   * 없어진 방(다른 탭에서 지움·남의 방)이면 notice를 주어 알린다. 예전엔 removeRoom·dropRoom 둘이 거의 같은 일을 했다
+   */
+  function removeRoom(roomId: number, notice?: string) {
     setSessions((previous) => previous.filter((session) => session.sessionId !== roomId))
-    if (roomId === sessionIdRef.current) startNewChat()
+    if (roomId === sessionIdRef.current || notice !== undefined) startNewChat()
+    if (notice !== undefined) setNotice(notice)
   }
 
   /**
@@ -274,18 +285,12 @@ export default function AiPage() {
     loadSessions(true)
   }
 
-  /** 없어진 대화방을 목록에서 빼고 새 대화로 돌린다 */
-  function dropRoom(roomId: number) {
-    setSessions((previous) => previous.filter((session) => session.sessionId !== roomId))
-    startNewChat()
-    setNotice(ROOM_GONE_HINT)
-  }
-
   function handleSelect(selectedId: number) {
     // 보고 있는 세션을 또 누른 것뿐이다. 다시 받아올 이유가 없다
     if (selectedId === sessionId && detailState !== 'error') return
 
     askSeqRef.current += 1
+    roomSeqRef.current += 1
     const seq = askSeqRef.current
     setSessionId(selectedId)
     setPending(null)
@@ -304,15 +309,21 @@ export default function AiPage() {
         console.warn('AI 대화 조회 실패', error)
         // 다른 탭에서 지운 방이다. 다시 시도해도 같으니 목록에서 뺀다
         if (isRoomGone(error)) {
-          dropRoom(selectedId)
+          removeRoom(selectedId, ROOM_GONE_HINT)
           return
         }
         setDetailState('error')
       })
   }
 
-  async function send({ text, stockName }: Question) {
+  /**
+   * @param asked 방금 띄운 내 말풍선(submit이 만든다). 그만 기다린 방을 되살릴 때 서버 메시지 뒤에 다시 붙인다
+   * @param options.synced 방을 이미 다시 받았다(handleRetry). 여기서 또 받지 않는다
+   */
+  async function send({ text, stockName }: Question, asked?: ChatMessage, options: { synced?: boolean } = {}) {
     lastAskRef.current = { text, stockName }
+    // 그만 기다린 방이면 서버가 그 사이 끝낸 앞 답을 먼저 되살린다 — 안 그러면 새 답 뒤로 밀려 방을 다시 열기 전까지 안 보인다
+    const wasStopped = pending === 'stopped' && options.synced !== true
     /*
      * 답이 온 뒤 대화방 목록을 다시 받을지. 서버는 방의 첫 질문으로만 제목을 짓는다 — 새로 만든 방이거나 아직 '새 대화'인 방이면
      * 받아서 지어진 제목을 쓰고, 아니면 그 방을 맨 위로 올리기만 한다(목록은 최근 대화 순). 예전엔 답마다 목록을 통째로 다시 받았다.
@@ -324,26 +335,46 @@ export default function AiPage() {
     setPending('loading')
     askSeqRef.current += 1
     const seq = askSeqRef.current
+    const roomSeq = roomSeqRef.current
 
     // 이 질문이 들어간 방. 실패하면 목록에서 뺄 때 쓴다
     let roomId = sessionId
     try {
+      if (wasStopped && roomId !== null) {
+        try {
+          const detail = await getSessionDetail(roomId)
+          if (seq !== askSeqRef.current) return
+          setMessages(asked === undefined ? detail.messages : [...detail.messages, asked])
+        } catch (error: unknown) {
+          if (seq !== askSeqRef.current) return
+          // 되살리지 못해도 질문은 보낸다. 앞 답은 방을 다시 열면 보인다
+          console.warn('AI 대화 다시 확인 실패', error)
+        }
+      }
+
       /*
        * 새 대화면 방부터 만든다. 방 없이 물으면 서버가 방을 만들어 주지만, 답이 실패하면(502) 질문만 남은 그 방의 번호를
        * 몰라 다시 시도가 또 다른 방을 만든다. 만든 방은 곧바로 목록 맨 위에 올린다(제목은 첫 답 뒤에 서버 것으로 바뀐다).
+       * 만드는 사이 그만 기다렸어도(askSeq가 올라감) 보던 자리가 새 대화 그대로면(roomSeq) 만든 방을 쓴다 —
+       * 안 그러면 다시 시도가 방을 또 만들어 서버에 빈 '새 대화' 방이 남았다.
        */
       if (roomId === null) {
         const room = await createSession()
-        if (seq !== askSeqRef.current) return
+        if (roomSeq !== roomSeqRef.current) return
         roomId = room.sessionId
         setSessionId(room.sessionId)
         setSessions((previous) => [room, ...previous.filter((item) => item.sessionId !== room.sessionId)])
+        if (seq !== askSeqRef.current) return
       }
 
       // 같은 방 번호를 실어 보내면 서버가 앞 대화를 맥락으로 쓴다("그 종목은?")
       // 종목명은 종목 상세에서 온 첫 질문만 싣는다. 나머지는 서버가 질문과 앞 대화에서 찾는다(api/ai.ts ask)
-      const result = await ask(text, roomId, stockName)
-      // 기다리는 사이 화면이 다른 대화방으로 바뀌었다. 이 답은 그 방의 것이 아니다
+      const controller = new AbortController()
+      abortRef.current = controller
+      const result = await ask(text, roomId, stockName, controller.signal).finally(() => {
+        if (abortRef.current === controller) abortRef.current = null
+      })
+      // 기다리는 사이 화면이 다른 대화방으로 바뀌었거나 그만 기다렸다. 이 답은 버린다
       if (seq !== askSeqRef.current) return
 
       // 답이 비어 오면 빈 말풍선을 남기지 않고 실패로 다룬다. '다시 시도'로 같은 질문을 다시 보낸다
@@ -389,7 +420,7 @@ export default function AiPage() {
         return
       }
       if (roomId !== null && isRoomGone(error)) {
-        dropRoom(roomId)
+        removeRoom(roomId, ROOM_GONE_HINT)
         return
       }
       // 앞 질문의 답을 아직 만드는 중이다. 질문은 저장되지 않았으니 조금 뒤 다시 시도로 보낸다
@@ -408,10 +439,11 @@ export default function AiPage() {
     // 공백만 친 경우까지 걸러진다
     if (text === '' || pending === 'loading') return
     /*
-     * 대화방 내용을 받는 중이면 보내지 않는다. 보내면 늦게 온 대화 내용이 방금 띄운
-     * 질문과 답을 덮어써 둘 다 사라진다. 입력칸의 글은 그대로 남는다.
+     * 대화방 내용을 받는 중이거나 못 받았으면 보내지 않는다. 받는 중에 보내면 늦게 온 대화 내용이 방금 띄운
+     * 질문과 답을 덮어써 둘 다 사라지고, 못 받은 화면에서 보내면 오류 안내가 먼저라 질문·답·그만 기다리기가 안 보인 채
+     * 서버에만 저장됐다(2026-10-31). 입력칸의 글은 그대로 남는다.
      */
-    if (detailState === 'loading') return
+    if (detailState !== 'idle') return
 
     // 서버가 토큰 없는 요청을 401로 막는다. 보내 보고 실패하느니 먼저 알린다
     if (!loggedIn) {
@@ -420,19 +452,17 @@ export default function AiPage() {
     }
 
     /* 내 질문을 먼저 띄운다. 서버를 기다렸다 그리면 반응이 느리게 느껴진다 */
-    setMessages((previous) => [
-      ...previous,
-      {
-        messageId: nextLocalId(),
-        role: 'user',
-        content: text,
-        createdAt: new Date().toISOString(),
-      },
-    ])
+    const asked: ChatMessage = {
+      messageId: nextLocalId(),
+      role: 'user',
+      content: text,
+      createdAt: new Date().toISOString(),
+    }
+    setMessages((previous) => [...previous, asked])
     setQuestion('')
     setNotice('')
 
-    void send({ text, stockName })
+    void send({ text, stockName }, asked)
   }
 
   /**
@@ -441,6 +471,7 @@ export default function AiPage() {
    * 서버는 이미 받은 질문의 답을 계속 만들어 방에 저장한다 — 프론트가 요청을 거둘 방법은 없다.
    */
   function handleStop() {
+    abortRef.current?.abort()
     askSeqRef.current += 1
     setPending('stopped')
   }
@@ -481,7 +512,7 @@ export default function AiPage() {
       // 확인을 못 해도 다시 보내기는 한다
       console.warn('AI 대화 다시 확인 실패', error)
     }
-    void send(last)
+    void send(last, undefined, { synced: true })
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -634,7 +665,7 @@ export default function AiPage() {
                 onClick={handleSubmit}
                 disabled={
                   pending === 'loading' ||
-                  detailState === 'loading' ||
+                  detailState !== 'idle' ||
                   question.trim() === ''
                 }
               >
