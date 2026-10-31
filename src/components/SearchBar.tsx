@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { rankStocks, searchStocks, searchStocksRemote } from '../api/stock'
+import { forgetRecentStocks, readRecentStocks } from '../utils/recentStocks'
 import { toPreviewState } from '../utils/stockPreview'
 import type { StockInfo } from '../types/stock'
 import styles from './SearchBar.module.css'
@@ -21,6 +22,11 @@ export default function SearchBar({ stocks }: Props) {
   const [activeIndex, setActiveIndex] = useState(-1)
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState('')
+  /**
+   * 최근 본 종목(utils/recentStocks.ts). 입력칸이 비어 있을 때 후보 자리에 보인다 — 다시 찾는 종목을 치지 않고 고른다.
+   * 다른 탭에서 상세를 봤을 수 있어 입력칸을 누를 때마다 다시 읽는다
+   */
+  const [recent, setRecent] = useState(readRecentStocks)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
@@ -84,9 +90,19 @@ export default function SearchBar({ stocks }: Props) {
     })
   }
 
+  const isEmpty = keyword.trim() === ''
+  /** 지금 보이는 후보. 비어 있으면 최근 본 종목, 아니면 검색 결과 */
+  const options = isEmpty ? recent : suggestions
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (keyword.trim() === '') {
+    if (isEmpty) {
+      // 최근 본 종목을 방향키로 골랐으면 그리로 간다
+      const picked = activeIndex >= 0 ? recent[activeIndex] : undefined
+      if (picked !== undefined) {
+        goTo(picked)
+        return
+      }
       // 빈 칸으로 누르면 아무 일도 없던 것처럼 보였다. 무엇을 하면 되는지 알리고 입력칸으로 보낸다
       setMessage('종목명을 입력해주세요')
       inputRef.current?.focus()
@@ -109,19 +125,19 @@ export default function SearchBar({ stocks }: Props) {
       return
     }
 
-    if (suggestions.length === 0) return
+    if (options.length === 0) return
 
     if (event.key === 'ArrowDown') {
       event.preventDefault()
       setIsOpen(true)
-      setActiveIndex((index) => (index + 1) % suggestions.length)
+      setActiveIndex((index) => (index + 1) % options.length)
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault()
       setIsOpen(true)
       setActiveIndex((index) =>
-        index <= 0 ? suggestions.length - 1 : index - 1,
+        index <= 0 ? options.length - 1 : index - 1,
       )
     }
   }
@@ -132,7 +148,14 @@ export default function SearchBar({ stocks }: Props) {
     setIsOpen(false)
   }
 
-  const isListVisible = isOpen && suggestions.length > 0
+  function clearRecent() {
+    forgetRecentStocks()
+    setRecent([])
+    setActiveIndex(-1)
+    inputRef.current?.focus()
+  }
+
+  const isListVisible = isOpen && options.length > 0
   /*
    * 화살표로 후보를 옮겨도 포커스는 입력칸에 남는다. 그래서 지금 어느 후보에 있는지
    * 눈으로는 배경색으로 알지만 보조기기는 알 길이 없다. 그 하나를 id로 가리켜 알려 준다.
@@ -156,7 +179,10 @@ export default function SearchBar({ stocks }: Props) {
             setIsOpen(true)
             setMessage('')
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => {
+            setRecent(readRecentStocks())
+            setIsOpen(true)
+          }}
           onKeyDown={handleKeyDown}
           placeholder="종목명이나 종목코드로 검색 (예: 삼성전자)"
           role="combobox"
@@ -171,8 +197,31 @@ export default function SearchBar({ stocks }: Props) {
       </div>
 
       {isListVisible && (
-        <ul className={styles.list} id="stock-suggestions" role="listbox">
-          {suggestions.map((stock, index) => (
+        <div className={styles.list}>
+          {isEmpty && (
+            <div className={styles.listHead}>
+              <span id="recent-stocks-title" className={styles.listTitle}>
+                최근 본 종목
+              </span>
+              <button
+                type="button"
+                className={styles.clear}
+                // 눌리기 전에 입력칸이 포커스를 잃으면 목록이 먼저 닫혀 클릭이 사라진다
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={clearRecent}
+              >
+                기록 지우기
+              </button>
+            </div>
+          )}
+        <ul
+          className={styles.options}
+          id="stock-suggestions"
+          role="listbox"
+          aria-labelledby={isEmpty ? 'recent-stocks-title' : undefined}
+          aria-label={isEmpty ? undefined : '검색 결과'}
+        >
+          {options.map((stock, index) => (
             <li
               key={stock.stockCode}
               // 입력칸의 aria-activedescendant가 이 id를 가리킨다
@@ -197,6 +246,7 @@ export default function SearchBar({ stocks }: Props) {
             </li>
           ))}
         </ul>
+        </div>
       )}
 
       {message !== '' && <p className={styles.message}>{message}</p>}

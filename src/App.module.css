@@ -9,6 +9,28 @@
   min-height: 100vh;
 }
 
+/*
+ * 본문으로 건너뛰기. 평소엔 화면 밖에 있다가 키보드 포커스를 받으면 머리글 위 왼쪽에 뜬다.
+ * 진한 초록 머리글 위라 흰 바탕 보조 단추로 둔다(초록 단추는 띠에 묻혔다)
+ */
+.skipLink {
+  composes: secondary md from './components/buttons.module.css';
+  position: absolute;
+  z-index: 200;
+  top: var(--space-2);
+  left: var(--page-gutter);
+  transform: translateY(-200%);
+}
+
+.skipLink:focus-visible {
+  transform: none;
+}
+
+/* 건너뛰기로 포커스를 받은 본문 전체에 테두리를 그리지 않는다. 다음 Tab이 본문의 첫 링크로 간다 */
+.main:focus {
+  outline: none;
+}
+
 .main {
   flex: 1 0 auto;
   /* flex 항목에 좌우 auto 여백을 주면 내용 폭으로 줄어든다. 폭을 채운 뒤 최대 폭에서 멈추게 한다 */

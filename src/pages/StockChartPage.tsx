@@ -28,6 +28,7 @@ import {
   isFlatRate,
 } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
+import { rememberStock } from '../utils/recentStocks'
 import { readPreview } from '../utils/stockPreview'
 import type { Candle, Period, StockDetail, StockInfo, StockPreview } from '../types/stock'
 import styles from './StockChartPage.module.css'
@@ -310,6 +311,19 @@ export default function StockChartPage() {
         console.warn('임시 차트(기간별 시세)를 받지 못했습니다', error)
       })
   }, [needsBackup, stockCode])
+
+  /*
+   * 최근 본 종목(홈 검색창이 비어 있을 때 보인다, utils/recentStocks.ts). 이름을 알 때만 남긴다 — 목록에서 들고 온 이름, 상세가 오면 그 이름.
+   * 응답이 이름을 비워 종목코드로 대신했으면 남기지 않는다
+   */
+  const readyName =
+    state.kind === 'ready' && state.stockCode === stockCode ? nameOrCode(state.detail.stockName, stockCode) : null
+  const rememberedName = readyName !== null && readyName !== stockCode ? readyName : (preview?.stockName ?? null)
+
+  useEffect(() => {
+    if (stockCode === undefined || !hasValidCode || rememberedName === null) return
+    rememberStock({ stockCode, stockName: rememberedName })
+  }, [stockCode, hasValidCode, rememberedName])
 
   // 없는 종목에는 바로 가기 버튼도 두지 않는다
   if (stockCode === undefined || !hasValidCode || view.kind === 'notFound') {

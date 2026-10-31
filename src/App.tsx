@@ -70,9 +70,23 @@ function Layout() {
 
   return (
     <div className={styles.page}>
+      {/*
+        키보드로 들어오면 첫 Tab이 여기다. 머리글 메뉴(여섯)를 건너 본문으로 간다(2026-10-31).
+        주소 뒤 #main으로 옮기지 않고 본문에 포커스만 준다 — 해시가 붙으면 라우터가 새 주소 기록으로 보고 홈이 보던 자리를 잃는다
+      */}
+      <a
+        href="#main"
+        className={styles.skipLink}
+        onClick={(event) => {
+          event.preventDefault()
+          document.getElementById('main')?.focus()
+        }}
+      >
+        본문으로 건너뛰기
+      </a>
       <Header />
 
-      <main className={styles.main}>
+      <main id="main" tabIndex={-1} className={styles.main}>
         {/*
           머리글은 경계 밖에 둔다. 아래가 멈춰도 메뉴로 빠져나갈 수 있어야 한다.
           resetKey에 현재 경로를 넘겨, 다른 화면으로 옮기면 오류 상태가 풀리게 한다.
