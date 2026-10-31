@@ -15,7 +15,7 @@ import styles from './MarketIndexBar.module.css'
  *
  * 맨 앞에 장 상태(장 시작 전·장 중·장 마감·오늘 휴장)와 다음 개장일을 적는다(2026-10-31). 초보자는 지금 가격이 움직이는 때인지,
  * 오늘 본 값이 언제 바뀌는지를 모른다. 휴장일은 로그인했을 때 증권사 휴장일 조회로 받아 둔다(api/marketCalendar.ts).
- * 모르면(비로그인 평일) 장 상태를 적지 않는다.
+ * 모르면(비로그인 평일) 장 상태를 적지 않는다. 600px 이하는 자리가 없어 적지 않는다(지수가 먼저다).
  */
 export default function MarketIndexBar() {
   const [data, setData] = useState<MarketIndices | null>(readCachedIndices)

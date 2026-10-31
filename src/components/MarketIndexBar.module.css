@@ -143,10 +143,29 @@
   color: var(--color-brand-100);
 }
 
+/* 장 상태는 폭이 줄면 다음 개장일부터 뺀다. 상태 낱말(장 중·장 마감·오늘 휴장)만 남긴다 */
+@media (max-width: 1100px) {
+  .next {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   .label,
   .wideOnly {
     display: none;
+  }
+}
+
+/* 태블릿 세로 폭(601~760px)은 장 상태와 두 줄이 다 들어가지 않는다. 포인트 대비를 빼고 대비율만 남긴다 */
+@media (max-width: 760px) {
+  .change {
+    display: none;
+  }
+
+  .rate::before,
+  .rate::after {
+    content: none;
   }
 }
 
@@ -172,14 +191,14 @@
     font-size: var(--font-2xs);
   }
 
+  /*
+   * 장 상태도 뺀다. 375px에서 두 줄과 "예시 값"만으로 남는 자리가 10px쯤이라, 상태("장 중"만 해도 50px)를 넣으면 코스닥 등락률이 띠 밖으로 밀려
+   * 안 보였다(2026-10-31 판정 S8). 지수가 먼저다
+   */
   .change,
   .asOf,
-  .next {
-    display: none;
-  }
-
   .status {
-    padding-right: var(--space-2);
+    display: none;
   }
 
   .rate::before,
