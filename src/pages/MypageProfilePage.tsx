@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Modal from '../components/Modal'
 import { ApiError } from '../api/client'
-import { logout } from '../api/auth'
+import { clearSession } from '../api/auth'
 import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
-import { clearTokens } from '../utils/auth'
-import { forgetRecentBacktests } from '../utils/recentBacktests'
+import { useLoad } from '../hooks/useLoad'
+import { useLogout } from '../hooks/useLogout'
 import { toDashedYmd, toYmd } from '../utils/date'
 import { formatBirth } from '../utils/format'
 import { socialLabel } from '../utils/social'
@@ -21,11 +21,6 @@ import styles from './MypageProfilePage.module.css'
  * 필드가 생기면 이 상수를 memberInfo의 값으로 바꾸기만 하면 아래 화면은 그대로 붙는다.
  */
 const PROFILE_IMAGE_URL: ProfileImageUrl = null
-
-type State =
-  | { kind: 'loading' }
-  | { kind: 'ready'; member: MemberInfo }
-  | { kind: 'error' }
 
 /** 저장된 사진이 없을 때 쓰는 기본 아이콘 */
 function DefaultAvatar() {
@@ -56,9 +51,9 @@ function DefaultAvatar() {
 export default function MypageProfilePage() {
   useDocumentTitle('내 정보')
   const navigate = useNavigate()
-  const [state, setState] = useState<State>({ kind: 'loading' })
+  const [state, load] = useLoad(getMemberInfo, '회원 정보')
+  const { isLoggingOut, logOut } = useLogout()
 
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
@@ -69,27 +64,6 @@ export default function MypageProfilePage() {
   const [editBirth, setEditBirth] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
-
-  const load = useCallback(() => {
-    setState({ kind: 'loading' })
-
-    getMemberInfo()
-      .then((member) => setState({ kind: 'ready', member }))
-      .catch((error: unknown) => {
-        console.warn('회원 정보 조회 실패', error)
-        setState({ kind: 'error' })
-      })
-  }, [])
-
-  useEffect(load, [load])
-
-  /** 사이드바의 로그아웃과 같다(MypageLayout) — 서버가 실패해도 토큰은 지우고 홈으로 간다 */
-  async function handleLogout() {
-    if (isLoggingOut) return
-    setIsLoggingOut(true)
-    await logout()
-    navigate('/', { replace: true })
-  }
 
   async function handleDelete() {
     setIsDeleting(true)
@@ -102,9 +76,8 @@ export default function MypageProfilePage() {
        * 없어진 계정의 마이페이지에 되돌아가지 않는다.
        * 헤더가 '로그인'으로 돌아가는 건 clearTokens가 알아서 알린다.
        */
-      clearTokens()
-      // 이 브라우저에 남긴 최근 본 백테스트도 지운다(로그아웃과 같다 — utils/recentBacktests.ts)
-      forgetRecentBacktests()
+      // 토큰과 이 브라우저에 남긴 최근 본 백테스트를 지운다(로그아웃과 같은 한 곳 — api/auth.ts clearSession)
+      clearSession()
       navigate('/', { replace: true })
     } catch (error: unknown) {
       console.warn('회원 탈퇴 실패', error)
@@ -145,7 +118,7 @@ export default function MypageProfilePage() {
      * 이름은 바꿨을 때만 검사하고 보낸다. 카카오 닉네임처럼 4자가 넘는 이름으로 가입한 회원이 생일만 고치려 해도
      * "2~4자"에 막혔다. 안 바꿨으면 null로 보낸다 — 서버는 name이 null이면 이름을 건드리지 않는다(Member.updateInfo).
      */
-    const savedName = state.kind === 'ready' && typeof state.member.name === 'string' ? state.member.name.trim() : ''
+    const savedName = state.kind === 'ready' ? state.value.name.trim() : ''
     const name = editName.trim()
     const nameChanged = name !== savedName
     if (nameChanged && (name.length < 2 || name.length > 4)) {
@@ -158,7 +131,7 @@ export default function MypageProfilePage() {
      * 다시 불러오면 옛 생일이 그대로다. 서버가 지우기를 받기 전까지는 지울 수 없다고 먼저 알린다.
      * 원래 생일이 없던 회원이 비워 두는 건 바뀌는 게 없으니 그대로 보낸다.
      */
-    const savedBirth = state.kind === 'ready' ? (state.member.birth ?? '') : ''
+    const savedBirth = state.kind === 'ready' ? (state.value.birth ?? '') : ''
     if (editBirth === '' && savedBirth !== '') {
       setSaveError('생년월일은 지울 수 없어요. 날짜를 고르거나 취소해 주세요.')
       return
@@ -209,7 +182,7 @@ export default function MypageProfilePage() {
     )
   }
 
-  const { member } = state
+  const member: MemberInfo = state.value
   const birth = formatBirth(member.birth)
   const social = socialLabel(member.socialType)
 
@@ -222,7 +195,7 @@ export default function MypageProfilePage() {
           <img className={styles.avatar} src={PROFILE_IMAGE_URL} alt="" />
         )}
         <div className={styles.headText}>
-          <h2 className={styles.name}>{member.name}</h2>
+          <h2 className={styles.name}>{member.name !== '' ? member.name : '회원님'}</h2>
           {social !== null && (
             <p className={styles.social}>
               <img src={social.icon} alt="" width={16} height={16} />
@@ -279,7 +252,7 @@ export default function MypageProfilePage() {
             <button
               type="button"
               className={styles.manageButton}
-              onClick={() => void handleLogout()}
+              onClick={logOut}
               disabled={isLoggingOut}
             >
               {isLoggingOut ? '로그아웃 중…' : '로그아웃'}

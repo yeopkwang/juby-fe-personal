@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import PersonalityScale from '../components/PersonalityScale'
 import { getSessions } from '../api/ai'
 import { getLikeStocks, getMemberInfo, getMyPersonality } from '../api/member'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useLoad, type Load } from '../hooks/useLoad'
 import { toBacktestHandoff, toSessionHandoff } from '../hooks/useStockHandoff'
 import { findByPersonality, findInvestType, periodLabel } from '../utils/backtest'
 import { toKoreanDate, toYmd } from '../utils/date'
@@ -20,38 +21,11 @@ import styles from './MypageHomePage.module.css'
 /** 칸마다 보여 주는 줄 수. 전부는 각 화면(주식 모아보기·AI 주가분석)에서 본다 */
 const ROWS = 4
 
-type Load<T> = { kind: 'loading' } | { kind: 'ready'; value: T } | { kind: 'error' }
-
-/**
- * 칸 하나의 불러오기. 칸마다 따로 받고 따로 실패한다 — 대화 목록이 실패해도 관심종목은 보인다.
- * 다시 시도하는 사이 먼저 보낸 응답이 늦게 오면 버린다
- */
-function useLoad<T>(load: () => Promise<T>, what: string): [Load<T>, () => void] {
-  const [state, setState] = useState<Load<T>>({ kind: 'loading' })
-  const seqRef = useRef(0)
-
-  const run = useCallback(() => {
-    seqRef.current += 1
-    const seq = seqRef.current
-    setState({ kind: 'loading' })
-    load()
-      .then((value) => {
-        if (seq === seqRef.current) setState({ kind: 'ready', value })
-      })
-      .catch((error: unknown) => {
-        console.warn(`${what} 조회 실패`, error)
-        if (seq === seqRef.current) setState({ kind: 'error' })
-      })
-  }, [load, what])
-
-  useEffect(run, [run])
-  return [state, run]
-}
-
 /**
  * 마이페이지 첫 화면(2026-10-30). 흩어진 내 기록을 한 화면에 모으고, 칸마다 그 기록이 사는 화면으로 가는 단추를 하나씩 둔다.
  * 요청은 이미 있는 API 넷(내 정보·성향·관심종목·대화방 목록)이고 증권사 호출은 없다. 최근 본 백테스트는 서버에 기록이 없어
  * 이 브라우저에 남긴 것을 읽는다(utils/recentBacktests.ts).
+ * 칸마다 따로 받고 따로 실패한다(hooks/useLoad) — 대화 목록이 실패해도 관심종목은 보인다.
  */
 export default function MypageHomePage() {
   useDocumentTitle('마이페이지')

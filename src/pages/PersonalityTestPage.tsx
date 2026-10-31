@@ -101,7 +101,8 @@ export default function PersonalityTestPage() {
     setIsSubmitting(true)
     setSaveFailed(false)
     try {
-      const result = await submitTest(questions, toScores(questions, answers))
+      // 예비 문항이면 저장하지 않는다(submitTest가 fallbackReason으로 가른다)
+      const result = await submitTest(questions, toScores(questions, answers), fallbackReason)
       navigate(
         { pathname: '/personality-test/result', search },
         { state: { result } },

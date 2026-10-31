@@ -39,7 +39,15 @@ export async function logout(): Promise<void> {
   } catch {
     // 서버 쪽 실패는 삼킨다. 아래에서 어차피 로컬 토큰을 지운다
   } finally {
-    clearTokens()
-    forgetRecentBacktests()
+    clearSession()
   }
+}
+
+/**
+ * 이 브라우저의 로그인 자취를 지운다 — 토큰과 계정에 딸린 값(최근 본 백테스트). 로그아웃과 탈퇴(MypageProfilePage)가 같이 쓴다.
+ * 계정에 딸린 저장값이 늘면 여기에 더한다(예전엔 두 곳에 따로 적혀 있어 어긋날 자리였다).
+ */
+export function clearSession(): void {
+  clearTokens()
+  forgetRecentBacktests()
 }

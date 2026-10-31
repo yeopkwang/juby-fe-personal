@@ -1,7 +1,6 @@
-import { useState } from 'react'
-import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { logout } from '../api/auth'
+import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import SectionBoundary from './SectionBoundary'
+import { useLogout } from '../hooks/useLogout'
 import { isLoggedIn } from '../utils/auth'
 import { loginPathFrom } from '../utils/navigation'
 import styles from './MypageLayout.module.css'
@@ -24,9 +23,8 @@ const MENU = [
  * 좁은 폭에서 이미 꽉 차 있어 항목을 더 넣을 자리가 없다.
  */
 export default function MypageLayout() {
-  const navigate = useNavigate()
   const { pathname } = useLocation()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const { isLoggingOut, logOut } = useLogout()
 
   /*
    * 세 경로 모두 로그인이 필요하다. 렌더 전에 막아야 아래 화면들이
@@ -39,22 +37,6 @@ export default function MypageLayout() {
   if (!isLoggedIn()) {
     // 로그인하면 이 마이페이지 자리로 돌아온다
     return <Navigate to={loginPathFrom(pathname)} replace />
-  }
-
-  /**
-   * logout()은 던지지 않는다 — 서버 호출이 실패해도 finally에서 토큰을 지운다.
-   * 그래서 실패 안내가 없다. 나가겠다고 누른 사람을 로그인 상태로 두는 편이 더 위험하다.
-   *
-   * 탈퇴와 같이 홈으로 보낸다. replace는 방금까지 있던 마이페이지를 기록에 남기지 않는다
-   * (더 뒤의 마이페이지 기록으로 돌아가더라도 위의 로그인 검사가 /login으로 보낸다).
-   * 머리글이 '로그인'으로 돌아가는 건 clearTokens가 알아서 알린다.
-   */
-  async function handleLogout() {
-    if (isLoggingOut) return
-    setIsLoggingOut(true)
-
-    await logout()
-    navigate('/', { replace: true })
   }
 
   return (
@@ -81,11 +63,11 @@ export default function MypageLayout() {
             ))}
           </ul>
 
-          {/* 이동이 아니라 동작이라 목록 <ul> 밖에 둔다 */}
+          {/* 이동이 아니라 동작이라 목록 <ul> 밖에 둔다. 동작은 hooks/useLogout */}
           <button
             type="button"
             className={styles.logout}
-            onClick={() => void handleLogout()}
+            onClick={logOut}
             disabled={isLoggingOut}
           >
             {isLoggingOut ? '로그아웃 중…' : '로그아웃'}

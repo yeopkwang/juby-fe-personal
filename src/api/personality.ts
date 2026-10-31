@@ -120,7 +120,7 @@ interface QuestionSet {
  * 로그인 상태면 **예비 문항으로 물러서지 않고 던진다.** 로그인 상태의 결과는 서버에
  * 저장되는데(submitTest), 예비 문항 점수가 공식 문항 결과처럼 회원 성향으로 남으면
  * 안 된다. 화면은 실패 안내와 다시 시도를 보여준다.
- * 비로그인은 어차피 저장하지 않으므로 예비 문항으로 진행하되 isFallback으로 알린다.
+ * 비로그인은 어차피 저장하지 않으므로 예비 문항으로 진행하되 fallbackReason으로 알린다.
  */
 export async function getQuestions(): Promise<QuestionSet> {
   if (!USE_BACKEND_QUESTIONS) {
@@ -153,10 +153,14 @@ export async function getQuestions(): Promise<QuestionSet> {
  *
  * questions를 같이 받는 이유는 환산에 배점 범위가 필요해서다.
  * 문항이 바뀌면 범위도 바뀌므로 그때그때 받은 목록에서 계산한다.
+ * fallbackReason은 그 문항이 어디서 왔는지(getQuestions) — **예비 문항의 결과는 로그인했어도 서버에 보내지 않는다.**
+ * 제출하는 순간의 로그인 여부만 보던 때는, 비로그인으로 문항을 받은 뒤 다른 탭에서 로그인하면 7문항 점수를 늘린 값이
+ * 회원 성향으로 저장됐다(2026-10-31).
  */
 export async function submitTest(
   questions: Question[],
   scores: number[],
+  fallbackReason: QuestionSet['fallbackReason'],
 ): Promise<PersonalityResult> {
   const raw = scores.reduce((sum, score) => sum + score, 0)
   /*
@@ -165,21 +169,15 @@ export async function submitTest(
    */
   const normalized = normalizeScore(raw, questions)
 
-  if (!isLoggedIn()) {
+  if (!isLoggedIn() || fallbackReason !== null) {
     const type = scoreToPersonality(normalized)
     // 서버라면 채점을 거절할 점수다. 결과를 지어내지 않고 실패로 알린다(화면은 제자리에서 다시 하게 한다)
     if (type === null) throw new Error(`채점할 수 없는 점수입니다: ${normalized}`)
     return { type, ...PERSONALITY_INFO[type] }
   }
 
-  /*
-   * 서버는 받은 배열을 전부 더해 구간에 넣는다. 명세대로 낱개 점수를 보낸다.
-   * 로그인 상태는 mock 문항으로 물러서지 않으므로(getQuestions) raw와 normalized가
-   * 다를 수 있는 건 USE_BACKEND_QUESTIONS를 끈 개발 상태뿐이다. 그때만 환산값 하나로 보낸다.
-   */
-  const result = await post<TestResultResponse | null>('/api/personality-tests', {
-    scores: raw === normalized ? scores : [normalized],
-  })
+  // 서버는 받은 배열을 전부 더해 구간에 넣는다. 명세대로 낱개 점수를 보낸다(서버 문항이라 환산값과 같다)
+  const result = await post<TestResultResponse | null>('/api/personality-tests', { scores })
 
   /*
    * 여기까지 왔으면 서버는 이미 저장을 끝냈다. 여기서 던지면 화면이 "저장하지 못했어요"를 띄우고

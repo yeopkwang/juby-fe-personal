@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PersonalityScale from '../components/PersonalityScale'
 import { getMyPersonality } from '../api/member'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useLoad } from '../hooks/useLoad'
 import { toBacktestHandoff } from '../hooks/useStockHandoff'
 import { AXES, AXIS_LABEL, findByPersonality, periodLabel } from '../utils/backtest'
 import { PERSONALITY_INFO, describePersonality, isPersonalityType } from '../utils/personality'
@@ -12,13 +13,6 @@ import styles from './MypagePersonalityPage.module.css'
 
 /** 검사를 마치면 PersonalityResultPage의 doneRoute가 from=mypage를 보고 여기로 돌려보낸다 */
 const TEST_URL = '/personality-test?from=mypage'
-
-type State =
-  | { kind: 'loading' }
-  | { kind: 'ready'; info: PersonalityInfo }
-  /** 아직 검사하지 않은 회원 */
-  | { kind: 'none' }
-  | { kind: 'error' }
 
 /**
  * 투자유형(2026-10-30 보강). 위는 내 성향, 아래는 다섯 성향 둘러보기 — 눈금에서 성향을 고르면 그 성향의 전략·사고파는 때·
@@ -30,22 +24,8 @@ type State =
  */
 export default function MypagePersonalityPage() {
   useDocumentTitle('투자유형 보기')
-  const [state, setState] = useState<State>({ kind: 'loading' })
-
-  const load = useCallback(() => {
-    setState({ kind: 'loading' })
-
-    getMyPersonality()
-      .then((info) =>
-        setState(info === null ? { kind: 'none' } : { kind: 'ready', info }),
-      )
-      .catch((error: unknown) => {
-        console.warn('투자성향 조회 실패', error)
-        setState({ kind: 'error' })
-      })
-  }, [])
-
-  useEffect(load, [load])
+  // 아직 검사하지 않은 회원은 value가 null이다(api/member.ts getMyPersonality — 404 MEMBER404_2는 실패가 아니다)
+  const [state, load] = useLoad(getMyPersonality, '투자성향')
 
   if (state.kind === 'loading') {
     return <div className={styles.skeleton} aria-label="불러오는 중" />
@@ -69,7 +49,7 @@ export default function MypagePersonalityPage() {
     )
   }
 
-  if (state.kind === 'none') {
+  if (state.value === null) {
     return (
       <>
         <div className={styles.message}>
@@ -90,7 +70,7 @@ export default function MypagePersonalityPage() {
     )
   }
 
-  const { info } = state
+  const info: PersonalityInfo = state.value
   /*
    * 서버 값이 먼저다. personality 테이블이 비어 있으면 빈 문자열이 오므로 로컬 문구로 받친다.
    * 모르는 성향 이름이어도 저장된 성향이므로 "아직 검사 안 함"으로 바꾸지 않고 이름 그대로 보인다

@@ -3,7 +3,9 @@ import type { StockInfo } from './stock'
 /** 가입 경로. 백엔드 Member.socialType과 같은 값이다 */
 export type SocialType = 'NAVER' | 'KAKAO' | 'GOOGLE'
 
+/** GET /api/members/me 를 화면 쓰임새로 옮긴 모양(api/member.ts toMemberInfo가 거른다) */
 export interface MemberInfo {
+  /** 비어 오면 ""(화면이 "회원님"으로 적는다) */
   name: string
   email: string
   /**
@@ -12,7 +14,8 @@ export interface MemberInfo {
    * 구글은 기본 스코프에 생일이 없어 실제로 자주 그렇게 된다.
    */
   birth: string | null
-  socialType: SocialType
+  /** 가입 경로. 모르는 값이 오면 null(화면이 그 줄을 "-"로 둔다) */
+  socialType: SocialType | null
 }
 
 /** PATCH /api/members/me 본문. 이름은 2~4자(화면 검사), 생일은 오늘 이전이어야 한다(서버 검증) */
@@ -30,7 +33,7 @@ export interface PersonalityInfo {
   /** 보통 다섯 성향 중 하나. 서버에 성향이 늘면 모르는 이름이 온다 — 없음(null)으로 바꾸지 않는다 */
   investPersonality: string
   description: string
-  /** 서버가 가진 이미지 주소. 비어 있으면 화면이 로컬 PNG로 대신한다 */
+  /** 서버가 가진 이미지 주소. 비어 있으면 화면이 로컬 SVG(/personality/*.svg)로 대신한다 */
   personalityImg: string | null
 }
 

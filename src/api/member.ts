@@ -9,6 +9,7 @@ import type {
   MemberInfo,
   MemberUpdate,
   PersonalityInfo,
+  SocialType,
 } from '../types/member'
 
 /**
@@ -16,21 +17,42 @@ import type {
  * client.ts가 로그인 화면으로 보낸다).
  */
 
-/**
- * 내 정보. 본문이 비어 오면 그리다가 null.birth를 읽어 화면 전체가 오류 화면이 되므로
- * 여기서 실패로 바꿔 던진다. 이름·이메일·생일 낱개가 빈 건 화면이 받아낸다.
- */
-export async function getMemberInfo(): Promise<MemberInfo> {
-  const member = await get<MemberInfo | null>('/api/members/me')
-  if (member === null || typeof member !== 'object') throw malformedResponse()
-  return member
+/** GET /api/members/me. 스웨거에 필수 표시가 없어 전부 비어 올 수 있게 적는다 */
+interface MemberInfoResponse {
+  name?: string | null
+  email?: string | null
+  /** "2002-05-07". 소셜에서 생일을 못 받은 계정은 null */
+  birth?: string | null
+  socialType?: string | null
+  onboarded?: boolean | null
+}
+
+const SOCIAL_TYPES: readonly string[] = ['NAVER', 'KAKAO', 'GOOGLE'] satisfies readonly SocialType[]
+
+function isSocialType(value: unknown): value is SocialType {
+  return typeof value === 'string' && SOCIAL_TYPES.includes(value)
 }
 
 /**
- * 이름·생일 수정. 서버는 생일이 오늘 이전인지 검사하고 어긋나면 400을 준다(이름 2~4자는 화면이 검사한다 —
- * MypageProfilePage.handleSave). 화면은 서버 message를 그대로 쓰지 않고 두 규칙을 적은 고정 문구를 보여준다.
- * 둘 다 null이면 서버는 그 값을 바꾸지 않는다.
+ * 내 정보. 본문이 비어 오면 그리다가 null.birth를 읽어 화면 전체가 오류 화면이 되므로 여기서 실패로 바꿔 던진다.
+ * 낱개 칸은 여기서 거른다(다른 API와 같다 — CLAUDE.md "API 계층"): 이름·이메일이 문자열이 아니면 ""(화면이 "회원님"으로 적는다),
+ * 생일이 비면 null, 가입 경로가 모르는 값이면 null. 예전엔 거르지 않고 넘겨 name이 null이면 내 정보 수정이 `null.trim()`에서 죽었다.
  */
+export async function getMemberInfo(): Promise<MemberInfo> {
+  const member = await get<MemberInfoResponse | null>('/api/members/me')
+  if (member === null || typeof member !== 'object') throw malformedResponse()
+  return toMemberInfo(member)
+}
+
+function toMemberInfo(row: MemberInfoResponse): MemberInfo {
+  return {
+    name: typeof row.name === 'string' ? row.name : '',
+    email: typeof row.email === 'string' ? row.email : '',
+    birth: typeof row.birth === 'string' && row.birth !== '' ? row.birth : null,
+    socialType: isSocialType(row.socialType) ? row.socialType : null,
+  }
+}
+
 /**
  * 성향테스트를 아직 안 한 회원인가(`GET /api/members/me`의 `onboarded`, 성향을 저장하면 참). 로그인 콜백이 부른다.
  * 값이 불리언 false일 때만 참이다 — 빠졌거나 모양이 다르면(옛 서버) 멀쩡한 회원을 검사로 끌고 가지 않는다.
@@ -45,6 +67,11 @@ export async function needsOnboarding(): Promise<boolean> {
   return typeof member === 'object' && member !== null && member.onboarded === false
 }
 
+/**
+ * 이름·생일 수정. 서버는 생일이 오늘 이전인지 검사하고 어긋나면 400을 준다(이름 2~4자는 화면이 검사한다 —
+ * MypageProfilePage.handleSave). 화면은 서버 message를 그대로 쓰지 않고 두 규칙을 적은 고정 문구를 보여준다.
+ * 둘 다 null이면 서버는 그 값을 바꾸지 않는다.
+ */
 export async function updateMemberInfo(update: MemberUpdate): Promise<void> {
   await patch<{ modifiedDate: string }>('/api/members/me', update)
 }
@@ -74,16 +101,16 @@ export async function getMyPersonality(options?: {
 }
 
 /**
- * 로그인 없이도 쓰는 화면(백테스트·AI)이 들어오자마자 부르는 성향 조회.
+ * 로그인 없이도 쓰는 화면(백테스트·AI·상세)이 들어오자마자 부르는 요청의 공통 처리.
  *
  * 토큰이 만료됐으면 서버가 401을 주는데, 전역 처리대로 로그인 화면으로 보내면 로그인이 필요 없는 화면을
- * 열었는데도 아무것도 누르기 전에 끌려간다. 여기서는 토큰만 지우고(머리글이 "로그인"으로 돌아간다)
- * 성향 없음으로 본다. 사용자가 직접 한 동작(질문 보내기·하트·마이페이지)의 401은 지금처럼 로그인 화면으로 간다.
- * 401이 아닌 실패는 던진다 — 부르는 쪽이 "없음"과 "못 불러옴"을 가른다.
+ * 열었는데도 아무것도 누르기 전에 끌려간다. 여기서는 토큰만 지우고(머리글이 "로그인"으로 돌아간다) null이다 —
+ * 화면은 로그인 구독을 따라 비로그인으로 바뀐다. 사용자가 직접 한 동작(질문 보내기·하트·마이페이지)의 401은 지금처럼 로그인 화면으로 간다.
+ * 401이 아닌 실패는 던진다 — 부르는 쪽이 "없음"과 "못 불러옴"을 가른다. 요청 자체는 ignoreUnauthorized로 보내야 한다.
  */
-export async function getMyPersonalityOnPublicPage(): Promise<PersonalityInfo | null> {
+async function onPublicPage<T>(request: () => Promise<T>): Promise<T | null> {
   try {
-    return await getMyPersonality({ ignoreUnauthorized: true })
+    return await request()
   } catch (error: unknown) {
     if (error instanceof ApiError && error.status === 401) {
       clearTokens()
@@ -91,6 +118,11 @@ export async function getMyPersonalityOnPublicPage(): Promise<PersonalityInfo | 
     }
     throw error
   }
+}
+
+/** 공개 화면(백테스트·AI)이 들어오자마자 부르는 성향 조회. 401이면 토큰만 지우고 null(위 onPublicPage) */
+export function getMyPersonalityOnPublicPage(): Promise<PersonalityInfo | null> {
+  return onPublicPage(() => getMyPersonality({ ignoreUnauthorized: true }))
 }
 
 /**
@@ -144,19 +176,10 @@ export async function getLikeStocks(options?: {
 
 /**
  * 종목 상세(로그인 없이도 쓰는 화면)가 들어오자마자 부르는 관심종목 목록 — 하트의 처음 상태를 정한다.
- * 토큰이 만료됐으면(401) 로그인 화면으로 끌고 가지 않고 토큰만 지운 뒤 null이다(getMyPersonalityOnPublicPage와 같다).
- * 화면은 로그인 구독을 따라 비로그인으로 바뀐다. 401이 아닌 실패는 던진다 — 부르는 쪽이 "모름"으로 두고 다시 시도를 준다.
+ * 401이면 토큰만 지우고 null(위 onPublicPage). 그 밖의 실패는 던진다 — 부르는 쪽이 "모름"으로 두고 다시 시도를 준다.
  */
-export async function getLikeStocksOnPublicPage(): Promise<LikeStockList | null> {
-  try {
-    return await getLikeStocks({ ignoreUnauthorized: true })
-  } catch (error: unknown) {
-    if (error instanceof ApiError && error.status === 401) {
-      clearTokens()
-      return null
-    }
-    throw error
-  }
+export function getLikeStocksOnPublicPage(): Promise<LikeStockList | null> {
+  return onPublicPage(() => getLikeStocks({ ignoreUnauthorized: true }))
 }
 
 /*
