@@ -21,6 +21,7 @@ README의 "규칙"에 더해:
   2026-09-28부터 토큰 없이 401이다 — 실제 토큰을 구하려 하지 않고 녹화해 둔 실제 응답(없으면 스웨거 모양대로 지은 응답)을 쓴다.
 - `package.json`에 의존성을 넣지 않는다. 테스트 러너를 들이는 것도 먼저 사용자에게 묻는다.
   사용자가 정해 들인 것: AI 답변 렌더러 `react-markdown`·`remark-gfm`·`remark-math`·`rehype-katex`·`katex`(2026-09-30).
+  판정용 Playwright는 `judge/package.json`에만 있다(2026-10-31, 사용자 결정 "판정 스크립트를 저장소에 둬") — 앱 번들과 무관하다.
   `katex`는 `rehype-katex`가 쓰는 판(0.16)과 맞춘다 — 어긋나면 두 벌이 깔려 수식은 한 판으로 그리고 CSS는 다른 판을 쓴다.
 - 사용자가 맡았거나 정할 것이라 손대지 않는다.
   - 사용설명서 내용(`GuidePage`, `src/api/guide.ts`)
@@ -36,18 +37,20 @@ npm run lint             # oxlint
 npx tsc -b --noEmit      # 타입만 빠르게 확인
 ```
 
-**테스트 러너도 테스트 파일도 없다.** 변경 검증은 `npm run lint` + `npm run build`(타입 검사 포함) +
-브라우저 확인으로 한다. 함수 단위(utils·api 계층)는 러너 없이 Node가 `.ts` 원본을 곧바로 읽게 해서 잰다 — 세션 임시 폴더의
-작은 로더(확장자 없는 상대 경로에 `.ts`를 붙이고 `import.meta.env`를 바꿔 치기)와 `node:test`, fetch·localStorage 흉내로
-2026-10-31에 51항목을 돌렸다(결과 [docs/리팩토링-결과-2026-10-31.md](docs/리팩토링-결과-2026-10-31.md)). 저장소에는 두지 않는다.
+**앱에는 테스트 러너가 없다.** 변경 검증은 `npm run lint` + `npm run build`(타입 검사 포함) + **판정(`judge/`)**으로 한다.
+판정은 2026-10-31부터 저장소 안에 있다(사용자 결정 — 그 전엔 세션 임시 폴더라 며칠 지나면 사라졌다). 돌리는 법은 [judge/README.md](judge/README.md).
+
+- 함수 단위(utils·api 계층): 러너 없이 Node가 `.ts` 원본을 곧바로 읽는다 — `judge/loader.mjs`(확장자 없는 상대 경로에 `.ts`를 붙이고
+  `import.meta.env`를 바꿔 치기)·`register.mjs`(fetch·localStorage·window 흉내) + `node:test`. `cd judge && node --import ./register.mjs unit.test.mjs`(53항목).
+- 화면: 운영 빌드 + Playwright 크롬. `flow`(흐름)·`repro`(결함 재현)·`ai`(AI 화면)·`common`(16화면 공통)·`quick`·`ui`·`backtest`·`feature`.
 
 ## 브라우저로 검증하는 법
 
-Playwright 스크립트를 세션 임시 폴더에서 돌린다. 지금까지 쓴 스크립트는 **저장소에 없다** —
-저장소에 둘지는 사용자가 정한다. 다시 할 때는 아래 방식을 따른다.
+판정 스크립트는 **`judge/`에 있다**(2026-10-31 사용자 결정으로 들였다). 가짜 API는 `judge/mock.mjs`(옵션은 `mock()` 주석), 탭 열기·PASS/FAIL·
+실제 응답 감시는 `judge/lib.mjs`, 돌리는 법은 `judge/README.md`. 새 판정은 거기에 더하고 아래 방식을 따른다.
 
-- **playwright는 프로젝트 의존성이 아니다.** npx 캐시에 깔린 것을 임시 폴더의 `node_modules`
-  심볼릭 링크로 쓴다. 임시 폴더에서 `npm i`를 하면 npm이 그 링크를 지운다.
+- **playwright는 앱 의존성이 아니다.** `judge/package.json`에만 있고 `cd judge && npm install`로 받는다(`judge/node_modules`는 커밋하지 않는다).
+  크롬은 설치된 것을 쓴다(`channel: 'chrome'`) — 브라우저를 따로 받지 않는다.
 - **증권사 호출을 막는 것이 먼저다.** `/api` 요청은 전부 가로채 응답을 지어 주고, 실제 백엔드로는 보내지 않는다.
   2026-09-27에 실서버에서 받아 둔 녹화(프리셋 20종목 × 5성향 × 4기간 400건 등)는 2026-09-30에 세션 임시 폴더째 macOS 정리로
   사라졌다(아래 "헛디딘 곳"). 토큰 없이는 다시 받을 수 없어 지금은 **스웨거 모양대로 지은 응답**을 쓴다 — 값은 실제와 다르니
@@ -58,7 +61,8 @@ Playwright 스크립트를 세션 임시 폴더에서 돌린다. 지금까지 �
   `**/api/**` 글롭은 개발 서버의 `/src/api/*.ts` 모듈까지 잡아 앱이 뜨지 않는다.
 - **로그인은 콜백 주소를 직접 열어 흉내 낸다.** 소셜 로그인은 하지 않는다. 성공은 `/oauth2/callback#accessToken=<가짜>`
   (토큰이 쿼리가 아니라 **해시**에 온다), 실패는 `/oauth2/error?error=login_failed`. 로그인 뒤 화면은 localStorage에
-  가짜 `accessToken`을 넣고 연다.
+  가짜 `accessToken`을 넣고 연다. **가짜 토큰은 백엔드 JwtUtil 모양(JWT, subject = 회원 번호)이어야 한다**(`judge/mock.mjs tokenFor`) —
+  앱이 최근 본 백테스트의 주인을 그 subject로 가른다(2026-10-31). 글자 하나짜리 토큰이면 로그인으로는 보이지만 기록은 남지 않는다.
 - 지어 주는 응답은 스웨거(`GET /v3/api-docs`, 증권사 무관) 모양을 따라 `{ isSuccess, code, message, result }`로 싼다.
   실서버처럼 토큰 없는 비공개 경로(공개는 `/api/stocks/**`·재발급뿐)는 401로 막고, 상세의 봉 가격은 현재가와 같은 가격대로 짓는다 —
   2026-10-29까지 현재가 71,500원 옆 차트 축이 19,3xx대라 화면 판단이 틀어졌다(UI 리디자인 지시서 0절).
@@ -105,6 +109,8 @@ Playwright 스크립트를 세션 임시 폴더에서 돌린다. 지금까지 �
   미리보기는 IPv6(`::1`)에만 붙어 Node에서 `127.0.0.1`로 준비됐는지 물으면 영영 안 뜬 것으로 보인다(`[::1]`이나 `localhost`로 묻는다).
 - 세션 임시 폴더(`/private/tmp/...`)는 날짜가 바뀌면 macOS가 며칠 지난 파일을 지운다. 판정 자료(실제 응답 녹화)와
   검사 도구가 사라져 판정이 파일을 못 찾고 멈췄다(2026-09-28). 녹화한 응답은 어디서 받았는지 적어 두고 다시 받을 수 있게 한다.
+  (검사 도구는 2026-10-31부터 `judge/`에 있어 더는 사라지지 않는다.)
+- `npm run lint`(oxlint)는 `judge/`도 본다. 판정 스크립트에 `eval`·안 쓰는 변수를 남기면 앱 lint에 경고가 섞인다.
 - **가로챈 요청 안에서 `route.fetch()`를 부르지 않는다.** 다른 가로채기를 거치지 않고 실제 망으로 나간다 — 2026-10-05 사진 찍는 스크립트가
   대화방 목록을 덧붙이려고 불러, 가짜 토큰을 단 `GET /api/chat-sessions`가 실제 백엔드로 6건쯤 나갔다(읽기 요청이라 401로 끝났다).
   덧붙일 값은 스크립트가 직접 짓고, 판정에는 `/api/` 응답에 `x-vercel-id`(Vercel을 거친 실제 응답)가 붙으면 찍는 감시를 둔다.
@@ -276,10 +282,14 @@ DB 일봉을 주는 API는 상세 하나뿐이라(스웨거·백엔드 컨트롤
 
 - `src/utils/auth.ts` — `accessToken`. 나중에 HttpOnly 쿠키로 옮길 때 이 파일만 고치면 되게 하려는 것이다.
   refresh token은 이미 백엔드가 HttpOnly 쿠키로 둔다(2026-09-28). 예전에 저장한 `refreshToken` 키는 `clearTokens`가 지우기만 한다.
+  `getAccountId()`는 그 토큰(JWT)의 subject(백엔드 `JwtUtil`이 적는 회원 번호)를 읽는다 — 서명은 검사하지 않는다(누군지 가르는 용도,
+  권한은 서버가 본다). 계정에 딸린 저장값의 주인을 가를 때 쓴다(아래 `recentBacktests`).
 - `src/utils/cache.ts` — 언제 사라져도 되는 값. 읽기·쓰기 실패와 모양이 다른 값은 전부 "없는 셈" 친다.
   - TTL 캐시(`readCache`/`writeCache`): `leadingStocks`(12h, 홈 카드 첫 그림용), `marketIndices`(4일, 아래 지수 띠 — 예시 값은 담지 않는다).
   - JSON 한 칸(`readJson`/`writeJson`, 모양은 읽는 쪽이 검사): `cardSeriesYear`(홈 카드 1년 그래프, 항목마다 `savedAt`),
-    `recentBacktests`(최근 본 백테스트 10줄, `utils/recentBacktests.ts` — 로그아웃·탈퇴하면 비운다, 아래 "마이페이지"),
+    `recentBacktests`(최근 본 백테스트 — **주인(토큰의 subject)과 10줄**, `utils/recentBacktests.ts`. 읽을 때 지금 계정의 것만 돌려주고
+    다른 계정이 결과를 보면 덮어쓴다 — 로그아웃 없이 다른 탭·콜백으로 다른 계정이 로그인해도 앞 사람 기록이 안 보인다(2026-10-31, 사용자 "바로 고쳐").
+    로그아웃·탈퇴하면 비우고, 토큰 만료만으로는 안 비운다(2026-10-30 결정 — 같은 사람이 다시 로그인하면 그대로). 아래 "마이페이지"),
     `marketCalendar`(받아 둔 휴장일과 받은 때, `api/marketCalendar.ts`), `recentStocks`(최근 본 종목 8개, `utils/recentStocks.ts` —
     로그인과 상관없는 이 브라우저의 방문 기록이라 로그아웃해도 두고, 검색창의 '기록 지우기'로 비운다).
   - 때 한 칸(`readStamp`/`writeStamp`, 0이면 없음): `stockDetailSentAt`·`kisTokenPrimedAt`·`kisTokenPrimeSkipUntil`·`kisLimitedAt`
@@ -687,6 +697,13 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
 
 질문과 대화방 모두 실제 API다(`src/api/ai.ts`). 예전의 가짜 방 6개와 이 탭에서 만든 방을 메모리에 적어 두던 것(`localRoomsRef`)은 걷었다.
 
+**구조(2026-10-31 나눔, 680줄 → 198줄):** `pages/AiPage.tsx`는 종목 상세·마이페이지에서 넘어온 것을 한 번 처리하고 둘을 잇는다 —
+`hooks/useChatRooms`(사이드바 목록: 받기·맨 위로·빼기·이름 바꾸기·지우기)와 `hooks/useConversation`(보던 방·말풍선·보내기·그만 기다리기·
+다시 시도, 늦게 온 것을 버리는 번호 셋 `askSeq`·`roomSeq`·`sessionIdRef`). 부품은 `components/ai/ChatPane`(뼈대 → 못 받음 → 비어 있음 → 말풍선)·
+`ChatEmptyState`(워터마크·성향·예시 질문)·`Composer`(입력칸·보내기). 둘이 만나는 곳은 셋뿐이다: 답 뒤 목록 다시 받기(`rooms.load(true)`)·만든 방
+올리기(`putOnTop`)·없어진 방 빼기(`drop` + `leaveRoom`). **훅 순서가 요청 순서다** — 목록(`useChatRooms`)을 성향(`useMyPersonality`)보다 먼저 부른다.
+판정은 `judge/ai.mjs`(27항목)이고 화면별 요청 순서는 `judge/expect/ai-order.json`과 글자까지 같아야 한다(나누기 전후 같았다).
+
 - **같은 방 번호(`chatSessionId`)를 실어 물어야 서버가 앞 대화를 맥락으로 쓴다**("그 종목은?"). 새 대화는 첫 질문 때
   `POST /api/chat-sessions`로 방부터 만들고 그 번호로 묻는다 — 방 없이 물으면 서버가 방을 만들어 주지만, 답이 실패하면(502) 질문만 남은
   그 방의 번호를 몰라 다시 시도가 또 다른 방을 만든다. 만들기 전에는 방이 없다(새 대화를 눌러도 빈 방이 쌓이지 않는다).
@@ -928,3 +945,4 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
 - 2026-10-30 마이페이지 보강과 안 쓰던 API 붙이기(M-1~M-7): [docs/마이페이지-보강-결과-2026-10-30.md](docs/마이페이지-보강-결과-2026-10-30.md).
 - 2026-10-31 증권사 직통 API 셋 연결과 UI 보강(K-1~K-3, U-1·U-2): [docs/API-연결-UI-보강-결과-2026-10-31.md](docs/API-연결-UI-보강-결과-2026-10-31.md).
 - 2026-10-31 코드 검토·화이트박스·블랙박스 판정으로 찾은 결함 수정과 구조 정리(커밋 6개): [docs/리팩토링-결과-2026-10-31.md](docs/리팩토링-결과-2026-10-31.md).
+  같은 날 2부 — 판정을 저장소 `judge/`에 들이고 묵은 기대값 13건을 맞춤, 최근 본 백테스트 계정별, AI 화면 판정 27항목 위에서 구조 분리: 같은 문서 2부.
