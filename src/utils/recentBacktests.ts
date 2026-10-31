@@ -1,5 +1,5 @@
 import { readJson, writeJson } from './cache'
-import { PERIODS } from './backtest'
+import { PERIODS, findInvestType } from './backtest'
 import { isStockCode } from '../api/stock'
 import type { BacktestPeriod } from '../types/backtest'
 
@@ -32,7 +32,9 @@ function isRecent(value: unknown): value is RecentBacktest {
     typeof row.stockName === 'string' &&
     row.stockName.trim() !== '' &&
     typeof row.investType === 'number' &&
-    Number.isInteger(row.investType) &&
+    // 전략 표에 없는 번호(손댄 값, 표가 줄어든 뒤)는 읽을 때 버린다 — 받는 쪽(useStockHandoff readPlan)이 버리면 그 줄은
+    // 종목만 실린 채 '내 추천 전략·1년'으로 자동 실행돼 누른 줄과 다른 결과가 떴다
+    findInvestType(row.investType) !== null &&
     PERIODS.some((item) => item.period === row.period) &&
     typeof row.finalScore === 'number' &&
     Number.isFinite(row.finalScore) &&

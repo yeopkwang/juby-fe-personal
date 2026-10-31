@@ -12,10 +12,12 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { toStockHandoff, useBacktestHandoff } from '../hooks/useStockHandoff'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
-import { isFiniteNumber } from '../utils/format'
+import { toKoreanDate } from '../utils/date'
+import { isFiniteNumber, isFlatRate } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
 import { PERSONALITY_INFO, isPersonalityType } from '../utils/personality'
 import { rememberBacktest } from '../utils/recentBacktests'
+import { toPreviewState } from '../utils/stockPreview'
 import {
   AXES,
   AXIS_LABEL,
@@ -209,8 +211,15 @@ export default function BacktestPage() {
 
   const [result, setResult] = useState<ResultState>({ kind: 'idle' })
   const resultRef = useRef<HTMLDivElement>(null)
-  /** 실행 번호. 기다리는 사이 조건이 바뀌면 늦게 온 결과를 버린다 */
+  /** 실행 번호. 기다리는 사이 조건이 바뀌거나 화면을 떠나면 늦게 온 결과를 버린다 */
   const runSeqRef = useRef(0)
+  // 떠난 뒤 도착한 결과는 버린다 — 화면도 없는데 '최근 본 백테스트'에 본 적 없는 결과가 "본 것"으로 남았다(2026-10-31)
+  useEffect(
+    () => () => {
+      runSeqRef.current += 1
+    },
+    [],
+  )
   /*
    * 받은(받는 중인) 결과(프리셋, 없으면 즉석 실행 — api/backtest.ts). 같은 조합은 이 화면에 있는 동안 한 번만 받는다(B-3, 사용자 결정 2026-09-27).
    * 고른 전략이 1년이면 비교용 다섯 건 중 하나와 같은 요청이라 한 번에 6건이 나가며 하나가 겹쳤고,
@@ -342,6 +351,22 @@ export default function BacktestPage() {
     () => (investType === null ? [] : availablePeriods(investType, serverPeriods)),
     [investType, serverPeriods],
   )
+
+  /*
+   * 서버 기간 목록이 늦게 와서 이미 고른 기간이 선택지에서 빠지면 비운다. 전략을 바꿀 때(changeStrategy)만 정리하던 때는
+   * 목록 도착 전에 고른 기간이 선택지에 없는 채로 남아 셀렉트는 안내 문구를 보이는데 실행 단추는 켜져 있었다(2026-10-31)
+   */
+  useEffect(() => {
+    if (period !== null && !periodChoices.includes(period)) {
+      setPeriod(null)
+      clearResult()
+    }
+    // 선택지가 바뀔 때만 본다. period·clearResult는 그 순간의 값이면 된다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodChoices])
+
+  /** 로컬 표로는 고를 수 있는데 서버 목록(계산된 적 있는 기간)에 없어 빠진 기간이 있는가 — 안내 문구를 가른다 */
+  const serverNarrowed = investType !== null && periodChoices.length < supportedPeriods(investType).length
 
   const isRunning = result.kind === 'loading'
   const canRun =
@@ -515,10 +540,19 @@ export default function BacktestPage() {
             <>
               <p className={styles.myText}>
                 내 투자성향은 <b>{savedPersonality}</b>이에요.
+                {/* 다른 전략을 골랐거나 '이 전략으로 백테스트'로 다른 전략을 실어 왔으면 "골라 뒀어요"는 거짓이다 */}
                 {recommended !== null && (
                   <>
                     {' '}
-                    여기에 맞는 <b>{recommended.strategyName}</b>을 골라 뒀어요.
+                    {investType === recommended.investType ? (
+                      <>
+                        여기에 맞는 <b>{recommended.strategyName}</b>을 골라 뒀어요.
+                      </>
+                    ) : (
+                      <>
+                        여기에 맞는 전략은 <b>{recommended.strategyName}</b>이에요.
+                      </>
+                    )}
                   </>
                 )}
               </p>
@@ -678,12 +712,17 @@ export default function BacktestPage() {
               </select>
             </div>
 
-            {selected !== null && periodChoices.length < PERIODS.length && (
+            {/* 줄어든 까닭을 가른다 — 로컬 최소 기간인지, 서버에 계산된 기간만 남긴 것인지. 하나도 없으면 막다른 길임을 알린다 */}
+            {selected !== null && periodChoices.length === 0 ? (
+              <p className={styles.hint}>지금은 이 전략으로 계산된 기간이 없어요. 다른 전략을 골라 주세요.</p>
+            ) : selected !== null && serverNarrowed ? (
+              <p className={styles.hint}>서버에 계산된 기간만 보여드려요.</p>
+            ) : selected !== null && periodChoices.length < PERIODS.length ? (
               <p className={styles.hint}>
                 {selected.strategyName}은 지표를 계산하는 데 봉이 많이 필요해서{' '}
                 <b>{periodLabel(selected.minPeriod)}</b> 이상만 고를 수 있어요.
               </p>
-            )}
+            ) : null}
           </div>
 
           <div className={styles.submitRow}>
@@ -703,7 +742,9 @@ export default function BacktestPage() {
                   ? '종목을 먼저 골라주세요.'
                   : investType === null
                     ? '투자전략을 골라주세요.'
-                    : '투자기간을 골라주세요.'}
+                    : periodChoices.length === 0
+                      ? '이 전략은 지금 고를 수 있는 기간이 없어요.'
+                      : '투자기간을 골라주세요.'}
               </p>
             )}
           </div>
@@ -825,11 +866,13 @@ function BacktestResult({
    * 그래서 값마다 한 줄 해설을 붙이고, 어려운 말은 쉬운 이름을 앞세우고 원래 용어를 괄호에 둔다.
    */
   /*
-   * 낱개 지표는 비어 올 수 있다(isUsablePreset이 막지 않는다). 값이 있을 때만 숫자·색을 쓰고 아니면 "-"다.
-   * null >= 0은 참이라 그대로 두면 "-"가 빨간색으로 칠해지고, null.toFixed에서 결과 구역이 멈췄다
+   * 낱개 지표는 비어 올 수 있다(api/backtest.ts toScoring이 null로 넘긴다). 값이 있을 때만 숫자·색을 쓰고 아니면 "-"다.
+   * null >= 0은 참이라 그대로 두면 "-"가 빨간색으로 칠해지고, null.toFixed에서 결과 구역이 멈췄다.
+   * 화면에 "0.00%"로 보이는 값은 보합이라 색을 주지 않는다(다른 화면의 등락과 같은 규칙, utils/format isFlatRate) —
+   * 끝까지 들고 있던 결과(수익률 0, 300건 중 97건)가 오름 빨강으로 칠해졌다(2026-10-31). 비율은 소수라 백분율로 바꿔 본다
    */
-  const toneOf = (value: unknown): 'up' | 'down' | undefined =>
-    isFiniteNumber(value) ? (value >= 0 ? 'up' : 'down') : undefined
+  const toneOf = (value: number | null): 'up' | 'down' | undefined =>
+    !isFiniteNumber(value) || isFlatRate(value * 100) ? undefined : value > 0 ? 'up' : 'down'
   const positionCount = result.growth.positionCount
   const hasPositionCount = Number.isInteger(positionCount)
   /*
@@ -1133,7 +1176,8 @@ function BacktestResult({
       <div className={styles.next}>
         <h3 className={styles.nextTitle}>이 종목으로 이어서</h3>
         <div className={styles.nextActions}>
-          <Link to={`/stocks/${stock.stockCode}`} className={styles.nextLink}>
+          {/* 이름을 실어 상세가 응답 전에 이름 자리를 채운다(CLAUDE.md "종목 상세는 기다림을 줄이고 가린다") */}
+          <Link to={`/stocks/${stock.stockCode}`} state={toPreviewState(stock)} className={styles.nextLink}>
             종목 상세 보기
           </Link>
           <Link to="/ai" state={toStockHandoff(stock)} className={styles.nextLink}>
@@ -1155,8 +1199,9 @@ function describeSource(preset: BacktestPreset): string {
   if (preset.source === 'live') {
     return '미리 계산된 결과가 없어 지금 바로 계산했어요 · 이 종목의 마지막 일봉까지 ' + periodLabel(preset.period)
   }
-  const range =
-    preset.startDate !== null && preset.endDate !== null ? `${preset.startDate} ~ ${preset.endDate} 일봉 기준 · ` : ''
+  // 날짜는 YYYYMMDD로 온다(api/backtest.ts). 다른 화면처럼 "10월 28일"로 적는다
+  const [start, end] = [toKoreanDate(preset.startDate), toKoreanDate(preset.endDate)]
+  const range = start !== '' && end !== '' ? `${start} ~ ${end} 일봉 기준 · ` : ''
   return `${range}매일 새벽 4시에 다시 계산돼요`
 }
 

@@ -1,4 +1,7 @@
 import { ApiError, get, malformedResponse } from './client'
+import { PERIODS } from '../utils/backtest'
+import { fromDashedYmd } from '../utils/date'
+import { finiteOrNull } from '../utils/format'
 import type { BacktestPeriod, BacktestPreset, QuantScoring } from '../types/backtest'
 
 /**
@@ -52,8 +55,9 @@ async function getPreset(
     investType,
     period,
     source: 'preset',
-    startDate: textOrNull(response?.startDate),
-    endDate: textOrNull(response?.endDate),
+    // 서버는 YYYY-MM-DD로 준다. 다른 날짜처럼 받는 자리에서 YYYYMMDD로 바꾼다(CLAUDE.md "날짜는 YYYYMMDD")
+    startDate: dateOrNull(response?.startDate),
+    endDate: dateOrNull(response?.endDate),
     updatedAt: textOrNull(response?.updatedAt),
     result,
   }
@@ -105,7 +109,8 @@ interface PresetResponse {
  * 결과 화면이 반드시 읽는 값이 다 있으면 화면 타입으로 옮기고, 아니면 null.
  * 점수(finalScore)와 네 축의 지표 묶음이다. 하나라도 비면 그리다가 null.필드를 읽어 화면 전체가
  * 오류 화면이 된다(2026-09-23 검사).
- * 묶음 안의 낱개 지표는 걸러 내지 않는다 — 비면 화면이 "-"로 적고 그 축 점수를 비운다(F-2).
+ * 묶음 안의 낱개 지표는 유한한 숫자가 아니면 null로 넘긴다 — 화면이 "-"로 적고 그 축 점수를 비운다(F-2).
+ * 예전엔 거르지 않고 `as`로 타입만 맞춰 "항상 숫자"라고 거짓말했다(2026-10-31 정리).
  */
 function toScoring(scoring: ScoringResponse | null | undefined): QuantScoring | null {
   if (scoring === null || scoring === undefined || typeof scoring !== 'object') return null
@@ -116,11 +121,26 @@ function toScoring(scoring: ScoringResponse | null | undefined): QuantScoring | 
     stockCode: typeof scoring.stockCode === 'string' ? scoring.stockCode : '',
     investType: typeof scoring.investType === 'number' ? scoring.investType : 0,
     finalScore: scoring.finalScore,
-    // 낱개 지표는 거르지 않고 넘긴다(위 설명). 타입만 화면 쪽으로 맞춘다
-    stable: stable as QuantScoring['stable'],
-    profit: profit as QuantScoring['profit'],
-    effect: effect as QuantScoring['effect'],
-    growth: growth as QuantScoring['growth'],
+    stable: {
+      mdd: finiteOrNull(stable.mdd),
+      volatility: finiteOrNull(stable.volatility),
+      dVolatility: finiteOrNull(stable.dVolatility),
+    },
+    profit: {
+      totalReturn: finiteOrNull(profit.totalReturn),
+      annualReturn: finiteOrNull(profit.annualReturn),
+      avgTradeReturn: finiteOrNull(profit.avgTradeReturn),
+    },
+    effect: {
+      sharpeRatio: finiteOrNull(effect.sharpeRatio),
+      sortinoRatio: finiteOrNull(effect.sortinoRatio),
+      calmarRatio: finiteOrNull(effect.calmarRatio),
+    },
+    growth: {
+      momentumRatio: finiteOrNull(growth.momentumRatio),
+      volGrowthRatio: finiteOrNull(growth.volGrowthRatio),
+      positionCount: finiteOrNull(growth.positionCount),
+    },
   }
 }
 
@@ -132,10 +152,22 @@ function textOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value : null
 }
 
+/** 서버의 YYYY-MM-DD를 YYYYMMDD로. 비었거나 여덟 자리가 안 되면 null(화면이 그 줄을 숨긴다) */
+function dateOrNull(value: unknown): string | null {
+  const ymd = fromDashedYmd(typeof value === 'string' ? value : null)
+  return /^\d{8}$/.test(ymd) ? ymd : null
+}
+
 interface PresetOptions {
   investType: number
   /** 이 성향으로 실제 DB에 계산되어 있는 기간. enum 순서(짧은 것부터)대로 온다 */
   periods: { period: BacktestPeriod; label: string }[]
+}
+
+/** GET /api/backtest/preset/options 한 줄. 스웨거에 필수 표시가 없어 전부 비어 올 수 있게 적는다 */
+interface PresetOptionsResponse {
+  investType?: number | null
+  periods?: ({ period?: string | null; label?: string | null } | null)[] | null
 }
 
 /**
@@ -143,7 +175,27 @@ interface PresetOptions {
  *
  * 종목과 무관한 전역 값이다(백엔드가 "어떤 종목이든 이 기간이 계산된 적 있나"로 만든다).
  * 그래서 목록에 있어도 특정 종목에는 없을 수 있고, 그때 프리셋이 BACKTEST404_5라 즉석 실행으로 넘어간다(getBacktestResult).
+ *
+ * 백테스트 화면이 들어오자마자 부르는 요청이라 401이어도 로그인 화면으로 끌고 가지 않는다(공개 화면 규칙, CLAUDE.md "API 계층") —
+ * 예전엔 이 요청만 그 규칙을 빠뜨려, 만료된 토큰으로 /backtest를 열면 아무것도 누르기 전에 로그인 화면으로 갔다(2026-10-31).
+ * 모양이 틀린 줄(성향 번호가 없거나 모르는 기간)은 뺀다 — 화면은 로컬 표와 교집합을 낸다.
  */
-export function getPresetOptions(): Promise<PresetOptions[]> {
-  return get<PresetOptions[]>('/api/backtest/preset/options')
+export async function getPresetOptions(): Promise<PresetOptions[]> {
+  const rows = await get<(PresetOptionsResponse | null)[] | null>('/api/backtest/preset/options', {
+    ignoreUnauthorized: true,
+  })
+  if (!Array.isArray(rows)) throw malformedResponse()
+  return rows.flatMap(toPresetOptions)
+}
+
+function toPresetOptions(row: PresetOptionsResponse | null): PresetOptions[] {
+  if (typeof row !== 'object' || row === null) return []
+  const { investType } = row
+  if (typeof investType !== 'number' || !Number.isInteger(investType)) return []
+  const periods = (Array.isArray(row.periods) ? row.periods : []).flatMap((item) => {
+    const known = PERIODS.find((candidate) => candidate.period === item?.period)
+    if (known === undefined) return []
+    return [{ period: known.period, label: typeof item?.label === 'string' ? item.label : known.label }]
+  })
+  return [{ investType, periods }]
 }
