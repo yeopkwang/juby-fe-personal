@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NEWS_LAST_PAGE, NEWS_PAGE_SIZE, getStockNews } from '../api/stock'
+import { NEWS_LAST_PAGE, NEWS_PAGE_SIZE, getStockNews } from '../api/news'
 import NewsAsk from './NewsAsk'
 import type { NewsItem, NewsSort } from '../types/news'
 import styles from './NewsList.module.css'

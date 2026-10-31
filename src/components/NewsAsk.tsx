@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { askStockNews } from '../api/stock'
+import { askStockNews } from '../api/news'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { loginPathFrom } from '../utils/navigation'
 import type { NewsItem } from '../types/news'

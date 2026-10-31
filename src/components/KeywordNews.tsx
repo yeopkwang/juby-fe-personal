@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../api/client'
-import { searchNews } from '../api/stock'
+import { searchNews } from '../api/news'
 import type { NewsItem } from '../types/news'
 import newsStyles from './NewsList.module.css'
 

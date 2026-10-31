@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { rankStocks, searchStocks, searchStocksRemote } from '../api/stock'
+import { rankStocks, searchStocks, searchStocksRemote } from '../api/search'
 import { forgetRecentStocks, readRecentStocks } from '../utils/recentStocks'
 import { toPreviewState } from '../utils/stockPreview'
 import type { StockInfo } from '../types/stock'

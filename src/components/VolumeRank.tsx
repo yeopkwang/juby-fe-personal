@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getVolumeRank } from '../api/kisMarket'
-import { normalizeName } from '../api/stock'
+import { normalizeName } from '../api/search'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { toKoreanDateTime } from '../utils/date'
 import { formatPrice, formatTradingValue } from '../utils/format'
