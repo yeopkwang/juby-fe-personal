@@ -1,0 +1,86 @@
+{
+ "home": [
+  "GET /api/stocks/leading-stocks",
+  "GET /api/stocks",
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/stocks/000660?period=ONE_YEAR",
+  "GET /api/stocks/012450?period=ONE_YEAR",
+  "GET /api/stocks/207940?period=ONE_YEAR"
+ ],
+ "stock": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/stocks/005930/news?sort=LATEST&page=0",
+  "GET /api/members/me/like-stocks",
+  "GET /api/stocks/005930?period=ALL"
+ ],
+ "likes": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/members/me/like-stocks",
+  "GET /api/news?query=%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90"
+ ],
+ "backtest": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/stocks/005930/news?sort=LATEST&page=0",
+  "GET /api/members/me/like-stocks",
+  "GET /api/stocks/005930?period=ALL",
+  "GET /api/members/me/personality",
+  "GET /api/stocks",
+  "GET /api/backtest/preset/options",
+  "GET /api/backtest/preset?stockCode=005930&investType=1&period=ONE_YEAR",
+  "GET /api/backtest/preset?stockCode=005930&investType=2&period=ONE_YEAR",
+  "GET /api/backtest/preset?stockCode=005930&investType=3&period=ONE_YEAR",
+  "GET /api/backtest/preset?stockCode=005930&investType=4&period=ONE_YEAR",
+  "GET /api/backtest/preset?stockCode=005930&investType=5&period=ONE_YEAR"
+ ],
+ "backtest-empty": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/members/me/personality",
+  "GET /api/stocks",
+  "GET /api/backtest/preset/options"
+ ],
+ "ai": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/stocks/005930/news?sort=LATEST&page=0",
+  "GET /api/members/me/like-stocks",
+  "GET /api/stocks/005930?period=ALL",
+  "GET /api/chat-sessions",
+  "GET /api/members/me/personality",
+  "POST /api/chat-sessions",
+  "POST /api/open-ai/ask",
+  "GET /api/chat-sessions"
+ ],
+ "guide": [
+  "GET /api/market/holiday?basedate=20261029"
+ ],
+ "mypage-personality": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/members/me/personality"
+ ],
+ "mypage-likes": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/members/me/like-stocks",
+  "GET /api/news?query=%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90"
+ ],
+ "mypage-profile": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/members/me"
+ ],
+ "personality-test": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/personality-tests"
+ ],
+ "home-out": [
+  "GET /api/stocks/leading-stocks",
+  "GET /api/stocks",
+  "GET /api/stocks/000660?period=ONE_YEAR",
+  "GET /api/stocks/012450?period=ONE_YEAR",
+  "GET /api/stocks/207940?period=ONE_YEAR"
+ ],
+ "backtest-out": [
+  "GET /api/stocks",
+  "GET /api/backtest/preset/options"
+ ],
+ "ai-out": [],
+ "login": [],
+ "not-found": []
+}

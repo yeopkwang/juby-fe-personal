@@ -1,0 +1,56 @@
+{
+ "A2": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/chat-sessions",
+  "GET /api/members/me/personality"
+ ],
+ "A4": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/chat-sessions",
+  "GET /api/members/me/personality",
+  "POST /api/chat-sessions",
+  "POST /api/open-ai/ask",
+  "GET /api/chat-sessions",
+  "POST /api/open-ai/ask"
+ ],
+ "A5": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/chat-sessions",
+  "GET /api/members/me/personality",
+  "POST /api/chat-sessions",
+  "POST /api/open-ai/ask",
+  "GET /api/chat-sessions/2",
+  "GET /api/chat-sessions"
+ ],
+ "A7": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/chat-sessions",
+  "GET /api/members/me/personality",
+  "POST /api/chat-sessions",
+  "POST /api/open-ai/ask",
+  "GET /api/chat-sessions/2",
+  "POST /api/open-ai/ask",
+  "GET /api/chat-sessions"
+ ],
+ "A12": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/chat-sessions",
+  "GET /api/members/me/personality",
+  "GET /api/chat-sessions/1",
+  "DELETE /api/chat-sessions/1",
+  "GET /api/chat-sessions"
+ ],
+ "A13": [
+  "GET /api/market/holiday?basedate=20261029",
+  "GET /api/stocks/005930/news?sort=LATEST&page=0",
+  "GET /api/members/me/like-stocks",
+  "GET /api/stocks/005930?period=ALL",
+  "GET /api/chat-sessions",
+  "GET /api/members/me/personality",
+  "POST /api/chat-sessions",
+  "POST /api/open-ai/ask",
+  "GET /api/chat-sessions",
+  "GET /api/chat-sessions",
+  "GET /api/members/me/personality"
+ ]
+}

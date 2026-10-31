@@ -1,0 +1,9 @@
+{
+  "name": "juby-fe-judge",
+  "private": true,
+  "type": "module",
+  "description": "브라우저 판정(Playwright)과 함수 단위 판정. 앱의 package.json과 별개다 — 앱 번들에는 아무것도 들어가지 않는다",
+  "devDependencies": {
+    "playwright": "1.64.1"
+  }
+}
