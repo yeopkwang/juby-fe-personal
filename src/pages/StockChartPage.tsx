@@ -6,6 +6,7 @@ import Modal from '../components/Modal'
 import NewsList from '../components/NewsList'
 import SectionBoundary from '../components/SectionBoundary'
 import { ApiError } from '../api/client'
+import { getBackupCandles } from '../api/kisMarket'
 import { getLikeStocksOnPublicPage, likeStock, unlikeStock } from '../api/member'
 import {
   detailWaitMs,
@@ -287,6 +288,29 @@ export default function StockChartPage() {
         : '종목',
   )
 
+  /*
+   * 상세를 못 받았을 때의 임시 차트(2026-10-31). 상세는 증권사 현재가가 실패하면 DB 일봉까지 못 받는다(위 "실패하면 저절로 두 번까지").
+   * 로그인했으면 그 종목 하나의 기간별 시세(증권사 `GET /api/market/{code}/daily_itemchartprice`, 모의투자 토큰 — api/kisMarket.ts)를
+   * 한 번 받아 차트 자리를 채운다. 기다리는 중(waiting)이나 끝내 실패(error)일 때만, 이 화면에서 종목마다 한 번이다. 상세가 오면 상세가 먼저다.
+   * 받은 값은 종목코드와 함께 두고 그릴 때 견준다 — 다른 종목으로 옮긴 뒤 늦게 온 응답이 새 종목 자리에 그려지지 않는다
+   */
+  const [backup, setBackup] = useState<{ stockCode: string; candles: Candle[] } | null>(null)
+  const backupAskedRef = useRef(new Set<string>())
+  const needsBackup = loggedIn && hasValidCode && (view.kind === 'waiting' || view.kind === 'error')
+
+  useEffect(() => {
+    if (!needsBackup || stockCode === undefined || backupAskedRef.current.has(stockCode)) return
+    backupAskedRef.current.add(stockCode)
+    const code = stockCode
+    getBackupCandles(code)
+      .then((candles) => {
+        if (candles.length > 0) setBackup({ stockCode: code, candles })
+      })
+      .catch((error: unknown) => {
+        console.warn('임시 차트(기간별 시세)를 받지 못했습니다', error)
+      })
+  }, [needsBackup, stockCode])
+
   // 없는 종목에는 바로 가기 버튼도 두지 않는다
   if (stockCode === undefined || !hasValidCode || view.kind === 'notFound') {
     return (
@@ -300,6 +324,8 @@ export default function StockChartPage() {
   }
 
   const detail = view.kind === 'ready' ? view.detail : null
+  const backupCandles =
+    detail === null && backup !== null && backup.stockCode === stockCode ? backup.candles : null
 
   /*
    * 백테스트·AI로 실어 갈 종목명. 응답의 이름, 아직이면 목록에서 실어 온 이름이다. 응답이 이름을 비워 종목코드로
@@ -428,6 +454,7 @@ export default function StockChartPage() {
             onPeriodChange={setPeriod}
             waiting={view.kind === 'waiting' ? view : null}
             failed={view.kind === 'error'}
+            backup={backupCandles}
             onRetry={retry}
             likeToggle={likeToggle}
             likeStatus={likeStatus}
@@ -644,6 +671,8 @@ interface PriceSectionProps {
   waiting: { until: number } | null
   /** 종목 정보를 못 받았다. 가격·탭·차트 자리를 안내 상자 하나로 바꾼다 */
   failed: boolean
+  /** 상세를 못 받는 동안 그릴 임시 차트의 일봉(증권사 기간별 시세). 없으면 null */
+  backup: Candle[] | null
   onRetry: () => void
   /** 종목명 옆 관심종목 토글(LikeToggle) */
   likeToggle: ReactNode
@@ -662,6 +691,7 @@ function PriceSection({
   onPeriodChange,
   waiting,
   failed,
+  backup,
   onRetry,
   likeToggle,
   likeStatus,
@@ -676,6 +706,40 @@ function PriceSection({
    * 안내가 왼쪽 위에 붙었다. 이름 줄(모르면 종목코드)과 홈 링크는 두고, 탭·차트 자리를 정상 차트 카드와
    * 같은 높이의 상자 하나로 바꿔 가운데에 알린다. 다시 시도는 종목 정보만 다시 받는다(뉴스는 그대로).
    */
+  /*
+   * 상세를 못 받는 동안 임시 차트가 왔으면(로그인했을 때, 위 StockChartPage "임시 차트") 실패 상자 대신 그 차트를 그린다.
+   * 머리 띠와 정보 열(시세 요약)은 정상 화면과 같은 자리다. 기간 탭은 두지 않는다 — 임시 차트는 100거래일 남짓이라 6개월·1년이 거짓이 된다.
+   * 가격은 목록에서 들고 온 종가가 있으면 그것, 없으면 임시 차트의 마지막 종가를 "N월 N일 종가"로 흐리게 적는다(현재가가 아니다)
+   */
+  if (detail === null && backup !== null && stockCode !== undefined) {
+    const shownPreview = preview?.closePrice !== undefined ? preview : previewFromCandles(stockCode, preview, backup)
+    return (
+      <>
+        <header className={styles.band}>
+          <Link to="/" className={styles.back}>
+            <span aria-hidden="true">‹</span> 홈으로 돌아가기
+          </Link>
+          <h1 className={styles.identity}>
+            <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
+            {preview !== null && <span className={styles.code}>{stockCode}</span>}
+          </h1>
+          <div className={styles.bandLike}>{likeToggle}</div>
+          {likeStatus}
+          <div className={styles.bandPrice}>
+            <PriceLines detail={null} preview={shownPreview} />
+          </div>
+          <div className={styles.bandActs}>{actionPanel}</div>
+        </header>
+
+        <BackupChart candles={backup} waiting={waiting} failed={failed} onRetry={onRetry} />
+
+        <div className={styles.info}>
+          <SummaryCard lastCandle={backup.at(-1) ?? null} loading={false} />
+        </div>
+      </>
+    )
+  }
+
   if (failed) {
     /*
      * 목록에서 들고 온 기준일 종가가 있으면 그거라도 적는다.
@@ -870,11 +934,8 @@ function PeriodStats({ candles }: { candles: Candle[] }) {
   )
 }
 
-/**
- * 실패해서 다시 부르기를 기다리는 동안 차트 자리에 적는 안내. 남은 초를 센다.
- * 말없이 뼈대만 1분 가까이 두면 멈춘 것처럼 보여서, 언제 다시 부르는지를 적는다.
- */
-function WaitNotice({ until }: { until: number }) {
+/** until까지 남은 초. 0초는 적지 않는다 — 그때는 이미 요청을 보내 '불러오는 중'으로 바뀐다 */
+function useSecondsLeft(until: number): number {
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
@@ -883,8 +944,15 @@ function WaitNotice({ until }: { until: number }) {
     return () => clearInterval(id)
   }, [])
 
-  // 0초는 적지 않는다. 그때는 이미 요청을 보내 '불러오는 중'으로 바뀐다
-  const seconds = Math.max(1, Math.ceil((until - now) / 1000))
+  return Math.max(1, Math.ceil((until - now) / 1000))
+}
+
+/**
+ * 실패해서 다시 부르기를 기다리는 동안 차트 자리에 적는 안내. 남은 초를 센다.
+ * 말없이 뼈대만 1분 가까이 두면 멈춘 것처럼 보여서, 언제 다시 부르는지를 적는다.
+ */
+function WaitNotice({ until }: { until: number }) {
+  const seconds = useSecondsLeft(until)
 
   return (
     <div className={styles.chartWait}>
@@ -892,6 +960,67 @@ function WaitNotice({ until }: { until: number }) {
       <p className={styles.chartMessage}>서버가 잠시 응답하지 못했습니다.</p>
     </div>
   )
+}
+
+/** 임시 차트의 마지막 봉으로 지은 가격 줄(기준일 종가 · 전일 대비). 이름은 목록에서 들고 온 것, 없으면 종목코드다 */
+function previewFromCandles(stockCode: string, preview: StockPreview | null, candles: Candle[]): StockPreview | null {
+  const last = candles.at(-1)
+  if (last === undefined) return preview
+  const previous = candles.at(-2)
+  const result: StockPreview = {
+    stockCode,
+    stockName: preview?.stockName ?? stockCode,
+    closePrice: last.close,
+    baseDate: last.date,
+  }
+  if (previous !== undefined && previous.close > 0) result.fluctuate = (last.close / previous.close - 1) * 100
+  return result
+}
+
+/**
+ * 상세를 못 받는 동안의 임시 차트(증권사 기간별 시세, 최근 100거래일 남짓). 차트 열 머리는 기간 탭 자리와 같은 높이의 제목 줄이고,
+ * 아래에 왜 임시인지와 다음 할 일(기다리는 중이면 남은 초, 끝내 실패면 다시 시도)을 적는다
+ */
+function BackupChart({
+  candles,
+  waiting,
+  failed,
+  onRetry,
+}: {
+  candles: Candle[]
+  waiting: { until: number } | null
+  failed: boolean
+  onRetry: () => void
+}) {
+  return (
+    <section className={styles.chartColumn} aria-label="임시 차트">
+      <div className={styles.chartBox}>
+        <div className={styles.backupHead}>
+          <h2 className={styles.backupTitle}>최근 {candles.length}거래일 차트</h2>
+          <span className={styles.backupSource}>증권사 기간별 시세</span>
+        </div>
+        <div className={styles.plot}>
+          <CandleChart candles={candles} />
+        </div>
+        <div className={styles.backupNotice}>
+          <p className={styles.backupText} role="status">
+            종목 정보를 받지 못해 증권사 시세로 임시 차트를 그렸어요.
+          </p>
+          {failed && (
+            <button type="button" className={styles.retryButton} onClick={onRetry}>
+              다시 시도
+            </button>
+          )}
+          {!failed && waiting !== null && <RetryCountdown until={waiting.until} />}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function RetryCountdown({ until }: { until: number }) {
+  const seconds = useSecondsLeft(until)
+  return <p className={styles.backupCountdown}>{seconds}초 뒤에 종목 정보를 다시 불러와요</p>
 }
 
 /**

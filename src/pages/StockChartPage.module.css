@@ -573,6 +573,51 @@
   color: var(--color-text-sub);
 }
 
+/*
+ * 상세를 못 받는 동안의 임시 차트(2026-10-31). 머리 줄은 기간 탭 줄과 같은 높이(44px + 가는 선)라 정보 열·뉴스 열 머리와 맞는다.
+ * 아래 안내는 차트 밑 한 줄 — 왜 임시인지, 남은 초 또는 다시 시도
+ */
+.backupHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-3);
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.backupTitle {
+  margin: 0;
+  font-size: var(--font-md);
+  font-weight: 700;
+}
+
+.backupSource {
+  margin-left: auto;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+.backupNotice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.backupText,
+.backupCountdown {
+  margin: 0;
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+}
+
+.backupCountdown {
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
 /* 실패해서 다시 부르기를 기다리는 동안 차트 자리 가운데에 남은 시간을 적는다 */
 .chartWait {
   display: flex;

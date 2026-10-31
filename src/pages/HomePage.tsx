@@ -11,6 +11,7 @@ import HomeRail from '../components/HomeRail'
 import SearchBar from '../components/SearchBar'
 import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
+import VolumeRank from '../components/VolumeRank'
 import SectionBoundary from '../components/SectionBoundary'
 import Modal from '../components/Modal'
 import { readCardSeries } from '../api/cardSeries'
@@ -22,6 +23,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
 import { isFiniteNumber } from '../utils/format'
+import { loginPathFrom } from '../utils/navigation'
 import { preloadStockChartPage } from '../utils/preload'
 import { describeSort, nextSort, sortStocks } from '../utils/sort'
 import type {
@@ -45,8 +47,19 @@ const DEFAULT_SORT: SortState = { key: 'tradingValue', direction: 'desc' }
 /** 목록이 아직 없을 때 쓰는 빈 배열. 렌더마다 새로 만들면 useMemo가 매번 다시 돈다 */
 const EMPTY_STOCKS: Stock[] = []
 
+/**
+ * '현재 주가 보기'의 두 탭. all은 JUBY가 다루는 종목의 마감 시세표(DB), live는 증권사 실시간 거래대금 순위(누를 때만 묻는다)
+ */
+type ListTab = 'all' | 'live'
+
+const LIST_TABS: { tab: ListTab; label: string }[] = [
+  { tab: 'all', label: '전체 종목' },
+  { tab: 'live', label: '실시간 거래대금 순위' },
+]
+
 /** 홈을 떠날 때의 시세표. 뒤로 가기로 돌아오면 이걸로 보던 자리를 되살린다 */
 interface HomeView {
+  tab: ListTab
   sort: SortState
   visibleCount: number
   scrollY: number
@@ -96,6 +109,8 @@ export default function HomePage() {
     restored?.visibleCount ?? PAGE_SIZE,
   )
   const [sort, setSort] = useState<SortState>(restored?.sort ?? DEFAULT_SORT)
+  /** 순위 탭에서 종목을 누르고 뒤로 오면 순위 탭으로 돌아온다 */
+  const [listTab, setListTab] = useState<ListTab>(restored?.tab ?? 'all')
   /** 관심종목. 처음엔 서버가 준 isLiked로 채우고, 하트를 누르면 서버에 반영한다 */
   const [favoriteCodes, setFavoriteCodes] = useState<Set<string>>(new Set())
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
@@ -179,6 +194,7 @@ export default function HomePage() {
 
   /** 지금 보고 있는 시세표. 떠날 때 savedViews에 옮겨 담는다 */
   const viewRef = useRef<HomeView>({
+    tab: listTab,
     sort,
     visibleCount,
     scrollY: restored?.scrollY ?? 0,
@@ -187,9 +203,10 @@ export default function HomePage() {
   const pendingScrollRef = useRef(restored?.scrollY ?? null)
 
   useEffect(() => {
+    viewRef.current.tab = listTab
     viewRef.current.sort = sort
     viewRef.current.visibleCount = visibleCount
-  }, [sort, visibleCount])
+  }, [listTab, sort, visibleCount])
 
   /*
    * 스크롤은 움직일 때마다 적어 두고 떠날 때 담는다. 떠나는 순간에 재면 늦다 — 화면이 이미
@@ -264,7 +281,8 @@ export default function HomePage() {
 
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [visibleCount, stocks.length])
+    // 순위 탭에 다녀오면 끝 표시가 새로 붙는다. 다시 관찰해야 이어서 불러온다
+  }, [visibleCount, stocks.length, listTab])
 
   function handleSort(key: SortKey) {
     setSort((current) => nextSort(current, key))
@@ -366,7 +384,7 @@ export default function HomePage() {
               16시 배치 전에는 전 거래일 종가가 뜬다. 언제 것인지 밝혀둔다.
               기준일이 비어 오면 줄째 숨긴다 — 시세표는 그대로 보여준다
             */}
-            {list.kind === 'ready' && toKoreanDate(list.baseDate) !== '' && (
+            {listTab === 'all' && list.kind === 'ready' && toKoreanDate(list.baseDate) !== '' && (
               <span className={styles.asOf}>
                 {toKoreanDate(list.baseDate)} 종가 기준
               </span>
@@ -374,10 +392,31 @@ export default function HomePage() {
             {/*
               무엇 순인지 글로도 적는다. 좁은 화면에서는 거래대금 열이 숨는데 기본 정렬이 거래대금이라 칸 머리로는 안 보인다
             */}
-            {list.kind === 'ready' && (
+            {listTab === 'all' && list.kind === 'ready' && (
               <span className={styles.sortNote}>{describeSort(sort)}</span>
             )}
           </div>
+
+          {/* 밑줄 탭. 시세표(마감 값)와 실시간 순위는 기준이 달라 한 표에 섞지 않는다 */}
+          <div className={styles.listTabs} role="tablist" aria-label="시세 보기">
+            {LIST_TABS.map(({ tab, label }) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                id={`home-tab-${tab}`}
+                aria-selected={listTab === tab}
+                aria-controls="home-tab-panel"
+                className={listTab === tab ? styles.listTabActive : styles.listTab}
+                onClick={() => setListTab(tab)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div id="home-tab-panel" role="tabpanel" aria-labelledby={`home-tab-${listTab}`}>
+          {listTab === 'live' && <VolumeRank stocks={searchable} loginPath={loginPathFrom(location.pathname)} />}
 
           {likeNotice !== '' && (
             <p className={styles.likeNotice} role="status">
@@ -385,11 +424,11 @@ export default function HomePage() {
             </p>
           )}
 
-          {list.kind === 'loading' && (
+          {listTab === 'all' && list.kind === 'loading' && (
             <p className={styles.loading}>시세를 불러오는 중…</p>
           )}
 
-          {list.kind === 'error' && (
+          {listTab === 'all' && list.kind === 'error' && (
             <div className={styles.loading}>
               <p>시세를 불러오지 못했습니다.</p>
               <button type="button" className={styles.retry} onClick={load}>
@@ -399,7 +438,7 @@ export default function HomePage() {
           )}
 
           {/* 표를 그리다 멈춰도 검색·테마 카드는 남는다. 다시 시도하면 목록을 새로 받는다 */}
-          {list.kind === 'ready' && (
+          {listTab === 'all' && list.kind === 'ready' && (
             <SectionBoundary onRetry={load}>
               <StockTable
                 stocks={sortedStocks.slice(0, visibleCount)}
@@ -415,6 +454,7 @@ export default function HomePage() {
               </div>
             </SectionBoundary>
           )}
+          </div>
         </section>
 
         <div className={styles.rail}>

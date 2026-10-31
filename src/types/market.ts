@@ -18,3 +18,30 @@ export interface MarketIndices {
   /** 백엔드 지수 API가 나오기 전의 예시 값이면 true. 띠가 "예시 값"이라고 밝힌다(api/market.ts USE_SAMPLE) */
   isSample: boolean
 }
+
+/** 하루가 장이 열리는 날인지. 증권사 휴장일 조회(GET /api/market/holiday)의 개장일 여부(opnd_yn)다 */
+export interface MarketDay {
+  /** YYYYMMDD */
+  date: string
+  open: boolean
+}
+
+/**
+ * 지금 장 상태(한국 시간). 아래 지수 띠가 적는다(api/marketCalendar.ts marketStatus).
+ * beforeOpen 장 열기 전(9:00 전) · open 장 중(9:00~15:30) · closed 오늘 장 마감 · dayOff 오늘은 장이 열리지 않는 날
+ */
+export interface MarketStatus {
+  phase: 'beforeOpen' | 'open' | 'closed' | 'dayOff'
+  /** 다음에 장이 열리는 날(YYYYMMDD). 받아 둔 휴장일 안에서 못 찾으면 null — 띠가 그 줄을 뺀다 */
+  nextOpen: string | null
+}
+
+/** 실시간 거래대금 순위 한 줄(GET /api/market/volume-rank). 응답에 종목코드가 없어 이름으로 상세를 찾는다 */
+export interface VolumeRankItem {
+  rank: number
+  stockName: string
+  /** 현재가(원) */
+  price: number | null
+  /** 증권사가 주는 평균 거래대금(원, avrg_tr_pbmn) */
+  averageTradingValue: number | null
+}

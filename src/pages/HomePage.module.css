@@ -59,6 +59,44 @@
   color: var(--color-text-sub);
 }
 
+/* '현재 주가 보기'의 두 탭(전체 종목 · 실시간 거래대금 순위). 다른 화면의 밑줄 탭과 같은 모양 */
+.listTabs {
+  display: flex;
+  gap: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.listTab,
+.listTabActive {
+  position: relative;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-sub);
+  font-size: var(--font-md);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.listTab:hover {
+  color: var(--color-text);
+}
+
+.listTabActive {
+  color: var(--color-text);
+}
+
+.listTabActive::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--color-brand-700);
+}
+
 /* 언제 값인지("9월 25일 종가 기준") */
 .asOf {
   font-size: var(--font-md);

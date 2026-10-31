@@ -16,6 +16,18 @@ export function finiteOrNull(value: unknown): number | null {
 }
 
 /**
+ * 숫자, 또는 숫자만 든 문자열("2612.43", "-3.20", "0071500")을 숫자로. 아니면 null.
+ * 백엔드의 증권사 중계 응답(/api/market/**)은 증권사가 준 문자열을 그대로 넘긴다 — 그 응답에만 쓴다.
+ * DB 응답(/api/stocks 등)은 숫자로 오므로 finiteOrNull을 쓴다(문자열이 왔다면 모양이 어긋난 것이다)
+ */
+export function numberFromText(value: unknown): number | null {
+  if (isFiniteNumber(value)) return value
+  if (typeof value !== 'string' || value.trim() === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+/**
  * 보합(변동 없음)인지. 오름의 빨강도 내림의 파랑도 쓰지 않아야 하는 경우다.
  *
  * 화면에 찍히는 자릿수로 판단한다. 23만원짜리가 1원 올라 0.0004%가 되면

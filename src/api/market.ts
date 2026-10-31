@@ -1,7 +1,8 @@
 import { get } from './client'
+import { isDayOffToday } from './marketCalendar'
 import { canSpendKisCall } from './stock'
 import { readCache, writeCache } from '../utils/cache'
-import { isFiniteNumber } from '../utils/format'
+import { isFiniteNumber, numberFromText } from '../utils/format'
 import type { MarketIndex, MarketIndices } from '../types/market'
 
 /*
@@ -53,12 +54,12 @@ interface MarketIndexResponse {
 
 /**
  * 장중인지(한국 시간 평일 9:00~15:35). 장 밖에는 지수가 바뀌지 않아 띠가 다시 묻지 않는다.
- * 15:30 마감 값까지 받으려고 5분을 더 둔다. 휴장일은 모른다 — 평일이면 묻는다(값이 그대로일 뿐이다)
+ * 15:30 마감 값까지 받으려고 5분을 더 둔다. 받아 둔 휴장일(api/marketCalendar.ts)에 있는 공휴일도 묻지 않는다 —
+ * 휴장일을 못 받았으면(비로그인) 평일이면 묻는다(값이 그대로일 뿐이다)
  */
 export function isMarketHours(now: number = Date.now()): boolean {
+  if (isDayOffToday(now)) return false
   const kst = new Date(now + 9 * 60 * 60 * 1000)
-  const day = kst.getUTCDay()
-  if (day === 0 || day === 6) return false
   const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
   return minutes >= 9 * 60 && minutes < 15 * 60 + 35
 }
@@ -131,24 +132,13 @@ async function fetchIndices(): Promise<MarketIndices | null> {
 function toMarketIndex(row: MarketIndexResponse | null): MarketIndex[] {
   if (typeof row !== 'object' || row === null) return []
   const name = typeof row.indexName === 'string' ? row.indexName.trim() : ''
-  const value = toNumber(row.currentValue)
+  const value = numberFromText(row.currentValue)
   if (name === '' || value === null) return []
   return [{
     code: typeof row.indexCode === 'string' && row.indexCode !== '' ? row.indexCode : name,
     name,
     value,
-    change: toNumber(row.changeValue),
-    changeRate: toNumber(row.changeRate),
+    change: numberFromText(row.changeValue),
+    changeRate: numberFromText(row.changeRate),
   }]
-}
-
-/**
- * 숫자, 또는 숫자만 든 문자열("2612.43", "-3.20"). 다른 API(finiteOrNull)와 달리 문자열도 받는다 — 백엔드의 증권사 중계
- * 응답(CurrentPriceRes)이 증권사가 준 문자열을 그대로 넘겨서, 지수 API도 그렇게 올 수 있다
- */
-function toNumber(value: unknown): number | null {
-  if (isFiniteNumber(value)) return value
-  if (typeof value !== 'string' || value.trim() === '') return null
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : null
 }

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { INDEX_REFRESH_MS, isMarketHours, loadMarketIndices, readCachedIndices } from '../api/market'
-import { toKoreanDateTime } from '../utils/date'
+import { loadMarketCalendar, marketStatus } from '../api/marketCalendar'
+import { toKoreanDateTime, toKoreanDateWithDay } from '../utils/date'
 import { formatChangeRate, formatPoint, formatPointChange, isFiniteNumber, isFlatRate } from '../utils/format'
-import type { MarketIndex, MarketIndices } from '../types/market'
+import type { MarketIndex, MarketIndices, MarketStatus } from '../types/market'
 import styles from './MarketIndexBar.module.css'
 
 /**
@@ -11,10 +12,16 @@ import styles from './MarketIndexBar.module.css'
  * App의 Layout에 한 번 놓여 화면을 옮겨도 다시 그려지지 않는다 — 옮길 때마다 서버에 묻지 않는다.
  * 처음 한 번 묻고, 장중(평일 9:00~15:35)이면서 탭이 보일 때만 1분마다 다시 묻는다. 무엇을 언제 묻는지는 api/market.ts가 정한다.
  * 보여줄 값이 없으면(못 받았고 지난 값도 없음) 띠를 그리지 않는다.
+ *
+ * 맨 앞에 장 상태(장 시작 전·장 중·장 마감·오늘 휴장)와 다음 개장일을 적는다(2026-10-31). 초보자는 지금 가격이 움직이는 때인지,
+ * 오늘 본 값이 언제 바뀌는지를 모른다. 휴장일은 로그인했을 때 증권사 휴장일 조회로 받아 둔다(api/marketCalendar.ts).
+ * 모르면(비로그인 평일) 장 상태를 적지 않는다.
  */
 export default function MarketIndexBar() {
   const [data, setData] = useState<MarketIndices | null>(readCachedIndices)
   const [settled, setSettled] = useState(false)
+  /** 장 상태를 다시 읽는 때. 1분마다, 그리고 휴장일을 받은 뒤 바꾼다 */
+  const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
     let isStale = false
@@ -28,7 +35,11 @@ export default function MarketIndexBar() {
     }
 
     refresh()
+    void loadMarketCalendar().then(() => {
+      if (!isStale) setNow(Date.now())
+    })
     const timer = setInterval(() => {
+      setNow(Date.now())
       if (document.visibilityState === 'visible' && isMarketHours()) refresh()
     }, INDEX_REFRESH_MS)
     return () => {
@@ -47,9 +58,11 @@ export default function MarketIndexBar() {
   }
 
   const asOf = toKoreanDateTime(data.receivedAt)
+  const status = marketStatus(now)
   return (
     <aside className={styles.bar} aria-label="국내 지수">
       <div className={styles.inner}>
+        {status !== null && <StatusText status={status} />}
         <p className={styles.label}>국내 지수</p>
         <ul className={styles.list}>
           {data.indices.map((index) => (
@@ -65,6 +78,31 @@ export default function MarketIndexBar() {
         )}
       </div>
     </aside>
+  )
+}
+
+const PHASE_LABEL: Record<MarketStatus['phase'], string> = {
+  beforeOpen: '장 시작 전',
+  open: '장 중',
+  closed: '장 마감',
+  dayOff: '오늘 휴장',
+}
+
+/** "장 중 15:30 마감", "장 마감 다음 개장 11월 3일(월)". 다음 개장일을 모르면 상태만 적는다 */
+function StatusText({ status }: { status: MarketStatus }) {
+  const next =
+    status.phase === 'open'
+      ? '15:30 마감'
+      : status.phase === 'beforeOpen'
+        ? '9:00 개장'
+        : status.nextOpen !== null && toKoreanDateWithDay(status.nextOpen) !== ''
+          ? `다음 개장 ${toKoreanDateWithDay(status.nextOpen)}`
+          : ''
+  return (
+    <p className={styles.status}>
+      <strong className={styles.phase}>{PHASE_LABEL[status.phase]}</strong>
+      {next !== '' && <span className={styles.next}>{next}</span>}
+    </p>
   )
 }
 

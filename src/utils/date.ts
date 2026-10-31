@@ -130,3 +130,34 @@ export function timeAgo(ms: number, now: number = Date.now()): string {
   if (days <= 7) return `${days}일 전`
   return toKoreanDate(toYmd(new Date(ms)), new Date(now))
 }
+
+/**
+ * 한국 시각으로 지금 — 날짜("20261031"), 요일(0 일요일 ~ 6 토요일), 자정부터 지난 분.
+ * 장 상태·증권사 조회 기간은 보는 사람의 시간대가 아니라 한국 시간으로 정한다
+ */
+export function kstNow(now: number = Date.now()): { ymd: string; day: number; minutes: number } {
+  const kst = new Date(now + 9 * 60 * 60 * 1000)
+  const ymd = `${kst.getUTCFullYear()}${String(kst.getUTCMonth() + 1).padStart(2, '0')}${String(kst.getUTCDate()).padStart(2, '0')}`
+  return { ymd, day: kst.getUTCDay(), minutes: kst.getUTCHours() * 60 + kst.getUTCMinutes() }
+}
+
+/** 날짜의 요일(0 일요일 ~ 6 토요일). 여덟 자리가 아니면 NaN */
+export function weekdayOf(ymd: string): number {
+  if (!isYmd(ymd)) return Number.NaN
+  return new Date(Date.UTC(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)))).getUTCDay()
+}
+
+/** "20261031"에서 days만큼 옮긴 날. 여덟 자리가 아니면 "" */
+export function shiftYmd(ymd: string, days: number): string {
+  if (!isYmd(ymd)) return ''
+  const moved = Date.UTC(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8))) + days * 86_400_000
+  return kstNow(moved - 9 * 60 * 60 * 1000).ymd
+}
+
+const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']
+
+/** "20261102" → "11월 2일(월)". 다음 개장일처럼 요일이 중요한 날짜에 쓴다. 여덟 자리가 아니면 "" */
+export function toKoreanDateWithDay(ymd: string): string {
+  const date = toKoreanDate(ymd)
+  return date === '' ? '' : `${date}(${WEEKDAY_NAMES[weekdayOf(ymd)]})`
+}

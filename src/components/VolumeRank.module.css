@@ -1,0 +1,128 @@
+/*
+ * 실시간 거래대금 순위(홈 '현재 주가 보기' 두 번째 탭). 시세표(StockTable)와 같은 줄 모양 — 칸 머리 한 줄 + 가는 선으로 나눈 줄.
+ * 칸만 다르다(순위 · 종목명 · 현재가 · 평균 거래대금). 줄 모양은 시세표의 것을 그대로 가져다 쓴다
+ */
+.table {
+  --columns: 40px minmax(0, 2.2fr) minmax(110px, 1fr) minmax(110px, 1fr);
+}
+
+.head {
+  composes: head from './StockTable.module.css';
+}
+
+.body {
+  composes: body from './StockTable.module.css';
+}
+
+.row {
+  composes: row from './StockTable.module.css';
+}
+
+.rank {
+  composes: rank from './StockTable.module.css';
+}
+
+.rankHead {
+  text-align: center;
+}
+
+.name {
+  composes: name from './StockTable.module.css';
+}
+
+.nameLink {
+  composes: nameLink from './StockTable.module.css';
+}
+
+.numeric {
+  composes: numeric from './StockTable.module.css';
+}
+
+.empty {
+  composes: empty from './StockTable.module.css';
+}
+
+/* 언제 값인지. 탭 줄 바로 아래 오른쪽 */
+.asOf {
+  margin: 0;
+  padding: var(--space-2) 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+  text-align: right;
+}
+
+.note {
+  margin: 0;
+  padding: var(--space-3) 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+/* 비로그인·실패. 다른 화면의 안내 자리처럼 옅은 면에 */
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+}
+
+.messageTitle {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 700;
+}
+
+.hint {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.primary {
+  composes: primary md from './buttons.module.css';
+}
+
+.secondary {
+  composes: secondary md from './buttons.module.css';
+}
+
+/* 받는 동안 표 열 줄쯤의 자리를 잡는다 */
+.skeleton {
+  height: 330px;
+  margin-top: var(--space-5);
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* 휴대폰: 평균 거래대금 칸을 접는다(시세표가 거래대금 칸을 접는 것과 같다) */
+@media (max-width: 600px) {
+  .table {
+    --columns: 28px minmax(0, 1fr) 96px;
+  }
+
+  .colWide {
+    display: none;
+  }
+}
