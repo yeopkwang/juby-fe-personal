@@ -1,13 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { MouseEvent } from 'react'
 import type { SortDirection, SortKey, SortState, Stock } from '../types/stock'
-import {
-  formatChangeRate,
-  formatPrice,
-  formatTradingValue,
-  isFiniteNumber,
-  isFlatRate,
-} from '../utils/format'
+import { formatChangeRate, formatPrice, formatTradingValue, rateTone } from '../utils/format'
 import { toPreviewState } from '../utils/stockPreview'
 import styles from './StockTable.module.css'
 
@@ -48,10 +42,9 @@ function SortIcon({ direction }: { direction: SortDirection | null }) {
   )
 }
 
-/** 비어 온 등락률("-")은 보합처럼 검정으로 둔다. 그냥 두면 `null > 0`이 거짓이라 하락 파랑이 됐다 */
+/** 비어 온 등락률("-")은 보합처럼 검정으로 둔다(utils/format rateTone) */
 function rateClassName(rate: number | null): string {
-  if (!isFiniteNumber(rate) || isFlatRate(rate)) return `${styles.numeric} ${styles.flat}`
-  return `${styles.numeric} ${rate > 0 ? styles.up : styles.down}`
+  return `${styles.numeric} ${styles[rateTone(rate)]}`
 }
 
 export default function StockTable({

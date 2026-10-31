@@ -39,12 +39,14 @@ export interface LikeStock extends StockInfo {
   closePrice: number | null
   fluctuate: number | null
   tradingValue: number | null
-  /** ISO 날짜시각. 비어 오면 null */
+  /** 담은 때. ISO 날짜시각(정렬용). 비어 오면 null */
   likedAt: string | null
+  /** 담은 날. YYYYMMDD(화면용). 모르면 "" */
+  likedDate: string
 }
 
 export interface LikeStockList {
-  /** YYYY-MM-DD. 비어 오면 ""(화면이 기준일 줄을 숨긴다) */
+  /** YYYYMMDD. 비어 오면 ""(화면이 기준일 줄을 숨긴다) */
   baseDate: string
   /** 서버가 비워 보내면 받은 목록의 길이 */
   totalCount: number

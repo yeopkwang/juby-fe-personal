@@ -10,7 +10,7 @@ import type { IChartApi, ISeriesApi } from 'lightweight-charts'
 import type { Candle } from '../types/stock'
 import { toDashedYmd, toKoreanDate } from '../utils/date'
 import { cssToken } from '../utils/cssToken'
-import { formatChangeRate, formatNumber, isFiniteNumber, isFlatRate } from '../utils/format'
+import { formatChangeRate, formatNumber, isFiniteNumber, rateTone } from '../utils/format'
 import styles from './CandleChart.module.css'
 
 /**
@@ -38,8 +38,8 @@ function formatPriceTick(price: number): string {
   return formatNumber(Math.round(price))
 }
 
-/** 거래량 눈금. 주 단위 숫자가 길어서 만·억으로 줄인다. 1,234,567 → "123만" */
-function formatVolume(volume: number): string {
+/** 거래량 눈금. 주 단위 숫자가 길어서 만·억으로 줄인다. 1,234,567 → "123만"(utils/format formatVolume은 "123만주" — 눈금엔 단위를 안 붙인다) */
+function formatVolumeTick(volume: number): string {
   if (volume >= 100_000_000) return `${(volume / 100_000_000).toFixed(1)}억`
   if (volume >= 10_000) {
     return `${formatNumber(Math.round(volume / 10_000))}만`
@@ -56,7 +56,7 @@ function legendPrice(price: number | null | undefined): string {
 }
 
 function legendVolume(volume: number | null | undefined): string {
-  return isFiniteNumber(volume) ? `${formatVolume(volume)}주` : '-'
+  return isFiniteNumber(volume) ? `${formatVolumeTick(volume)}주` : '-'
 }
 
 interface Props {
@@ -154,7 +154,7 @@ export default function CandleChart({ candles }: Props) {
     const volumeSeries = chart.addSeries(
       HistogramSeries,
       {
-        priceFormat: { type: 'custom', formatter: formatVolume, minMove: 1 },
+        priceFormat: { type: 'custom', formatter: formatVolumeTick, minMove: 1 },
         priceLineVisible: false,
         lastValueVisible: false,
       },
@@ -286,13 +286,9 @@ function Legend({ point }: { point: Point }) {
       ? null
       : ((candle.close - prevClose) / prevClose) * 100
 
-  // 글자라 대비가 맞는 -text 색이다(CandleChart.module.css .up·.down)
-  const rateClass =
-    rate === null || isFlatRate(rate)
-      ? undefined
-      : rate > 0
-        ? styles.up
-        : styles.down
+  // 글자라 대비가 맞는 -text 색이다(CandleChart.module.css .up·.down). 보합은 기본 글자색
+  const tone = rateTone(rate)
+  const rateClass = tone === 'flat' ? undefined : styles[tone]
 
   return (
     <div className={styles.legend}>

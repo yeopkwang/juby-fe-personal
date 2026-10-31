@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { INDEX_REFRESH_MS, isMarketHours, loadMarketIndices, readCachedIndices } from '../api/market'
 import { loadMarketCalendar, marketStatus } from '../api/marketCalendar'
 import { toKoreanDateTime, toKoreanDateWithDay } from '../utils/date'
-import { formatChangeRate, formatPoint, formatPointChange, isFiniteNumber, isFlatRate } from '../utils/format'
+import { formatChangeRate, formatPoint, formatPointChange, rateTone } from '../utils/format'
 import type { MarketIndex, MarketIndices, MarketStatus } from '../types/market'
 import styles from './MarketIndexBar.module.css'
 
@@ -121,9 +121,7 @@ function IndexItem({ index }: { index: MarketIndex }) {
   )
 }
 
-/** 오르면 빨강, 내리면 파랑, 보합은 색 없음. 대비율이 없으면 대비(포인트)의 부호로 가른다 */
+/** 오르면 빨강, 내리면 파랑, 보합은 색 없음(utils/format rateTone). 대비율이 없으면 대비(포인트)의 부호로 가른다 */
 function toneClass(index: MarketIndex): string {
-  const basis = index.changeRate ?? index.change
-  if (!isFiniteNumber(basis) || isFlatRate(basis)) return `${styles.tone} ${styles.flat}`
-  return `${styles.tone} ${basis > 0 ? styles.up : styles.down}`
+  return `${styles.tone} ${styles[rateTone(index.changeRate ?? index.change)]}`
 }

@@ -20,7 +20,7 @@ import { likeStock, unlikeStock } from '../api/member'
 import { byTradingValue, getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { isLoggedIn } from '../utils/auth'
+import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { toKoreanDate } from '../utils/date'
 import { isFiniteNumber } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
@@ -88,6 +88,11 @@ export default function HomePage() {
   const location = useLocation()
   const navigationType = useNavigationType()
   /*
+   * 로그인 여부를 구독한다. 시세표의 하트(isLiked)는 토큰에 딸린 값이라 같은 탭·다른 탭에서 로그아웃하면 목록을 다시 받아
+   * 꺼야 한다 — 한 번 받은 Set을 그대로 두던 때는 로그아웃해도 하트가 켜진 채였다(2026-10-31). 목록은 DB만 읽는다
+   */
+  const loggedIn = useIsLoggedIn()
+  /*
    * 뒤로·앞으로 가기로 돌아왔으면 떠날 때의 정렬·보이던 행 수·스크롤을 되살린다.
    * 100행을 내려 보다 종목을 눌렀는데 돌아오면 맨 위 20행에 기본 정렬이라 보던 자리를 잃었다.
    * 링크(머리글 로고 등)로 새로 들어오면 처음부터 보여준다 — 브라우저가 스크롤을 다루는 방식과 같다.
@@ -103,6 +108,11 @@ export default function HomePage() {
   const [leading, setLeading] = useState<LeadingStocks>(
     () => readCachedLeading() ?? FALLBACK_LEADING,
   )
+  /**
+   * 대장주 응답이 왔는가(실패해도 지난 값·고정 목록으로 끝난다). 카드 그래프는 그 뒤의 목록으로만 묻는다 — 첫 그림의 고정 목록으로
+   * 먼저 묻고 서버 목록이 다르면 또 물어, 첫 방문에 증권사를 거치는 상세 요청이 3건이 아니라 6건 나갔다(2026-10-31)
+   */
+  const [leadingSettled, setLeadingSettled] = useState(false)
   const themes = leading.themes
   const [list, setList] = useState<ListState>({ kind: 'loading' })
   const [visibleCount, setVisibleCount] = useState(
@@ -128,7 +138,9 @@ export default function HomePage() {
   const reloadLeading = useCallback(() => {
     let ignore = false
     void loadLeading().then((next) => {
-      if (!ignore) setLeading(next)
+      if (ignore) return
+      setLeading(next)
+      setLeadingSettled(true)
     })
     return () => {
       ignore = true
@@ -143,18 +155,18 @@ export default function HomePage() {
     getStockList()
       .then(({ baseDate, stocks }) => {
         setList({ kind: 'ready', baseDate, stocks })
+        // 비로그인이면 서버가 isLiked를 비워 주지만, 기대지 않고 여기서도 비운다
         setFavoriteCodes(
-          new Set(
-            stocks.filter((stock) => stock.isLiked).map((s) => s.stockCode),
-          ),
+          new Set(loggedIn ? stocks.filter((stock) => stock.isLiked).map((s) => s.stockCode) : []),
         )
       })
       .catch((error: unknown) => {
         console.warn('종목 목록 조회 실패', error)
         setList({ kind: 'error' })
       })
-  }, [])
+  }, [loggedIn])
 
+  // 로그인·로그아웃하면 load가 새로 만들어져 다시 받는다 — 하트(isLiked)가 그 회원의 것이어야 한다
   useEffect(load, [load])
 
   // 종목을 누르기 전에 상세 화면 묶음을 받아 둔다. 누른 뒤 받으면 그만큼 상세 요청이 늦게 나간다
@@ -167,7 +179,8 @@ export default function HomePage() {
   const [cardSeries, setCardSeries] = useState<Map<string, CardSeries | 'unavailable'>>(
     () => new Map(),
   )
-  const baseDate = list.kind === 'ready' ? list.baseDate : null
+  // 기준일이 비어 오면("") 모르는 것(null)이다 — ""를 그대로 넘기면 담아 둔 그래프가 어느 날짜든 "기준일 이후"로 읽혀 영영 묵지 않았다
+  const baseDate = list.kind === 'ready' && list.baseDate !== '' ? list.baseDate : null
   /** 카드 종목이 바뀔 때만 다시 받는다. themes 배열은 받을 때마다 새로 만들어진다 */
   const themeCodes = themes.map((theme) => theme.stockCode).join(',')
 
@@ -183,6 +196,8 @@ export default function HomePage() {
       }
       return next
     })
+    // 대장주 응답 전의 목록(지난 값·고정 목록)으로는 묻지 않는다. 담아 둔 그래프만 먼저 그린다
+    if (!leadingSettled) return
     void loadCardSeries(codes, baseDate, (code, series) => {
       if (ignore) return
       setCardSeries((prev) => new Map(prev).set(code, series ?? 'unavailable'))
@@ -190,7 +205,7 @@ export default function HomePage() {
     return () => {
       ignore = true
     }
-  }, [themeCodes, baseDate])
+  }, [themeCodes, baseDate, leadingSettled])
 
   /** 지금 보고 있는 시세표. 떠날 때 savedViews에 옮겨 담는다 */
   const viewRef = useRef<HomeView>({
@@ -294,7 +309,7 @@ export default function HomePage() {
    * 실패하면 되돌린다 — 화면만 켜진 채 서버엔 없는 상태로 두면 다음 방문에 사라져 보인다.
    */
   async function handleHeartClick(stockCode: string) {
-    if (!isLoggedIn()) {
+    if (!loggedIn) {
       setIsLoginModalOpen(true)
       return
     }

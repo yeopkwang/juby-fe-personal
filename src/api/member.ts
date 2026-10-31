@@ -1,6 +1,7 @@
 import { ApiError, get, malformedResponse, patch, post, remove } from './client'
 import { isStockCode, nameOrCode } from './stock'
 import { clearTokens } from '../utils/auth'
+import { fromDashedYmd } from '../utils/date'
 import { finiteOrNull } from '../utils/format'
 import type {
   LikeStock,
@@ -120,6 +121,7 @@ export async function unlikeStock(stockCode: string): Promise<void> {
  * 내 관심종목 목록. 시세는 baseDate 종가 기준이다.
  * 목록이 배열이 아니면 화면이 그리다 `null.length`에서 던져 구역 경계까지 올라갔다 — 여기서 응답 모양 오류로 던져
  * 화면의 "불러오지 못했습니다 + 다시 시도"를 태운다. 기준일은 비어도 된다(화면이 그 줄만 숨긴다).
+ * 날짜는 다른 API처럼 받는 자리에서 YYYYMMDD로 바꾼다(CLAUDE.md "날짜는 YYYYMMDD") — 예전엔 하이픈 그대로 넘겨 화면 둘이 각자 바꿨다.
  */
 export async function getLikeStocks(options?: {
   ignoreUnauthorized?: boolean
@@ -134,7 +136,7 @@ export async function getLikeStocks(options?: {
   }
   return {
     // 기준일이 빈 건 화면이 그 줄을 숨긴다(fromDashedYmd → "")
-    baseDate: typeof result.baseDate === 'string' ? result.baseDate : '',
+    baseDate: fromDashedYmd(typeof result.baseDate === 'string' ? result.baseDate : null),
     totalCount: finiteOrNull(result.totalCount) ?? likeStockList.length,
     likeStockList,
   }
@@ -187,12 +189,16 @@ function toLikeStock(row: LikeStockResponse | null): LikeStock[] {
   if (typeof row !== 'object' || row === null) return []
   const { stockCode } = row
   if (typeof stockCode !== 'string' || !isStockCode(stockCode)) return []
+  const likedAt = typeof row.likedAt === 'string' ? row.likedAt : null
+  // "2026-10-20T10:00:00" → "20261020". 모양이 다르면 ""(화면이 "담음" 날짜를 숨긴다)
+  const likedDate = likedAt === null ? '' : fromDashedYmd(likedAt.slice(0, 10))
   return [{
     stockCode,
     stockName: nameOrCode(row.stockName, stockCode),
     closePrice: finiteOrNull(row.closePrice),
     fluctuate: finiteOrNull(row.fluctuate),
     tradingValue: finiteOrNull(row.tradingValue),
-    likedAt: typeof row.likedAt === 'string' ? row.likedAt : null,
+    likedAt,
+    likedDate: /^\d{8}$/.test(likedDate) ? likedDate : '',
   }]
 }

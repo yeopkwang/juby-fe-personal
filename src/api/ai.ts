@@ -1,4 +1,5 @@
 import { get, malformedResponse, patch, post, remove } from './client'
+import { fromDashedYmd } from '../utils/date'
 import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../types/ai'
 
 /**
@@ -34,6 +35,7 @@ interface MessageResponse {
 
 interface AskResponse {
   answer?: string | null
+  /** 받기만 하고 쓰지 않는다(아래 ask) */
   chatSessionId?: number | null
   messageId?: number | null
 }
@@ -56,8 +58,14 @@ function isId(value: unknown): value is number {
 function toSession(row: SessionSummaryResponse | null | undefined): ChatSession | null {
   if (typeof row !== 'object' || row === null || !isId(row.chatSessionId)) return null
   const title = typeof row.title === 'string' && row.title.trim() !== '' ? row.title : DEFAULT_TITLE
-  const updatedAt = typeof row.updatedAt === 'string' && row.updatedAt !== '' ? row.updatedAt : null
-  return { sessionId: row.chatSessionId, title, updatedAt }
+  return { sessionId: row.chatSessionId, title, ...toUpdated(row.updatedAt) }
+}
+
+/** "2026-10-28T10:00:05" → updatedAt 그대로 + updatedDate "20261028". 비었거나 모양이 다르면 null·"" */
+function toUpdated(value: unknown): Pick<ChatSession, 'updatedAt' | 'updatedDate'> {
+  const updatedAt = typeof value === 'string' && value !== '' ? value : null
+  const updatedDate = updatedAt === null ? '' : fromDashedYmd(updatedAt.slice(0, 10))
+  return { updatedAt, updatedDate: /^\d{8}$/.test(updatedDate) ? updatedDate : '' }
 }
 
 /** 말한 쪽이나 글이 틀린 메시지는 null(그 말풍선은 뺀다). 빈 말풍선이나 엉뚱한 쪽 말풍선을 그리지 않는다 */
@@ -105,8 +113,7 @@ export async function renameSession(sessionId: number, title: string): Promise<C
   const row = await patch<SessionSummaryResponse | null>(`/api/chat-sessions/${sessionId}`, { title: sent })
   // 200이면 서버는 이미 바꿨다. 응답에 제목이 비어 오면 보낸 제목을 쓴다
   const saved = typeof row?.title === 'string' && row.title.trim() !== '' ? row.title : sent
-  const updatedAt = typeof row?.updatedAt === 'string' && row.updatedAt !== '' ? row.updatedAt : null
-  return { sessionId, title: saved, updatedAt }
+  return { sessionId, title: saved, ...toUpdated(row?.updatedAt) }
 }
 
 /** 대화방과 그 안의 메시지를 모두 지운다. 되돌릴 수 없다 */
@@ -141,6 +148,8 @@ export async function ask(
    * 이어 묻기에는 "종목명을 함께 입력하라"는 엉뚱한 안내가 떴다.
    */
   stockName: string | null = null,
+  /** "그만 기다리기"가 끊는 신호. 끊으면 `요청을 끊었습니다` Error다(서버는 답을 계속 만들어 방에 저장한다) */
+  signal?: AbortSignal,
 ): Promise<AskResult> {
   const result = await post<AskResponse | null>(
     '/api/open-ai/ask',
@@ -154,13 +163,12 @@ export async function ask(
      * 제한 시간을 두지 않고 답이 올 때까지 기다린다. 서버가 AI를 두 번 차례로 부르고(질문 분류 → 답)
      * 자세히 쓰라고 시키므로 기본 12초를 넘기기 쉽다. 12초에 끊으면 서버는 계속 답을 만드는데
      * 화면은 실패로 뜨고, 다시 시도까지 끊기면 차단기(client.ts)가 걸려 15초 동안 홈 시세표까지 막힌다.
+     * 대신 사용자가 끊을 수 있다(signal) — 끊어 둔 연결이 쌓여 있다가 중계 서버가 끊을 때 차단기를 올리지 않게.
      */
-    { timeoutMs: null },
+    { timeoutMs: null, signal },
   )
   // 본문이 객체가 아니면 다른 API처럼 응답 모양 오류로 던진다. 답이 빈 건 화면이 "답변을 가져오지 못했어요 + 다시 시도"로 받는다
   if (typeof result !== 'object' || result === null) throw malformedResponse()
-  return {
-    sessionId: isId(result.chatSessionId) ? result.chatSessionId : sessionId,
-    answer: typeof result.answer === 'string' ? result.answer : '',
-  }
+  // 응답의 chatSessionId·messageId는 받기만 하고 쓰지 않는다 — 방은 화면이 먼저 만들어 번호를 안다
+  return { answer: typeof result.answer === 'string' ? result.answer : '' }
 }

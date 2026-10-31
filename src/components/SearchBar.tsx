@@ -29,6 +29,19 @@ export default function SearchBar({ stocks }: Props) {
   const [recent, setRecent] = useState(readRecentStocks)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
+  /** 서버 검색이 마지막으로 찾아 준 것. 그 사이 가진 목록(stocks)이 바뀌어도 다시 합치려고 들고 있는다 */
+  const remoteRef = useRef<{ keyword: string; found: StockInfo[] } | null>(null)
+  const stocksRef = useRef(stocks)
+  stocksRef.current = stocks
+
+  /** 가진 목록과 서버 결과를 합친다. 같은 종목이 양쪽에 있으면 하나만 남긴다 */
+  function merge(trimmed: string, own: StockInfo[], found: StockInfo[]): StockInfo[] {
+    const merged = new Map<string, StockInfo>()
+    for (const stock of [...searchStocks(own, trimmed), ...found]) {
+      if (!merged.has(stock.stockCode)) merged.set(stock.stockCode, stock)
+    }
+    return rankStocks([...merged.values()], trimmed, own)
+  }
 
   /*
    * 후보를 두 번 그린다.
@@ -41,17 +54,24 @@ export default function SearchBar({ stocks }: Props) {
    * ("sk 하이닉스")은 0건이라, 서버 결과로 바꾸면 ①에서 뜬 후보가 0.3초 뒤 사라졌다(2026-10-04 확인).
    *
    * 서버가 늦거나 실패해도 ①이 남아 있어 검색은 멈추지 않는다.
+   * ①과 ②는 effect가 따로다 — 한 effect에 두면 홈 목록이 도착할 때(stocks가 바뀔 때) 같은 글자로 서버 검색이 한 번 더 나갔다(2026-10-31)
    */
   useEffect(() => {
     const trimmed = keyword.trim()
     setActiveIndex(-1)
-
     if (trimmed === '') {
       setSuggestions([])
       return
     }
+    const remote = remoteRef.current
+    setSuggestions(merge(trimmed, stocks, remote !== null && remote.keyword === trimmed ? remote.found : []))
+    // merge는 렌더마다 새 함수지만 stocks·keyword 말고는 읽지 않는다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyword, stocks])
 
-    setSuggestions(searchStocks(stocks, trimmed))
+  useEffect(() => {
+    const trimmed = keyword.trim()
+    if (trimmed === '') return
 
     /*
      * 글자마다 부르면 "삼성전자"에 다섯 번이 나간다. 잠깐 멈춘 뒤에만 보낸다.
@@ -62,12 +82,8 @@ export default function SearchBar({ stocks }: Props) {
       searchStocksRemote(trimmed)
         .then((found) => {
           if (cancelled) return
-          // 같은 종목이 양쪽에 있으면 하나만 남긴다
-          const merged = new Map<string, StockInfo>()
-          for (const stock of [...searchStocks(stocks, trimmed), ...found]) {
-            if (!merged.has(stock.stockCode)) merged.set(stock.stockCode, stock)
-          }
-          setSuggestions(rankStocks([...merged.values()], trimmed, stocks))
+          remoteRef.current = { keyword: trimmed, found }
+          setSuggestions(merge(trimmed, stocksRef.current, found))
         })
         .catch((error: unknown) => {
           // 가진 목록으로 그린 후보가 그대로 남는다. 화면에는 알리지 않는다
@@ -79,7 +95,9 @@ export default function SearchBar({ stocks }: Props) {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [keyword, stocks])
+    // 서버 검색은 글자가 바뀔 때만. 가진 목록은 ref로 읽는다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyword])
 
   function goTo(stock: StockInfo) {
     setIsOpen(false)

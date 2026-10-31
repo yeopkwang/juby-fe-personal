@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
@@ -13,6 +13,7 @@ import {
   getStockDetail,
   isStockCode,
   isStockDetailInFlight,
+  nameOrCode,
   peekStockDetail,
   primeKisToken,
 } from '../api/stock'
@@ -20,13 +21,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { toStockHandoff } from '../hooks/useStockHandoff'
 import { periodStart, toKoreanDate, toKoreanDateTime } from '../utils/date'
-import {
-  formatChangeRate,
-  formatPrice,
-  formatVolume,
-  isFiniteNumber,
-  isFlatRate,
-} from '../utils/format'
+import { formatChangeRate, formatPrice, formatVolume, rateTone } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
 import { rememberStock } from '../utils/recentStocks'
 import { readPreview } from '../utils/stockPreview'
@@ -91,18 +86,9 @@ function sliceByPeriod(candles: Candle[], period: Period): Candle[] {
   return start === null ? candles : candles.filter((c) => c.date >= start)
 }
 
-/**
- * 화면에 적을 종목 이름. 서버가 이름을 비워 보내면(빈 문자열·공백) 종목코드로 대신한다 —
- * 탭 제목이 "JUBY"만 남고 제목 줄의 이름 자리가 비었다. 응답 모양상 null도 올 수 있어 문자열인지부터 본다
- */
-function nameOrCode(name: string | null | undefined, stockCode: string | undefined): string {
-  return typeof name === 'string' && name.trim() !== '' ? name : (stockCode ?? '')
-}
-
-function toRateClassName(rate: number | null): string | undefined {
-  // 비어 온 등락률("-")은 보합처럼 검정으로 둔다
-  if (!isFiniteNumber(rate) || isFlatRate(rate)) return styles.flat
-  return rate > 0 ? styles.up : styles.down
+/** 비어 온 등락률("-")은 보합처럼 검정으로 둔다(utils/format rateTone) */
+function toRateClassName(rate: number | null): string {
+  return styles[rateTone(rate)]
 }
 
 /** 시세 요약 네 칸. 값이 오기 전에도 같은 칸을 그려 자리를 잡아 둔다 */
@@ -281,12 +267,9 @@ export default function StockChartPage() {
       ? { kind: 'loading' }
       : state
 
+  // 기다리는 중(65초)·실패에도 목록에서 들고 온 이름이 있으면 그걸 쓴다 — 탭 여러 개를 띄운 사람이 어느 탭인지 알아야 한다
   useDocumentTitle(
-    view.kind === 'ready'
-      ? nameOrCode(view.detail.stockName, stockCode)
-      : view.kind === 'loading'
-        ? (preview?.stockName ?? '종목')
-        : '종목',
+    view.kind === 'ready' ? nameOrCode(view.detail.stockName, stockCode ?? '') : (preview?.stockName ?? '종목'),
   )
 
   /*
@@ -711,9 +694,13 @@ function PriceSection({
   likeStatus,
   actionPanel,
 }: PriceSectionProps) {
-  const shown = detail === null ? [] : sliceByPeriod(detail.candles, period)
+  /*
+   * 렌더마다 새 배열을 만들면 CandleChart가 "봉이 바뀌었다"고 보고 setData + fitContent를 다시 해, 하트를 누르거나 관심종목
+   * 목록이 늦게 올 때마다 확대해 둔 차트가 전체 보기로 돌아가고 범례가 사라졌다(2026-10-31). 일봉·기간이 바뀔 때만 자른다
+   */
+  const shown = useMemo(() => (detail === null ? [] : sliceByPeriod(detail.candles, period)), [detail, period])
   const lastCandle = shown.at(-1) ?? null
-  const displayName = detail === null ? null : nameOrCode(detail.stockName, stockCode)
+  const displayName = detail === null ? null : nameOrCode(detail.stockName, stockCode ?? '')
 
   /*
    * 실패는 이 구역 안에서만 알린다. 예전엔 화면 전체를 안내 한 줄로 바꿔, 따로 받는 뉴스까지 사라지고
@@ -928,7 +915,7 @@ function PeriodStats({ candles }: { candles: Candle[] }) {
         {rates.map(({ period, label, rate }) => (
           <div key={period}>
             <dt className={styles.summaryLabel}>{label}</dt>
-            <dd className={`${styles.summaryValue} ${toRateClassName(rate) ?? ''}`}>{formatChangeRate(rate)}</dd>
+            <dd className={`${styles.summaryValue} ${toRateClassName(rate)}`}>{formatChangeRate(rate)}</dd>
           </div>
         ))}
         <div>

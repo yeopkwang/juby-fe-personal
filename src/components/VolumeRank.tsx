@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getVolumeRank } from '../api/kisMarket'
+import { normalizeName } from '../api/stock'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { toKoreanDateTime } from '../utils/date'
 import { formatPrice, formatTradingValue } from '../utils/format'
@@ -13,9 +14,6 @@ type State =
   | { kind: 'loading' }
   | { kind: 'ready'; items: VolumeRankItem[]; receivedAt: number }
   | { kind: 'error' }
-
-/** 띄어쓰기·대소문자를 무시하고 이름을 견준다("SK 하이닉스" = "SK하이닉스") */
-const normalize = (name: string) => name.replace(/\s+/g, '').toLowerCase()
 
 /**
  * 홈 '현재 주가 보기'의 두 번째 탭(2026-10-31). 증권사가 주는 지금의 거래대금 상위 30종목이다(`GET /api/market/volume-rank`).
@@ -49,7 +47,7 @@ export default function VolumeRank({ stocks, loginPath }: { stocks: StockInfo[];
   }, [loggedIn, retryCount])
 
   const codeByName = useMemo(
-    () => new Map(stocks.map((stock) => [normalize(stock.stockName), stock.stockCode])),
+    () => new Map(stocks.map((stock) => [normalizeName(stock.stockName), stock.stockCode])),
     [stocks],
   )
 
@@ -93,7 +91,7 @@ export default function VolumeRank({ stocks, loginPath }: { stocks: StockInfo[];
       </div>
       <ol className={styles.body}>
         {state.items.map((item) => {
-          const stockCode = codeByName.get(normalize(item.stockName))
+          const stockCode = codeByName.get(normalizeName(item.stockName))
           return (
             <li key={`${item.rank}-${item.stockName}`} className={styles.row}>
               <span className={styles.rank}>{item.rank}</span>

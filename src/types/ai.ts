@@ -13,8 +13,10 @@ export interface ChatMessage {
 export interface ChatSession {
   sessionId: number
   title: string
-  /** 마지막으로 대화한 때(ISO, 시간대 없음 = 한국 시각). 비어 오면 null. 마이페이지 '최근 AI 대화'가 적는다 */
+  /** 마지막으로 대화한 때(ISO, 시간대 없음 = 한국 시각). 비어 오면 null */
   updatedAt: string | null
+  /** 마지막으로 대화한 날. YYYYMMDD(화면용 — 마이페이지 '최근 AI 대화'). 모르면 "" */
+  updatedDate: string
 }
 
 export interface ChatSessionDetail extends ChatSession {
@@ -23,6 +25,5 @@ export interface ChatSessionDetail extends ChatSession {
 
 /** 질문 전송 결과. 답이 비어 오면 answer가 ""다(화면이 실패로 다룬다) */
 export interface AskResult {
-  sessionId: number
   answer: string
 }

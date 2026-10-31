@@ -42,6 +42,19 @@ export function isFlatRate(
   return Number(rate.toFixed(fractionDigits)) === 0
 }
 
+/**
+ * 등락 글자색의 뜻. 오르면 'up'(빨강), 내리면 'down'(파랑), 보합·모름은 'flat'(기본 글자색).
+ * 화면은 `styles[rateTone(rate)]`처럼 쓴다 — 같은 판정이 여덟 곳에 따로 적혀 있어 보합 기준 자릿수가 한 곳만 달랐다(2026-10-31).
+ * fractionDigits는 화면에 찍는 자릿수와 같게 준다(isFlatRate).
+ */
+export function rateTone(
+  rate: number | null | undefined,
+  fractionDigits = 2,
+): 'up' | 'down' | 'flat' {
+  if (!isFiniteNumber(rate) || isFlatRate(rate, fractionDigits)) return 'flat'
+  return rate > 0 ? 'up' : 'down'
+}
+
 /** 1.01 → "+1.01%", -2.12 → "-2.12%", 0 → "0.00%" */
 export function formatChangeRate(
   rate: number | null | undefined,

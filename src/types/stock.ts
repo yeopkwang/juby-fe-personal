@@ -85,18 +85,11 @@ export interface StockPreview extends StockInfo {
  * 홈 상단 테마별 대표 종목 카드 한 장. GET /api/stocks/leading-stocks 의 한 행이다.
  *
  * 어떤 종목을 카드에 올릴지는 이 API가 정하고, 그래프(CardSeries)와 종가(CardQuote)는 따로 받는다.
- * 전략 수익률은 카드에 적지 않는다(2026-10-04 사용자 결정으로 그래프를 되살리며 뺐다). 값은 그대로 받아 둔다.
+ * 전략 수익률·매매 횟수는 카드에 적지 않아 받지도 않는다(2026-10-04 사용자 결정, api/stock.ts getLeadingStocks).
  */
 export interface TopTheme extends StockInfo {
   /** "기술주 대장" 같은 테마 라벨 */
   theme: string
-  /**
-   * 대장주를 뽑은 전략으로 그 기간을 돌렸을 때의 수익률(%). **주가 등락률이 아니다.**
-   * 서버가 못 주거나 고정 목록으로 물러섰을 때는 null.
-   */
-  returnRate: number | null
-  /** 그 기간에 전략이 사고판 횟수. 모르면 null */
-  tradeCount: number | null
 }
 
 /**
@@ -127,19 +120,10 @@ export interface CardQuote {
 }
 
 /**
- * 대장주를 무엇으로 뽑았는지. 홈 머리말의 "백테스트 기법으로 투자한"을 실제 값으로 적는다.
- * 서버가 비워 보낼 수 있어 전부 null을 허용한다 — 하나라도 비면 머리말은 예전 문구로 둔다.
+ * GET /api/stocks/leading-stocks 를 화면 쓰임새로 옮긴 모양. 응답의 전략 이름·기간은 대장을 고른 근거가 아니라
+ * 머리말에 쓰지 않는다(CLAUDE.md "홈 테마별 대표 종목") — 그래서 옮기지 않는다.
  */
-export interface LeadingBasis {
-  /** 예: "SMA 이동평균선 전략" */
-  strategyName: string | null
-  /** 예: "1년" */
-  periodLabel: string | null
-}
-
-/** GET /api/stocks/leading-stocks 를 화면 쓰임새로 옮긴 모양 */
 export interface LeadingStocks {
-  basis: LeadingBasis
   /** 카드 순서대로. 비어 있을 수 없다(비면 호출한 쪽이 고정 목록으로 물러선다) */
   themes: TopTheme[]
 }

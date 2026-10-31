@@ -5,13 +5,14 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import KeywordNews from '../components/KeywordNews'
 import { toStockHandoff } from '../hooks/useStockHandoff'
-import { fromDashedYmd, toKoreanDate } from '../utils/date'
+import { toKoreanDate } from '../utils/date'
 import {
   formatChangeRate,
   formatPrice,
   formatTradingValue,
   isFiniteNumber,
   isFlatRate,
+  rateTone,
 } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
 import { preloadStockChartPage } from '../utils/preload'
@@ -78,7 +79,7 @@ function LikesBoard() {
     setState({ kind: 'loading' })
     getLikeStocks()
       .then((result) =>
-        setState({ kind: 'ready', baseDate: fromDashedYmd(result.baseDate), stocks: result.likeStockList }),
+        setState({ kind: 'ready', baseDate: result.baseDate, stocks: result.likeStockList }),
       )
       .catch((error: unknown) => {
         console.warn('관심종목 조회 실패', error)
@@ -377,8 +378,8 @@ function HeatMap({ stocks, baseDate }: { stocks: LikeStock[]; baseDate: string }
 }
 
 function LikeRow({ stock, baseDate, onUnlike }: { stock: LikeStock; baseDate: string; onUnlike: () => void }) {
-  const likedAt = stock.likedAt === null ? '' : toKoreanDate(fromDashedYmd(stock.likedAt.slice(0, 10)))
-  const tone = !isFiniteNumber(stock.fluctuate) || isFlatRate(stock.fluctuate) ? styles.flat : stock.fluctuate > 0 ? styles.up : styles.down
+  const likedAt = toKoreanDate(stock.likedDate)
+  const tone = styles[rateTone(stock.fluctuate)]
   const handoff = toStockHandoff({ stockCode: stock.stockCode, stockName: stock.stockName })
 
   return (

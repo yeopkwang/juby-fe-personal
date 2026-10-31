@@ -5,8 +5,8 @@ import { goTo, loginPathFrom } from '../utils/navigation'
  * 공통 fetch 래퍼. baseURL과 토큰 헤더를 여기서만 관리한다.
  * 개발 중에는 빈 문자열 → vite.config.ts의 프록시가 백엔드로 넘긴다(CORS 우회).
  *
- * 인증이 필요한 API(/api/members/**, /api/open-ai/**)는 토큰이 없거나 만료되면
- * 서버가 401 JSON을 준다. 토큰을 실어 보낸 요청이면 한 번 재발급해 다시 보내고, 그래도 안 되면
+ * 인증이 필요한 API(공개는 /api/stocks/**·재발급뿐 — 회원·AI 대화·백테스트·성향검사 모두 인증, CLAUDE.md "로그인·인증")는
+ * 토큰이 없거나 만료되면 서버가 401 JSON을 준다. 토큰을 실어 보낸 요청이면 한 번 재발급해 다시 보내고, 그래도 안 되면
  * 여기서 한 번에 처리해 로그인 화면으로 보낸다.
  */
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -34,7 +34,7 @@ function authHeaders(token: string | null): Record<string, string> {
  * 2026-08~09에 켜 뒀던 이유: 홈 한 번에 증권사(KIS) 중계 요청이 108건 나가
  * 계정이 정지될 수 있다는 경고를 받았다. 2026-09-18에 홈을 `GET /api/stocks`
  * (DB만 읽음, 1건)로 갈아타면서 그 원인이 사라져 다시 열었다.
- * 남은 KIS 호출은 종목 상세의 현재가 1회, 홈 카드 3장의 현재가 3회뿐이다.
+ * 지금 증권사로 가는 요청의 목록은 CLAUDE.md "증권사(KIS) 호출" 표가 정답이다(여기 적어 두면 금세 낡는다).
  *
  * 다시 켜야 할 일이 생기면 여기 한 곳만 true로 바꾸면 된다. 이 파일의 fetch가
  * 앱 전체에서 유일한 통신 창구라 호출부를 하나씩 막을 필요가 없다.
@@ -154,6 +154,23 @@ interface RequestOptions {
    * 15초 동안 시세표·뉴스처럼 DB만 읽는 요청까지 막혔다. 서버는 살아 있고 증권사만 느린 것이다.
    */
   countsTowardBreaker?: boolean
+  /**
+   * 부르는 쪽이 요청을 끊을 신호(AI 질문의 "그만 기다리기"). 끊긴 요청은 차단기에 세지 않고 `요청을 끊었습니다` Error로 던진다.
+   * 제한 시간 신호와 함께 쓸 수 있다.
+   */
+  signal?: AbortSignal
+}
+
+/** 제한 시간 신호와 부르는 쪽의 끊기 신호를 하나로. 둘 다 없으면 undefined */
+function combineSignals(timeout: AbortSignal | null, external: AbortSignal | null): AbortSignal | undefined {
+  if (timeout === null) return external ?? undefined
+  if (external === null) return timeout
+  // AbortSignal.any는 사파리 17.4부터다. 없는 브라우저는 둘 중 먼저 끊기는 쪽을 따라간다
+  if (typeof AbortSignal.any === 'function') return AbortSignal.any([timeout, external])
+  const controller = new AbortController()
+  timeout.addEventListener('abort', () => controller.abort(timeout.reason), { once: true })
+  external.addEventListener('abort', () => controller.abort(external.reason), { once: true })
+  return controller.signal
 }
 
 /**
@@ -274,9 +291,13 @@ async function requestJson<T>(
       ...init,
       // 토큰 헤더는 항상 붙이고, 호출부가 더 넣고 싶은 헤더는 뒤에 합친다
       headers: { ...authHeaders(sentToken), ...init?.headers },
-      signal: timeoutMs === null ? undefined : AbortSignal.timeout(timeoutMs),
+      signal: combineSignals(timeoutMs === null ? null : AbortSignal.timeout(timeoutMs), options?.signal ?? null),
     })
   } catch (error: unknown) {
+    // 부르는 쪽이 끊은 요청은 서버 사정이 아니다. 차단기에 세지 않는다
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(`요청을 끊었습니다 ${path}`)
+    }
     // 제한 시간 초과든 연결 실패든 '서버에 닿지 못했다'는 점은 같다. 일부러 짧게 끊은 요청의 시간 초과만 빼고 센다
     const timedOut = error instanceof DOMException && error.name === 'TimeoutError'
     if (!(timedOut && options?.countsTowardBreaker === false)) tripBreaker()

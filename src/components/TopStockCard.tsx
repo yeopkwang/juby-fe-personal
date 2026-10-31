@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import CardChart from './CardChart'
 import { toKoreanDate } from '../utils/date'
-import { formatChangeRate, formatPrice, isFiniteNumber, isFlatRate } from '../utils/format'
+import { formatChangeRate, formatPrice, rateTone } from '../utils/format'
 import { toPreviewState } from '../utils/stockPreview'
 import type { CardQuote, CardSeries, TopTheme } from '../types/stock'
 import styles from './TopStockCard.module.css'
@@ -57,7 +57,7 @@ export default function TopStockCard({ theme, series, quote }: Props) {
       {/* 그래프가 끝나는 날의 종가. 그래프를 못 그린 카드도 이 줄은 있다 */}
       <p className={styles.quote}>
         {formatPrice(quote?.closePrice)}{' '}
-        <span className={toneClass(quote?.fluctuate ?? null)}>
+        <span className={styles[rateTone(quote?.fluctuate)]}>
           {formatChangeRate(quote?.fluctuate)}
         </span>
       </p>
@@ -103,10 +103,4 @@ function CardUnavailable() {
       </p>
     </>
   )
-}
-
-/** 한국식 등락 색. 오르면 빨강, 내리면 파랑, 보합이거나 모르면 기본 글자색 */
-function toneClass(rate: number | null): string {
-  if (!isFiniteNumber(rate) || isFlatRate(rate)) return styles.flat
-  return rate > 0 ? styles.up : styles.down
 }

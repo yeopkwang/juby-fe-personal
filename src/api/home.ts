@@ -1,7 +1,6 @@
 import { readCardSeries } from './cardSeries'
 import { canSpendKisCall, getLeadingStocks, getStockDetail, primeKisToken } from './stock'
 import { readCache, writeCache } from '../utils/cache'
-import { isFiniteNumber } from '../utils/format'
 import type { CardSeries, LeadingStocks, TopTheme } from '../types/stock'
 
 /*
@@ -25,19 +24,16 @@ import type { CardSeries, LeadingStocks, TopTheme } from '../types/stock'
  *
  * 2026-10-04에 leading-stocks로 갈아탔다. 그 전에는 이 셋이 유일한 목록이어서 대장이 바뀌면
  * 코드를 고쳐 배포해야 했다. 지금은 첫 방문의 첫 그림과, 서버가 못 줄 때만 쓴다.
- * 수익률은 서버만 알므로 비워 둔다 — 카드는 이름과 종가만 보이고 수익률 자리는 "–"가 된다.
+ * 카드는 이름·종가(홈 시세표)·그래프(따로 받는다)로 선다 — 이 목록만으로 부족한 건 없다.
  */
 const FALLBACK_THEMES: TopTheme[] = [
-  { stockCode: '000660', stockName: 'SK하이닉스', theme: '기술주 대장', returnRate: null, tradeCount: null },
-  { stockCode: '012450', stockName: '한화에어로스페이스', theme: '방산주 대장', returnRate: null, tradeCount: null },
-  { stockCode: '207940', stockName: '삼성바이오로직스', theme: '바이오주 대장', returnRate: null, tradeCount: null },
+  { stockCode: '000660', stockName: 'SK하이닉스', theme: '기술주 대장' },
+  { stockCode: '012450', stockName: '한화에어로스페이스', theme: '방산주 대장' },
+  { stockCode: '207940', stockName: '삼성바이오로직스', theme: '바이오주 대장' },
 ]
 
-/** 서버가 못 줬을 때의 자리. 머리말은 근거를 지어내지 않고 예전 문구로 둔다 */
-export const FALLBACK_LEADING: LeadingStocks = {
-  basis: { strategyName: null, periodLabel: null },
-  themes: FALLBACK_THEMES,
-}
+/** 서버가 못 줬을 때의 자리 */
+export const FALLBACK_LEADING: LeadingStocks = { themes: FALLBACK_THEMES }
 
 /*
  * 키를 예전('topThemes')과 다르게 둔다. 예전 값에는 수익률이 없어서, 같은 키로 읽으면
@@ -58,36 +54,24 @@ export function readCachedLeading(): LeadingStocks | null {
   const cached = readCache<unknown>(LEADING_CACHE_KEY, LEADING_CACHE_MAX_AGE)
   if (typeof cached !== 'object' || cached === null) return null
 
-  const { basis, themes } = cached as Partial<LeadingStocks>
+  const { themes } = cached as Partial<LeadingStocks>
   if (!Array.isArray(themes) || themes.length === 0 || !themes.every(isTopTheme)) return null
-  if (typeof basis !== 'object' || basis === null) return null
 
-  return {
-    basis: {
-      strategyName: typeof basis.strategyName === 'string' ? basis.strategyName : null,
-      periodLabel: typeof basis.periodLabel === 'string' ? basis.periodLabel : null,
-    },
-    themes,
-  }
+  // 예전 판이 담은 다른 칸(basis·returnRate 등)은 읽지 않는다. 카드가 쓰는 셋만 옮긴다
+  return { themes: themes.map(({ stockCode, stockName, theme }) => ({ stockCode, stockName, theme })) }
 }
 
 function isTopTheme(value: unknown): value is TopTheme {
   if (typeof value !== 'object' || value === null) return false
   const theme = value as Partial<TopTheme>
-  return (
-    typeof theme.stockCode === 'string' &&
-    typeof theme.stockName === 'string' &&
-    typeof theme.theme === 'string' &&
-    (theme.returnRate === null || isFiniteNumber(theme.returnRate)) &&
-    (theme.tradeCount === null || isFiniteNumber(theme.tradeCount))
-  )
+  return typeof theme.stockCode === 'string' && typeof theme.stockName === 'string' && typeof theme.theme === 'string'
 }
 
 /**
  * 테마별 대장주를 받는다. **실패해도 던지지 않는다.**
  *
  * 못 받으면 지난 방문의 값, 그것도 없으면 고정 목록을 돌려준다. 테마 목록 하나 때문에
- * 홈 상단이 통째로 비면 안 된다. 어느 쪽이었는지는 basis·returnRate가 비었는지로 화면이 안다.
+ * 홈 상단이 통째로 비면 안 된다. 카드는 어느 쪽이었든 같은 모양이다(이름·종가·그래프).
  */
 export async function loadLeading(): Promise<LeadingStocks> {
   try {

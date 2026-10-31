@@ -13,7 +13,7 @@ import { toStockHandoff, useBacktestHandoff } from '../hooks/useStockHandoff'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 import { toKoreanDate } from '../utils/date'
-import { isFiniteNumber, isFlatRate } from '../utils/format'
+import { isFiniteNumber, rateTone } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
 import { PERSONALITY_INFO, isPersonalityType } from '../utils/personality'
 import { rememberBacktest } from '../utils/recentBacktests'
@@ -871,8 +871,10 @@ function BacktestResult({
    * 화면에 "0.00%"로 보이는 값은 보합이라 색을 주지 않는다(다른 화면의 등락과 같은 규칙, utils/format isFlatRate) —
    * 끝까지 들고 있던 결과(수익률 0, 300건 중 97건)가 오름 빨강으로 칠해졌다(2026-10-31). 비율은 소수라 백분율로 바꿔 본다
    */
-  const toneOf = (value: number | null): 'up' | 'down' | undefined =>
-    !isFiniteNumber(value) || isFlatRate(value * 100) ? undefined : value > 0 ? 'up' : 'down'
+  const toneOf = (value: number | null): 'up' | 'down' | undefined => {
+    const tone = rateTone(isFiniteNumber(value) ? value * 100 : null)
+    return tone === 'flat' ? undefined : tone
+  }
   const positionCount = result.growth.positionCount
   const hasPositionCount = Number.isInteger(positionCount)
   /*

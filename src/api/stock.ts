@@ -23,7 +23,8 @@ import type { NewsItem, NewsPage, NewsSort } from '../types/news'
  * 예전에는 `/api/market/**`가 증권사를 종목마다 한 번씩 중계해서 홈 한 번에 108건이
  * 나갔고, 그걸 버티려고 chunk·retry·캐시·prefetch가 잔뜩 붙어 있었다.
  * 지금은 목록이 DB에서 한 번에 오고, 상세도 일봉은 DB라 그 장치들이 전부 필요 없다.
- * 남은 증권사 호출은 상세의 현재가 한 번뿐이다.
+ * 증권사로 가는 요청의 목록은 CLAUDE.md "증권사(KIS) 호출" 표가 정답이다 — 이 파일에서는 상세의 현재가, 토큰 심기(primeKisToken),
+ * 홈 카드 그래프(api/home.ts가 getStockDetail을 부른다)이고, 휴장일·거래대금 순위·임시 차트는 api/marketCalendar.ts·api/kisMarket.ts다.
  */
 
 interface StockList {
@@ -102,9 +103,9 @@ interface LeadingStockResponse {
   theme?: string | null
   /** 사람이 읽는 테마 이름. 예: "기술주" */
   themeLabel?: string | null
-  /** 이 전략으로 돌렸을 때의 수익률(%). 주가 등락률이 아니다 */
+  /** 이 전략으로 돌렸을 때의 수익률(%). 주가 등락률이 아니다. **받기만 하고 화면에 쓰지 않는다**(아래 getLeadingStocks) */
   returnPercentage?: number | null
-  /** 그 기간에 전략이 사고판 횟수 */
+  /** 그 기간에 전략이 사고판 횟수. 받기만 하고 쓰지 않는다 */
   tradeCount?: number | null
 }
 
@@ -115,9 +116,10 @@ interface LeadingStockResponse {
  * 코드를 고쳐 배포해야 했다. 서버는 매일 새벽 백테스트 배치를 돌려 테마마다 성적이 가장 좋은
  * 종목을 올려 준다.
  *
- * 홈 카드는 이 응답만으로 그린다. 카드의 큰 숫자가 returnPercentage(전략 수익률)이고,
- * 옆에 tradeCount(매매 횟수)를 적는다. 일봉은 이 응답에 없고, 카드도 이제 일봉을 받지 않는다 —
- * 일봉을 주는 종목 상세 API는 증권사를 거쳐 1분에 1건만 성공한다(types/stock.ts의 TopTheme 참고).
+ * 홈 카드가 이 응답에서 쓰는 건 종목·테마 라벨뿐이다. 전략 수익률(returnPercentage)·매매 횟수(tradeCount)·전략 이름·기간은
+ * 카드에 적지 않는다(2026-10-04 사용자 결정 — 실서버에서 매매 0~1회 종목이 0.0%라 "제자리"로 읽혔고, 종목은 전략 결과로 고른 것도
+ * 아니다. CLAUDE.md "홈 테마별 대표 종목"). 그래서 받기만 하고 옮기지 않는다 — 예전엔 옮겨 두고 캐시 모양 검사까지 했다(2026-10-31 정리).
+ * 그래프(1년 일봉)는 따로 받는다(api/home.ts loadCardSeries).
  */
 export async function getLeadingStocks(): Promise<LeadingStocks> {
   const response = await get<LeadingStocksResponse | null>('/api/stocks/leading-stocks')
@@ -127,13 +129,7 @@ export async function getLeadingStocks(): Promise<LeadingStocks> {
   // 한 장도 못 건지면 고정 목록으로 물러서는 편이 낫다. 부르는 쪽이 그렇게 받는다
   if (themes.length === 0) throw malformedResponse()
 
-  return {
-    basis: {
-      strategyName: textOrNull(response.strategyName),
-      periodLabel: textOrNull(response.periodLabel),
-    },
-    themes,
-  }
+  return { themes }
 }
 
 /** 쓸 만한 테마면 [테마], 아니면 []. 종목코드가 없거나 틀린 행은 카드로 세울 수 없어 뺀다 */
@@ -152,9 +148,6 @@ function toTopTheme(row: LeadingStockResponse | null): TopTheme[] {
     stockCode,
     stockName: nameOrCode(row.stockName, stockCode),
     theme: label === null ? '' : `${label} 대장`,
-    // 숫자가 아니면 지어내지 않고 비워 둔다. 카드가 "–"로 적는다
-    returnRate: finiteOrNull(row.returnPercentage),
-    tradeCount: finiteOrNull(row.tradeCount),
   }]
 }
 
@@ -727,15 +720,15 @@ const MAX_RESULTS = 8
 
 /**
  * 띄어쓰기와 대소문자를 무시하고 비교하려고 다듬는다. "sk 하이닉스" → "sk하이닉스"
- * 검색창이 쓴다.
+ * 검색창과 홈 거래대금 순위(이름으로 종목을 찾는다 — components/VolumeRank)가 쓴다.
  */
-function normalize(text: string): string {
+export function normalizeName(text: string): string {
   return text.replace(/\s+/g, '').toLowerCase()
 }
 
 /** 정확히 일치 → 앞부분 일치 → 그 밖의 순서로 보여주기 위한 정렬 키 */
 function matchRank(stock: StockInfo, keyword: string): number {
-  const name = normalize(stock.stockName)
+  const name = normalizeName(stock.stockName)
 
   if (name === keyword || stock.stockCode === keyword) return 0
   if (name.startsWith(keyword) || stock.stockCode.startsWith(keyword)) return 1
@@ -788,7 +781,7 @@ export function rankStocks(
   keyword: string,
   preferred: StockInfo[],
 ): StockInfo[] {
-  const normalized = normalize(keyword)
+  const normalized = normalizeName(keyword)
   if (normalized === '') return []
 
   const priority = new Map(preferred.map((stock, index) => [stock.stockCode, index]))
@@ -816,13 +809,13 @@ export function rankStocks(
  * 부르는 쪽이 거래대금 순으로 세워서 넘기면 사람들이 찾는 종목이 먼저 온다.
  */
 export function searchStocks(stocks: StockInfo[], keyword: string): StockInfo[] {
-  const normalized = normalize(keyword)
+  const normalized = normalizeName(keyword)
   if (normalized === '') return []
 
   return stocks
     .filter(
       (stock) =>
-        normalize(stock.stockName).includes(normalized) ||
+        normalizeName(stock.stockName).includes(normalized) ||
         stock.stockCode.includes(normalized),
     )
     /*

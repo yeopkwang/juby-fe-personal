@@ -7,11 +7,12 @@ import { getLikeStocks, getMemberInfo, getMyPersonality } from '../api/member'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { toBacktestHandoff, toSessionHandoff } from '../hooks/useStockHandoff'
 import { findByPersonality, findInvestType, periodLabel } from '../utils/backtest'
-import { fromDashedYmd, toKoreanDate, toYmd } from '../utils/date'
-import { formatChangeRate, formatPrice, isFiniteNumber, isFlatRate } from '../utils/format'
+import { toKoreanDate, toYmd } from '../utils/date'
+import { formatChangeRate, formatPrice, isFiniteNumber, isFlatRate, rateTone } from '../utils/format'
 import { isPersonalityType } from '../utils/personality'
 import { readRecentBacktests } from '../utils/recentBacktests'
 import { socialLabel } from '../utils/social'
+import { toPreviewState } from '../utils/stockPreview'
 import type { ChatSession } from '../types/ai'
 import type { LikeStock, LikeStockList, MemberInfo, PersonalityInfo } from '../types/member'
 import styles from './MypageHomePage.module.css'
@@ -241,9 +242,9 @@ function byMove(stocks: LikeStock[]): LikeStock[] {
   })
 }
 
-function rateTone(rate: number | null): string {
-  if (!isFiniteNumber(rate) || isFlatRate(rate)) return ''
-  return rate > 0 ? styles.up : styles.down
+function rateClassName(rate: number | null): string {
+  const tone = rateTone(rate)
+  return tone === 'flat' ? '' : styles[tone]
 }
 
 function LikesPart({ state, onRetry }: { state: Load<LikeStockList>; onRetry: () => void }) {
@@ -263,7 +264,7 @@ function LikesPart({ state, onRetry }: { state: Load<LikeStockList>; onRetry: ()
   const rated = stocks.filter((s) => isFiniteNumber(s.fluctuate) && !isFlatRate(s.fluctuate))
   const ups = rated.filter((s) => (s.fluctuate ?? 0) > 0).length
   const downs = rated.length - ups
-  const base = toKoreanDate(fromDashedYmd(baseDate))
+  const base = toKoreanDate(baseDate)
 
   return (
     <>
@@ -276,10 +277,21 @@ function LikesPart({ state, onRetry }: { state: Load<LikeStockList>; onRetry: ()
           .slice(0, ROWS)
           .map((stock) => (
             <li key={stock.stockCode}>
-              <Link to={`/stocks/${stock.stockCode}`} className={styles.row}>
+              {/* 이름·기준일 종가를 실어 상세가 응답 전에 그 자리를 채운다(홈 시세표와 같다) */}
+              <Link
+                to={`/stocks/${stock.stockCode}`}
+                state={toPreviewState({
+                  stockCode: stock.stockCode,
+                  stockName: stock.stockName,
+                  closePrice: stock.closePrice ?? undefined,
+                  fluctuate: stock.fluctuate ?? undefined,
+                  baseDate,
+                })}
+                className={styles.row}
+              >
                 <span className={styles.rowMain}>{stock.stockName}</span>
                 <span className={styles.rowNumber}>{formatPrice(stock.closePrice)}</span>
-                <span className={`${styles.rowRate} ${rateTone(stock.fluctuate)}`}>
+                <span className={`${styles.rowRate} ${rateClassName(stock.fluctuate)}`}>
                   {formatChangeRate(stock.fluctuate)}
                 </span>
               </Link>
@@ -341,12 +353,6 @@ function BacktestPart() {
 
 /* ── 최근 AI 대화 ──────────────────────────────────────────────────── */
 
-/** "2026-10-28T10:00:05" → "10월 28일". 모양이 다르면 "" */
-function sessionDate(updatedAt: string | null): string {
-  if (updatedAt === null) return ''
-  return toKoreanDate(fromDashedYmd(updatedAt.slice(0, 10)))
-}
-
 function SessionsPart({ state, onRetry }: { state: Load<ChatSession[]>; onRetry: () => void }) {
   if (state.kind === 'loading') return <Skeleton />
   if (state.kind === 'error') return <Failed text="AI 대화 목록을 불러오지 못했어요." onRetry={onRetry} />
@@ -367,7 +373,7 @@ function SessionsPart({ state, onRetry }: { state: Load<ChatSession[]>; onRetry:
         <li key={session.sessionId}>
           <Link to="/ai" state={toSessionHandoff(session.sessionId)} className={styles.row}>
             <span className={styles.rowTitle}>{session.title}</span>
-            <span className={styles.rowDate}>{sessionDate(session.updatedAt)}</span>
+            <span className={styles.rowDate}>{toKoreanDate(session.updatedDate)}</span>
           </Link>
         </li>
       ))}

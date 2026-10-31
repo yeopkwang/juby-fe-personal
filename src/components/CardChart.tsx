@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CardSeries } from '../types/stock'
-import { formatChangeRate, isFlatRate } from '../utils/format'
+import { formatChangeRate, rateTone } from '../utils/format'
 import styles from './TopStockCard.module.css'
 
 /*
@@ -151,12 +151,8 @@ function monotonePath(points: { x: number; y: number }[]): string {
 export default function CardChart({ stock }: { stock: CardSeries }) {
   const [boxRef, size] = useSize()
 
-  /* 선은 1년 흐름의 방향이라 그대로 두고, 숫자만 보합이면 검게 적는다 */
-  const rateClass = isFlatRate(stock.changeRate, 1)
-    ? styles.flat
-    : stock.changeRate >= 0
-      ? styles.up
-      : styles.down
+  /* 선은 1년 흐름의 방향이라 그대로 두고, 숫자만 보합이면 검게 적는다. 소수 한 자리로 적으므로 보합 기준도 한 자리다 */
+  const rateClass = styles[rateTone(stock.changeRate, 1)]
 
   return (
     <>
