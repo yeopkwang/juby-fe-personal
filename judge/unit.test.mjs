@@ -287,6 +287,7 @@ describe('localStorage 값', async () => {
   const c = await src('utils/cache.ts')
   const rs = await src('utils/recentStocks.ts')
   const rb = await src('utils/recentBacktests.ts')
+  const auth = await src('utils/auth.ts')
   beforeEach(() => localStorage.clear())
   test('readCache — 모양·만료', () => {
     c.writeCache('k', { a: 1 })
@@ -334,7 +335,22 @@ describe('localStorage 값', async () => {
     rs.forgetRecentStocks()
     assert.deepEqual(rs.readRecentStocks(), [])
   })
+  // 가짜 JWT(백엔드 JwtUtil 모양 — subject가 회원 번호). 서명은 지은 것
+  const jwt = (sub) => { const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url'); return `${b64({ alg: 'HS256' })}.${b64({ sub, typ: 'access', name: '허광엽' })}.sig` }
+  test('getAccountId — JWT subject, 아니면 null', () => {
+    assert.equal(auth.getAccountId(), null)
+    auth.saveTokens(jwt('12'))
+    assert.equal(auth.getAccountId(), '12')
+    auth.saveTokens('judge-token')
+    assert.equal(auth.getAccountId(), null)
+    auth.saveTokens('a.b.c')
+    assert.equal(auth.getAccountId(), null)
+    auth.saveTokens(jwt(''))
+    assert.equal(auth.getAccountId(), null)
+    auth.clearTokens()
+  })
   test('recentBacktests — 같은 조합은 한 줄, 최근 순, 10줄', () => {
+    auth.saveTokens(jwt('1'))
     const base = { stockCode: '005930', stockName: '삼성전자', investType: 3, period: 'ONE_YEAR', finalScore: 64 }
     rb.rememberBacktest(base)
     rb.rememberBacktest({ ...base, investType: 1, finalScore: 40 })
@@ -345,10 +361,39 @@ describe('localStorage 값', async () => {
     assert.equal(list[1].investType, 1)
     for (let i = 0; i < 12; i++) rb.rememberBacktest({ ...base, stockCode: String(i).padStart(6, '0') })
     assert.equal(rb.readRecentBacktests().length, 10)
-    localStorage.setItem('recentBacktests', JSON.stringify([{ ...base, viewedAt: 1, period: 'TWO_YEARS' }, { ...base, viewedAt: 2 }, null]))
+    localStorage.setItem('recentBacktests', JSON.stringify({ owner: '1', rows: [{ ...base, viewedAt: 1, period: 'TWO_YEARS' }, { ...base, viewedAt: 2 }, null] }))
     assert.equal(rb.readRecentBacktests().length, 1)
     rb.forgetRecentBacktests()
     assert.deepEqual(rb.readRecentBacktests(), [])
+    auth.clearTokens()
+  })
+  test('recentBacktests — 계정별: 다른 계정의 줄은 안 보이고, 그 계정이 보면 덮어쓴다. 계정을 모르면 남기지 않는다', () => {
+    const base = { stockCode: '005930', stockName: '삼성전자', investType: 3, period: 'ONE_YEAR', finalScore: 64 }
+    auth.saveTokens(jwt('1'))
+    rb.rememberBacktest(base)
+    assert.equal(rb.readRecentBacktests().length, 1)
+    // 로그아웃 없이 2번 회원으로(다른 탭·콜백)
+    auth.saveTokens(jwt('2'))
+    assert.deepEqual(rb.readRecentBacktests(), [])
+    // 토큰 만료 뒤 같은 회원이 다시 로그인하면 그대로(2026-10-30 결정)
+    auth.clearTokens()
+    assert.deepEqual(rb.readRecentBacktests(), [])
+    auth.saveTokens(jwt('1'))
+    assert.equal(rb.readRecentBacktests().length, 1)
+    // 2번 회원이 결과를 보면 1번 회원의 줄은 버린다
+    auth.saveTokens(jwt('2'))
+    rb.rememberBacktest({ ...base, stockCode: '000660', stockName: 'SK하이닉스' })
+    assert.deepEqual(rb.readRecentBacktests().map((r) => r.stockCode), ['000660'])
+    auth.saveTokens(jwt('1'))
+    assert.deepEqual(rb.readRecentBacktests(), [])
+    // 2026-10-31 전의 배열 모양(주인 없음)은 버린다
+    localStorage.setItem('recentBacktests', JSON.stringify([{ ...base, viewedAt: 1 }]))
+    assert.deepEqual(rb.readRecentBacktests(), [])
+    // 계정 번호를 모르는 토큰이면 남기지도 보여 주지도 않는다
+    auth.saveTokens('judge-token')
+    rb.rememberBacktest(base)
+    assert.deepEqual(rb.readRecentBacktests(), [])
+    auth.clearTokens()
   })
 })
 

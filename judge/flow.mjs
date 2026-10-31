@@ -259,7 +259,8 @@ await run('L', async () => {
 /* ── M. 마이페이지 한눈에 보기 ──────────────────────────────────────── */
 await run('M', async () => {
   let t = await open()
-  await t.page.context().addInitScript(() => { localStorage.setItem('recentBacktests', JSON.stringify([{ stockCode: '005930', stockName: '삼성전자', investType: 3, period: 'ONE_YEAR', finalScore: 64, viewedAt: Date.now() - 3600_000 }])) })
+  // 2026-10-31부터 저장값에 주인(토큰의 subject = 회원 번호)이 있다 — 다른 계정의 줄은 보이지 않는다(repro E)
+  await t.page.context().addInitScript(() => { localStorage.setItem('recentBacktests', JSON.stringify({ owner: '1', rows: [{ stockCode: '005930', stockName: '삼성전자', investType: 3, period: 'ONE_YEAR', finalScore: 64, viewedAt: Date.now() - 3600_000 }] })) })
   await t.goto('/mypage', 1500)
   const sections = await t.page.locator('section[aria-label]').count()
   const member = await t.page.getByText('허광엽 님').count()

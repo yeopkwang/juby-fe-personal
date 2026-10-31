@@ -515,7 +515,7 @@ async function aiGroup() {
 
   // QA6 개발 서버(StrictMode)에서도 1건씩
   if (DEV) {
-    const { context, page, log } = await toAi({}, true, DEV)
+    const { context, log } = await toAi({}, true, DEV)
     await until(() => log.asks.length >= 1, 8000)
     await sleep(2000)
     report('QA6 개발', count(log, SESSION_POST) === 1 && count(log, ASK) === 1 && log.asks[0]?.stockName === '삼성전자',

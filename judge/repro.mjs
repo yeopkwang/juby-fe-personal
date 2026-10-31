@@ -172,4 +172,42 @@ await run('D', async () => {
   await t.close()
 })
 
+/* ── E. 최근 본 백테스트는 계정별이다 ───────────────────────────────── */
+await run('E', async () => {
+  const runBacktest = async (t) => {
+    await t.goto('/backtest', 1200)
+    await t.page.locator('#backtest-stock').fill('삼성전자')
+    await t.page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
+    await t.page.locator('#backtest-period').selectOption('ONE_YEAR')
+    await t.page.getByRole('button', { name: '백테스트 시작하기' }).click()
+    await t.page.getByRole('heading', { name: '백테스트 결과' }).waitFor({ timeout: 8000 })
+  }
+  const recentRows = (t) => t.page.getByRole('region', { name: '최근 본 백테스트' }).getByRole('link', { name: /삼성전자/ }).count()
+  const switchTo = (t, token) => t.page.evaluate((token) => {
+    if (token === null) localStorage.removeItem('accessToken'); else localStorage.setItem('accessToken', token)
+    window.dispatchEvent(new StorageEvent('storage', { key: 'accessToken', newValue: token }))
+  }, token)
+
+  // E1 1번 회원이 본 결과는, 로그아웃 없이 2번 회원으로 로그인하면(다른 탭·콜백) 보이지 않는다(2026-10-31)
+  let t = await open({ user: 1 })
+  await runBacktest(t)
+  await switchTo(t, tokenFor(2))
+  await t.goto('/mypage', 1500)
+  const other = await recentRows(t)
+  const emptyText = await t.page.getByText('아직 본 백테스트가 없어요').count()
+  report('E1', other === 0 && emptyText === 1, `2번 회원으로 바꾼 뒤 1번 회원의 최근 본 백테스트 ${other}줄, 빈 안내 ${emptyText}`)
+  await t.close()
+
+  // E2 토큰이 만료돼 풀렸다가 같은 회원이 다시 로그인하면 그대로 보인다(2026-10-30 결정 — 토큰 만료만으로는 지우지 않는다)
+  t = await open({ user: 1 })
+  await runBacktest(t)
+  await switchTo(t, null)
+  await sleep(300)
+  await switchTo(t, tokenFor(1))
+  await t.goto('/mypage', 1500)
+  const same = await recentRows(t)
+  report('E2', same === 1, `같은 회원이 다시 로그인하면 최근 본 백테스트 ${same}줄`)
+  await t.close()
+})
+
 await j.finish()

@@ -208,10 +208,11 @@ async function itemInfo(page) {
   await page.locator('canvas').first().waitFor()
   await page.waitForTimeout(1500)
   // 가장 큰 캔버스(봉 차트)의 가운데가 띠 가운데에 오게 내린다
-  const big = `(() => [...document.querySelectorAll('canvas')].reduce((a, c) => (c.getBoundingClientRect().height * c.getBoundingClientRect().width > a.getBoundingClientRect().height * a.getBoundingClientRect().width ? c : a)))()`
+  // 가장 큰 캔버스(봉 차트)를 찾는 함수 본문. 두 evaluate가 같은 글을 쓴다(eval 대신 Function)
+  const big = `return [...document.querySelectorAll('canvas')].reduce((a, c) => (c.getBoundingClientRect().height * c.getBoundingClientRect().width > a.getBoundingClientRect().height * a.getBoundingClientRect().width ? c : a))`
   const chartUnder = await page.evaluate(({ sel, big }) => {
     const bar = document.querySelector(sel).getBoundingClientRect()
-    const canvas = eval(big).getBoundingClientRect()
+    const canvas = new Function(big)().getBoundingClientRect()
     window.scrollBy(0, canvas.top + canvas.height / 2 - (bar.top + bar.height / 2))
     return true
   }, { sel: BAR, big })
@@ -219,7 +220,7 @@ async function itemInfo(page) {
   const topOnChart = await page.evaluate(({ sel, big }) => {
     const bar = document.querySelector(sel)
     const r = bar.getBoundingClientRect()
-    const canvas = eval(big).getBoundingClientRect()
+    const canvas = new Function(big)().getBoundingClientRect()
     const x = canvas.left + 40
     const y = r.top + r.height / 2
     const hit = document.elementFromPoint(x, y)

@@ -124,6 +124,29 @@ export function isLoggedIn(): boolean {
   return getAccessToken() !== null
 }
 
+/**
+ * 지금 로그인한 계정의 번호. access token(JWT)의 subject다 — 백엔드 `JwtUtil`이 회원 번호를 적는다(2026-10-31 소스 확인).
+ * 토큰이 없거나 JWT 모양이 아니면 null. 계정에 딸린 브라우저 저장값(최근 본 백테스트, `utils/recentBacktests.ts`)의 주인을
+ * 가르는 데 쓴다 — 로그아웃 없이 다른 계정으로 로그인해도 앞 사람의 기록이 보이지 않게.
+ * 서명은 검사하지 않는다. 누구인지 가르는 용도일 뿐이고 권한은 서버가 본다.
+ */
+export function getAccountId(): string | null {
+  const token = getAccessToken()
+  if (token === null) return null
+  const parts = token.split('.')
+  if (parts.length !== 3) return null
+  try {
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
+    const payload: unknown = JSON.parse(new TextDecoder().decode(bytes))
+    if (typeof payload !== 'object' || payload === null) return null
+    const subject = (payload as Record<string, unknown>).sub
+    return typeof subject === 'string' && subject !== '' ? subject : null
+  } catch {
+    return null
+  }
+}
+
 /*
  * 로그인 뒤 돌아갈 자리. 소셜 로그인은 백엔드·네이버 등 바깥 화면을 거쳐 페이지가 새로 뜨므로 메모리에 둘 수 없어
  * sessionStorage에 둔다(탭마다 따로, 탭을 닫으면 사라짐). 저장소를 못 쓰면 없는 셈 친다 — 홈으로 갈 뿐이다.

@@ -46,7 +46,7 @@ const inView = (page, sel) => page.evaluate((sel) => {
   const h2 = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[class*="_cards_"] > a')]
     const boxed = cards.filter((c) => { const cs = getComputedStyle(c); return cs.boxShadow !== 'none' || ['Top', 'Right', 'Bottom'].every((s) => parseFloat(cs[`border${s}Width`]) > 0) })
-    return { n: cards.length, boxed: boxed.length, year: cards.filter((c) => /1년 전보다\s*[+\-]?\d/.test(c.textContent)).length, big: cards.filter((c) => [...c.querySelectorAll('*')].some((e) => parseFloat(getComputedStyle(e).fontSize) >= 28)).length }
+    return { n: cards.length, boxed: boxed.length, year: cards.filter((c) => /1년 전보다\s*[+-]?\d/.test(c.textContent)).length, big: cards.filter((c) => [...c.querySelectorAll('*')].some((e) => parseFloat(getComputedStyle(e).fontSize) >= 28)).length }
   })
   report('H-2', h2.n === 3 && h2.boxed === 0 && h2.year === 3 && h2.big === 0, `테마 칸 ${h2.n}, 상자(그림자·세 변 테두리) ${h2.boxed}, "1년 전보다 ±x%" ${h2.year}, 28px 넘는 큰 숫자 ${h2.big}`)
   const ranks = await page.locator('[class*="_rank_"]').allTextContents()
