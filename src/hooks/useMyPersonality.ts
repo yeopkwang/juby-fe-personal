@@ -8,7 +8,7 @@ import { getMyPersonalityOnPublicPage } from '../api/member'
  * "투자성향 검사하기"를 보고 다시 검사하러 가 멀쩡한 성향을 덮어쓸 수 있었다.
  * 불러오는 중도 따로 둔다 — 그 짧은 사이에 "아직 안 하셨어요"가 비치지 않게.
  */
-type MyPersonality =
+export type MyPersonality =
   /** 비로그인. 부르지 않는다 */
   | { kind: 'idle' }
   | { kind: 'loading' }
