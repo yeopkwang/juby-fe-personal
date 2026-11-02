@@ -293,7 +293,8 @@ DB 일봉을 주는 API는 상세 하나뿐이라(스웨거·백엔드 컨트롤
     `marketCalendar`(받아 둔 휴장일과 받은 때, `api/marketCalendar.ts`), `recentStocks`(최근 본 종목 8개, `utils/recentStocks.ts` —
     로그인과 상관없는 이 브라우저의 방문 기록이라 로그아웃해도 두고, 검색창의 '기록 지우기'로 비운다),
     `lastLoginProvider`(이 브라우저에서 마지막으로 로그인한 가입 경로 `KAKAO`·`NAVER`·`GOOGLE`, `utils/lastLogin.ts`, 2026-11-02 — 로그인 화면이
-    그 단추에 "최근 사용"을 단다. 누른 단추가 아니라 콜백이 서버가 준 `socialType`으로 적는다. 로그아웃·탈퇴해도 둔다).
+    그 단추에 "최근 사용"을 단다. 누른 단추가 아니라 콜백이 서버가 준 `socialType`으로 적고, 서버가 못 알려 주면 지운다(지난 단추를 가리키면
+    다른 계정으로 이끈다). 로그아웃해도 두고 탈퇴하면 지운다 — 탈퇴는 `clearSession` 뒤에 따로 부른다(로그아웃은 두는 값이라 그 함수에 넣지 않는다)).
   - 때 한 칸(`readStamp`/`writeStamp`, 0이면 없음): `stockDetailSentAt`·`kisTokenPrimedAt`·`kisTokenPrimeSkipUntil`·`kisLimitedAt`
     (증권사 호출 간격·토큰 심기·서버 오류 표시 — 위 "증권사(KIS) 호출"), `marketCalendarSkipUntil`(휴장일을 못 받은 뒤 쉬는 때). 탭끼리 나누려고 localStorage에 두고, 못 쓰면 그 탭의 메모리에 둔다.
     **localStorage에 값이 있으면 그걸 믿는다** — 예전엔 메모리 값과 큰 쪽을 써서, 한 탭이 표시를 지워도(0) 다른 탭은 옛 값을 믿었다.
@@ -338,7 +339,7 @@ DB 일봉을 주는 API는 상세 하나뿐이라(스웨거·백엔드 컨트롤
 만든다. 소셜 로그인은 백엔드·소셜 화면을 거쳐 페이지가 새로 뜨므로, 버튼을 누를 때 그 자리를 sessionStorage에 적어 두고
 (`rememberReturnPath`) 콜백이 토큰을 담은 뒤 꺼내 그리로 보낸다(`takeReturnPath`). 없으면 홈이다.
 **성향테스트를 안 한 회원은 그 전에 검사로 보낸다**(사용자 결정 2026-09-30). 콜백이 `GET /api/members/me`의 `onboarded`를 한 번 묻고
-(`checkAfterLogin`, 5초 — 같은 응답의 `socialType`은 `lastLoginProvider`로 적는다), `false`면 `/personality-test?next=<가려던 자리>`로 보낸다 — 마치면 결과 화면의 '완료'가 그리로 간다.
+(`checkAfterLogin`, 5초, 던지지 않는다 — 같은 응답의 `socialType`은 `lastLoginProvider`로 적는다), `false`면 `/personality-test?next=<가려던 자리>`로 보낸다 — 마치면 결과 화면의 '완료'가 그리로 간다.
 값이 빠졌거나 조회가 실패하면 검사 없이 가려던 자리로 간다. 묻는 동안은 "로그인 중"이 보인다.
 **돌아갈 자리는 이 사이트 안의 경로만 받는다**(`toReturnPath`) — `//evil.com`·`https://…`·`/login`·`/oauth…`는 버린다.
 풀어 낸 경로가 `//`로 시작해도 버린다(`/.//evil.com`) — 그 값을 `navigate`에 넣으면 React Router가 `location.assign`으로 바깥에 넘긴다.
@@ -848,8 +849,10 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
     알약 칩·채운 탭을 쓰지 않는다.
   - **단추는 세 종류뿐이다**(`components/buttons.module.css`를 `composes`로 가져다 쓴다): primary(브랜드 채움, 한 화면의 주 행동), secondary(흰 바탕 +
     먹 테두리 — 예전 옅은 회색 테두리는 흰 바탕에서 단추로 안 읽혔다), ghost(바탕·테두리 없음). 높이 md 40px·lg 48px(600px 이하 md 44px), 모서리 같음,
-    hover·active·focus-visible·disabled가 다 있다. 화면 CSS는 자리(폭·여백)만 정하고 색·테두리·높이를 덮어쓰지 않는다. 한 요소에 두 종류를 같이 달지
-    않는다(고른 칸은 다른 클래스로 갈아 단다). 되돌릴 수 없는 확정(탈퇴·대화 지우기)은 primary, 취소는 secondary다.
+    hover·active·focus-visible·disabled가 다 있다. 화면 CSS는 자리(폭·여백·`position`)만 정하고 색·테두리·높이와 **`display`·`padding`·`gap`을 덮어쓰지
+    않는다** — 이 파일은 그것을 쓰는 화면 묶음마다 같이 들어와, 다른 화면에 다녀오면 나중에 들어온 벌이 같은 우선순위의 화면 규칙을 이긴다
+    (2026-11-02 로그인 단추가 홈에 다녀오면 아이콘이 글자 옆으로 붙었다, `judge/login.mjs` L10). 단추 안 배치가 따로 필요하면 안쪽 요소에 준다.
+    한 요소에 두 종류를 같이 달지 않는다(고른 칸은 다른 클래스로 갈아 단다). 되돌릴 수 없는 확정(탈퇴·대화 지우기)은 primary, 취소는 secondary다.
     예외: 카카오 로그인 단추는 회사 지침 색(`--color-kakao`, 마우스·누름 `-hover`·`-active`). 네이버·Google은 secondary에 회사 아이콘이다 —
     네이버 초록 위 흰 글자는 대비 2.4:1이라 쓰지 않는다(2026-11-02, `public/social/naver.svg`는 초록 N).
   - 모서리는 `--radius-sm`(6)·`md`(8)·`lg`(12) 세 단계와 알약·원뿐이다(상자를 띄우지 않아 둥근 정도도 작게 뒀다).
@@ -862,7 +865,9 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
   - 캔버스(`CandleChart`)는 CSS 변수를 못 읽어 그릴 때 `utils/cssToken.ts`로 토큰 값을 꺼낸다. SVG(`CardChart`)는 `style`에 `var(--…)`를 쓴다.
     색을 코드에 다시 적지 않는다.
   - 고치기 쉬운 글은 `src/content/`에 둔다: 홈 오른쪽 위·사용설명서 화면의 "처음이라면 이 순서로" 단계(`homeGuide.ts`), 홈 커뮤니티 예시 글
-    (`communityPreview.ts` — 커뮤니티 백엔드가 없어 화면이 "예시"라고 밝힌다, 사용자 결정 2026-10-30). 사용설명서 본문은 여전히 `src/api/guide.ts`(사용자 몫)다.
+    (`communityPreview.ts` — 커뮤니티 백엔드가 없어 화면이 "예시"라고 밝힌다, 사용자 결정 2026-10-30). 로그인 화면 아래 세 칸(`loginSteps.ts`). 사용설명서 본문은 여전히 `src/api/guide.ts`(사용자 몫)다.
+  - 소셜 가입 경로(카카오·네이버·Google)의 순서·이름·아이콘·로그인 주소는 `utils/social.ts`의 `SOCIAL_PROVIDERS` 한 표다 — 로그인 단추, 마이페이지 가입 경로,
+    회원 정보 거르기(`isSocialType`)가 같이 쓴다(2026-11-02, 따로 적던 때는 로그인 "Google"·마이페이지 "구글"로 갈렸다).
   - 한글은 `body`의 `word-break: keep-all`로 낱말 단위로만 줄을 바꾼다("찾아보/세요", "신호로 삼/는"처럼 음절 사이에서 끊겼다).
     띄어쓰기 없이 칸보다 긴 덩어리는 `overflow-wrap: break-word`가 끊는다. 서버가 주는 자유 글은 여전히 `anywhere`를 준다(아래).
 - **키보드로 들어오면 첫 Tab이 "본문으로 건너뛰기"다**(`App.tsx`, 2026-10-31). 진한 초록 머리글 위에 흰 보조 단추로 뜨고, 누르면 `main`에 포커스를 준다.
@@ -872,7 +877,8 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
   지킨다. 상세의 기간 탭은 한 줄에 안 들어가면 두 줄로 접는다(옆으로 밀던 때는 '전체' 탭이 잘려 숨었다).
   **판 안에 테두리 있는 카드를 또 두지 않는다** — 2026-10-30부터는 판 자체도 두지 않는다(위 "흰 바탕 하나, 상자 대신 기준선").
   로그인 화면(2026-11-02 다시 디자인, 사용자 "너무나 별로… 최신 환경에 맞춰서 아예 다시")은 가운데 한 줄(400px)에 제목 + 먹 선, 한 줄 안내,
-  글자가 든 소셜 단추 셋(카카오 → 네이버 → Google, 48px), 작은 안내다. 지난번에 로그인한 곳에 "최근 사용"을 달고(소셜 계정마다 JUBY 계정이 따로다),
+  글자가 든 소셜 단추 셋(카카오 → 네이버 → Google, 48px), 작은 안내다. 지난번에 로그인한 곳에 "최근 사용"을 달고(소셜 계정마다 JUBY 계정이 따로다 —
+  단추 이름은 "네이버로 로그인" 그대로, 표시는 `aria-describedby` 설명으로 읽힌다. 고대비 모드에서는 테두리로 남는다),
   `?next=`가 있으면 "보던 화면으로 돌아가요"를 적는다. 아래 "로그인하면 이렇게 시작해요" 세 칸은 가운데 칸 폭이 단추 줄과 같아 칸 사이 선이 단추 양 끝과
   한 줄이다(900px 이하는 위아래로). 지나온 판: 가운데 흰 판(넓은 화면에서 좌우가 빔) → 글 | 옅은 면 위 아이콘 동그라미 셋(10-30). 판정은 `judge/login.mjs`.
 - 차트 라이브러리는 `lightweight-charts` 하나뿐이고 종목 상세의 캔들에만 쓴다. 차트 안 로고(`attributionLogo`)는 거래량 막대 위에
