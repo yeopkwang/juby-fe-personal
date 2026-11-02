@@ -27,6 +27,7 @@ node quick.mjs http://localhost:4198 --only layout,heart,backtest,ai,regress,ext
 node ui.mjs http://localhost:4198                     # UI 규칙(10-29 리디자인 + 10-30 재정비)
 node backtest.mjs http://localhost:4198               # 백테스트 즉석 실행
 node feature.mjs http://localhost:4198                # 10-30 재정비 화면별(홈·상세·주식 모아보기)
+node login.mjs http://localhost:4198                  # 로그인 화면(11-02): 글자 든 단추 셋·가운데 한 줄·떠나는 주소·최근 사용·실패 안내·좁은 폭
 ```
 
 `--only A,B`로 묶음을 고르고, `flow`·`repro`·`ai`는 `--headed`로 창을 보며 돌린다. 끝줄이 `N PASS / M FAIL`이고 FAIL이 있으면 종료 코드 1이다.
